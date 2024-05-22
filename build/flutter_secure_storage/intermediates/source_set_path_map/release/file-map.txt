@@ -1,0 +1,13 @@
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-jetified-annotation-experimental-1.1.0-0 C:\Users\zamal\.gradle\caches\transforms-3\02315cc9f75263553d2042718fc375ee\transformed\jetified-annotation-experimental-1.1.0\res
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-jetified-window-1.0.0-beta04-1 C:\Users\zamal\.gradle\caches\transforms-3\076eb9235982ee06112d76594ea8585f\transformed\jetified-window-1.0.0-beta04\res
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-jetified-security-crypto-1.1.0-alpha06-2 C:\Users\zamal\.gradle\caches\transforms-3\976c7994ef853ad3a632d5d116c2c96b\transformed\jetified-security-crypto-1.1.0-alpha06\res
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-jetified-window-java-1.0.0-beta04-3 C:\Users\zamal\.gradle\caches\transforms-3\99750bb863b6fe460a7b5da8686e778d\transformed\jetified-window-java-1.0.0-beta04\res
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-core-1.6.0-4 C:\Users\zamal\.gradle\caches\transforms-3\d08c73bfb05384f2e52578171dbd141e\transformed\core-1.6.0\res
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-main-5 C:\Users\zamal\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_secure_storage-8.1.0\android\src\main\res
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-release-6 C:\Users\zamal\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_secure_storage-8.1.0\android\src\release\res
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-pngs-7 C:\Users\zamal\Documents\mobileabsensi\build\flutter_secure_storage\generated\res\pngs\release
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-resValues-8 C:\Users\zamal\Documents\mobileabsensi\build\flutter_secure_storage\generated\res\resValues\release
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-rs-9 C:\Users\zamal\Documents\mobileabsensi\build\flutter_secure_storage\generated\res\rs\release
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-mergeReleaseResources-10 C:\Users\zamal\Documents\mobileabsensi\build\flutter_secure_storage\intermediates\incremental\release\mergeReleaseResources\merged.dir
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-mergeReleaseResources-11 C:\Users\zamal\Documents\mobileabsensi\build\flutter_secure_storage\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+com.it_nomads.fluttersecurestorage.flutter_secure_storage-merged_res-12 C:\Users\zamal\Documents\mobileabsensi\build\flutter_secure_storage\intermediates\merged_res\release

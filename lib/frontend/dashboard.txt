@@ -1,0 +1,452 @@
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
+import 'package:mobileabsensi/frontend/absen/absen.dart';
+import 'package:mobileabsensi/frontend/izin/izin.dart';
+import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
+import 'package:mobileabsensi/frontend/izin/buat.dart';
+import 'package:mobileabsensi/frontend/izin/diterima.dart';
+import 'package:mobileabsensi/frontend/izin/riwayat.dart';
+import 'package:mobileabsensi/frontend/izin/status.dart';
+import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
+import 'package:mobileabsensi/frontend/navigation.dart';
+import 'package:sp_util/sp_util.dart';
+
+import '../notifikasi/notification_controller.dart';
+import 'laporan_harian/laporan.dart';
+
+class Home extends StatefulWidget {
+  const Home({super.key, required this.title});
+  final String title;
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  final DatabaseReference databaseReference =
+      FirebaseDatabase.instance.reference();
+
+  @override
+  void initState() {
+    NotificationController notificationController =
+        NotificationController(); // Membuat objek
+    notificationController
+        .startListeningNotificationEvents(); // Memanggil metode pada objek
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+      ),
+      drawer: const InkWellDrawer(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              color: const Color.fromARGB(255, 237, 238, 238),
+              child: Row(
+                children: [
+                  const SizedBox(height: 70),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 15),
+                    child: Text(
+                      'Selamat datang ${SpUtil.getString('nama_lengkap') ?? ''}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromARGB(255, 1, 145, 28)),
+                    ),
+                  ),
+                  const SizedBox(height: 50),
+                ],
+              ),
+            ),
+            Container(
+              color: Colors.blue.shade900,
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 70,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/absen.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(2),
+                                child: Text(
+                                  'Absen',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              )
+                            ],
+                          ),
+                          onTap: () {
+                            goToAbsen(context);
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 70,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/riwayat.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(1.0),
+                                child: Text(
+                                  'Riwayat',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              )
+                            ],
+                          ),
+                          onTap: () {
+                            goToRiwayatAbsen(context);
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 70,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/izin.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(1.0),
+                                child: Text(
+                                  'Izin',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              )
+                            ],
+                          ),
+                          onTap: () {
+                            goToBuatIzin(context);
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 70,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/laporan.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(1.0),
+                                child: Text(
+                                  'Laporan',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              )
+                            ],
+                          ),
+                          onTap: () {
+                            goToLaphar(context);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/pengumuman.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(1.0),
+                                child: Text(
+                                  'Pengumuman',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            goToBerita(context);
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 60,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/berita.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(1.0),
+                                child: Text(
+                                  'Berita',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            goToBerita(context);
+                          },
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      SizedBox(
+                        width: 70,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/pesan.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(1.0),
+                                child: Text(
+                                  'Pesan',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            goToBuatLaphar(context);
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 70,
+                        child: GestureDetector(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/icon/panduan.png',
+                                height: 50,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(1.0),
+                                child: Text(
+                                  'Panduan',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            goToBuatLaphar(context);
+                          },
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 20,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Future<void> readData() async {
+  //   try {
+  //     DataSnapshot snapshot = await databaseReference.once().then((event) {
+  //       return event.snapshot;
+  //     });
+
+  //     if (snapshot.value != null) {
+  //       final Map<dynamic, dynamic>? izinData =
+  //           snapshot.value as Map<dynamic, dynamic>?;
+
+  //       if (izinData != null && izinData.containsKey('izin')) {
+  //         final Map<dynamic, dynamic>? izinMap =
+  //             izinData['izin'] as Map<dynamic, dynamic>?;
+
+  //         if (izinMap != null && izinMap.isNotEmpty) {
+  //           // Loop through all documents in 'izin'
+  //           for (final MapEntry<dynamic, dynamic> entry in izinMap.entries) {
+  //             final Map<dynamic, dynamic>? documentData =
+  //                 entry.value as Map<dynamic, dynamic>?;
+
+  //             if (documentData != null) {
+  //               final idAtasan = documentData['id_atasan'];
+  //               final idUser = documentData['id_user'];
+  //               final idStatus = documentData['id_status'];
+
+  //               if (idAtasan is String && idUser is String && idStatus is int) {
+  //                 final parsedIdAtasan = int.tryParse(idAtasan);
+  //                 final user = SpUtil.getString('id_user');
+  //                 final userId = int.tryParse(user ?? '');
+
+  //                 if (parsedIdAtasan != null && userId != null) {
+  //                   if (userId == parsedIdAtasan && idStatus == 1) {
+  //                     try {
+  //                       // Run the notification logic here
+  //                       NotificationController.createNewNotification();
+  //                     } catch (e) {
+  //                       print('Error sending notification: $e');
+  //                     }
+  //                   }
+  //                 } else {
+  //                   print(
+  //                       'Terjadi kesalahan saat mengonversi id_atasan atau userId.');
+  //                 }
+  //               } else {
+  //                 print(
+  //                     'Data tidak lengkap: idAtasan=$idAtasan, idUser=$idUser, idStatus=$idStatus');
+  //               }
+  //             } else {
+  //               print('Dokumen data tidak ditemukan.');
+  //             }
+  //           }
+  //         } else {
+  //           print('Dokumen izin kosong.');
+  //         }
+  //       } else {
+  //         print('Kunci "izin" tidak ditemukan dalam data.');
+  //       }
+  //     } else {
+  //       // Data tidak ditemukan
+  //       print('Data tidak ditemukan');
+  //     }
+  //   } catch (error) {
+  //     // Handle error jika terjadi masalah saat membaca data
+  //     print('Terjadi kesalahan: $error');
+  //   }
+  // }
+
+  void goToAbsen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const Absen(),
+      ),
+    );
+  }
+
+  //Riwayat absensi
+  void goToRiwayatAbsen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const RiwayatAbsen(),
+      ),
+    );
+  }
+
+//laporan harian
+  void goToLaphar(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const Laporan(),
+      ),
+    );
+  }
+
+  void goToBuatIzin(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const BuatIzin(),
+      ),
+    );
+  }
+
+  void goToRiwayatIzin(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const RiwayatIzin(),
+      ),
+    );
+  }
+
+  void goToStatusIzin(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const StatusIzin(),
+      ),
+    );
+  }
+
+  void goToIzinDiterima(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const Terimaizin(),
+      ),
+    );
+  }
+
+  void goToIzinDitolak(BuildContext context) {}
+
+  void goToBuatLaphar(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const BuatLaporan(),
+      ),
+    );
+  }
+
+  void goToStatusLaphar(BuildContext context) {}
+  void goToDiterimaLaphar(BuildContext context) {}
+
+  void goToDitolakLaphar(BuildContext context) {}
+
+  void goToBerita(BuildContext context) {}
+}
+
+//Izin
+void goToIzin(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (BuildContext context) => const Izin(),
+    ),
+  );
+}

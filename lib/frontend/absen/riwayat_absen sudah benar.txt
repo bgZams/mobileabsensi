@@ -1,0 +1,310 @@
+// SELESAI MALAM SABTU 25 AGUSTUS 2023
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:mobileabsensi/frontend/absen/lihat_spt.dart';
+import 'package:mobileabsensi/frontend/navigation.dart';
+import 'package:sp_util/sp_util.dart';
+
+class RiwayatAbsen extends StatefulWidget {
+  const RiwayatAbsen({Key? key}) : super(key: key);
+
+  @override
+  _RiwayatAbsenState createState() => _RiwayatAbsenState();
+}
+
+class _RiwayatAbsenState extends State<RiwayatAbsen> {
+  List<DataRow> _rows = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    if (SpUtil.getString("id_user") != null) {
+      try {
+        var idServer = SpUtil.getString("id_server");
+        var idUser = SpUtil.getString("id_user");
+
+        http.Response riwayatAbsen = await http.get(
+          Uri.parse(
+              'http://mobileabsensi$idServer.pasamanbaratkab.go.id/api_android/riwayat_absen.php?id_user=$idUser'),
+          headers: {
+            'Content-type': 'application/json',
+            'Accept': 'application/json'
+          },
+        );
+
+        if (riwayatAbsen.statusCode == 200) {
+          final jsonData =
+              jsonDecode(riwayatAbsen.body) as Map<String, dynamic>;
+
+          // print(jsonData);
+
+          if (jsonData.containsKey('data')) {
+            final dataList = jsonData['data'] as List<dynamic>;
+            setState(() {
+              _rows = dataList.map((data) {
+                return DataRow(
+                  cells: [
+                    DataCell(Text(data['tanggal_absen'])),
+                    DataCell(Text(data['jam_masuk'])),
+                    DataCell(Text(data['jam_pulang'].toString())),
+                    DataCell(Text(data['status_absen'])),
+                    DataCell(Text(data['keterangan'].toString())),
+                    DataCell(Text(data['file'].toString())),
+                  ],
+                );
+              }).toList();
+              _isLoading = false;
+            });
+          } else {
+            throw Exception('Gagal mengambil data');
+          }
+        } else {
+          throw Exception('Kesalahan HTTP: ${riwayatAbsen.statusCode}');
+        }
+      } catch (e) {
+        // print('Gagal mengambil data: $e');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildCard(int index) {
+    final dataRow = _rows[index];
+    final cells = dataRow.cells.toList();
+    final tanggal = (cells[0].child as Text).data;
+    final jamMasuk = (cells[1].child as Text).data;
+    final jamPulang = (cells[2].child as Text).data;
+    final status = (cells[3].child as Text).data;
+    final keterangan = (cells[4].child as Text).data;
+    final file = (cells[5].child as Text).data;
+
+    IconData statusIcon;
+    Color statusColor;
+
+    if (status == 'HADIR') {
+      statusIcon = Icons.check;
+      statusColor = const Color.fromARGB(255, 128, 249, 170);
+    } else if (status == 'DINAS LUAR') {
+      statusIcon = Icons.car_repair;
+      statusColor = const Color.fromARGB(255, 134, 255, 245);
+    } else if (status == 'IZIN') {
+      statusIcon = Icons.assignment;
+      statusColor = const Color.fromARGB(255, 255, 243, 131);
+    } else if (status == 'SAKIT') {
+      statusIcon = Icons.local_hospital;
+      statusColor = const Color.fromARGB(255, 255, 72, 133);
+    } else if (status == 'CUTI') {
+      statusIcon = Icons.close;
+      statusColor = const Color.fromARGB(255, 229, 80, 255);
+    } else if (status == 'IDLK') {
+      statusIcon = Icons.close;
+      statusColor = const Color.fromARGB(255, 255, 170, 43);
+    } else {
+      statusIcon = Icons.error;
+      statusColor = Colors.white;
+    }
+
+    return Card(
+      key: ValueKey<String>('card_$index'),
+      margin: const EdgeInsets.all(8),
+      color: const Color.fromARGB(255, 255, 255, 255),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Mengatur ukuran vertikal
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month_rounded,
+                      color: Colors.black,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$tanggal',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 50),
+                Row(
+                  children: [
+                    Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black,
+                      ),
+                      padding: const EdgeInsets.all(1),
+                      child: CircleAvatar(
+                        backgroundColor: statusColor,
+                        radius: 8,
+                        child: Icon(
+                          statusIcon,
+                          color: Colors.black,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      status!,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (status != "HADIR")
+              Container(
+                color: Colors.white,
+                child: Column(
+                  children: [
+                    const Align(
+                      alignment: Alignment.topLeft,
+                      child: Text(
+                        'Keterangan:',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '$keterangan',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    color: Colors.black,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Jam Masuk: $jamMasuk',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 8),
+            if (status != "HADIR")
+              Container(
+                color: Colors.white,
+                child: Row(
+                  children: [
+                    GestureDetector(
+                        onTap: () {
+                          String safeUrl = '$file';
+                          String encodedUrl = Uri.encodeComponent(safeUrl);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  LihatSpt(imageUrl: encodedUrl),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 236, 181, 255),
+                            border: Border.all(
+                              color: const Color.fromARGB(255, 187, 0, 255),
+                            ),
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(5)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.image,
+                                color: Color.fromARGB(255, 187, 0, 255),
+                              ),
+                              Text(
+                                ' FOTO ',
+                                style: TextStyle(
+                                  color: Color.fromARGB(255, 187, 0, 255),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
+                  ],
+                ),
+              )
+            else
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    color: Colors.black,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Jam Pulang: $jamPulang',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // TIME
+
+  // END
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Riwayat Absen')),
+      drawer: const InkWellDrawer(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _rows.length,
+              itemBuilder: (context, index) {
+                return _buildCard(index);
+              },
+            ),
+    );
+  }
+}

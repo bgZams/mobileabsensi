@@ -1,0 +1,87 @@
+{
+  "project_info": {
+    "project_number": "320826225712",
+    "firebase_url": "https://mobile-absensi-6d1a7-default-rtdb.firebaseio.com",
+    "project_id": "mobile-absensi-6d1a7",
+    "storage_bucket": "mobile-absensi-6d1a7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320826225712:android:15f2f6bb47eddf39baa9f5",
+        "android_client_info": {
+          "package_name": "com.example.mobileabsensi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkH3F-aznk2XRlXQgbzQDHmru87Vk-NZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320826225712:android:f835697709ecca38baa9f5",
+        "android_client_info": {
+          "package_name": "com.example.mobileabsensipas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkH3F-aznk2XRlXQgbzQDHmru87Vk-NZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320826225712:android:9eb33e27200ed47abaa9f5",
+        "android_client_info": {
+          "package_name": "com.example.mobilepasbar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkH3F-aznk2XRlXQgbzQDHmru87Vk-NZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320826225712:android:3d16829d46defa42baa9f5",
+        "android_client_info": {
+          "package_name": "com.mobile.pasbar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkH3F-aznk2XRlXQgbzQDHmru87Vk-NZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

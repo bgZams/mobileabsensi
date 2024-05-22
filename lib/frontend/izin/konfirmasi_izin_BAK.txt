@@ -1,0 +1,184 @@
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+import 'package:sp_util/sp_util.dart';
+
+class KonfirmasiIzin extends StatefulWidget {
+  const KonfirmasiIzin({Key? key}) : super(key: key);
+
+  @override
+  State<KonfirmasiIzin> createState() => _KonfirmasiIzinState();
+}
+
+class _KonfirmasiIzinState extends State<KonfirmasiIzin> {
+  List<dynamic> _riwayatIzin = [];
+  String? url;
+  String? idUser;
+
+  @override
+  void initState() {
+    super.initState();
+    initializePreferences();
+  }
+
+  Future<void> initializePreferences() async {
+    url = SpUtil.getString("url");
+    idUser = SpUtil.getString("id_user");
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    if (idUser!.isEmpty || url!.isEmpty) {
+      debugPrint('Error: idUser or url is empty');
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$url/api/riwayat-izin/notif/$idUser'),
+        headers: {
+          'Content-type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        _processData(response);
+        for (var izin in _riwayatIzin) {
+          _updateData(izin['documentId'], {'is_status': 1});
+        }
+      } else {
+        throw Exception('Failed to load data');
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        print('Error: $error');
+      }
+    }
+  }
+
+  void _processData(http.Response response) {
+    setState(() {
+      _riwayatIzin = json.decode(response.body)['data'];
+    });
+  }
+
+  Future<void> _updateData(
+      String documentId, Map<String, dynamic> newData) async {
+    try {
+      final DatabaseReference databaseReference =
+          FirebaseDatabase.instance.reference();
+      final izinRef = databaseReference.child('izin').child(documentId);
+      databaseReference.onValue.listen((event) {
+        final DataSnapshot? snapshot = event.snapshot;
+        if (snapshot != null && snapshot.value != null) {
+          final Map<dynamic, dynamic>? izinData =
+              snapshot.value as Map<dynamic, dynamic>?;
+
+          if (izinData != null && izinData.containsKey('izin')) {
+            final Map<dynamic, dynamic>? izinMap =
+                izinData['izin'] as Map<dynamic, dynamic>?;
+
+            if (izinMap != null && izinMap.isNotEmpty) {
+              izinMap.forEach((key, value) {
+                final Map<dynamic, dynamic>? documentData =
+                    value as Map<dynamic, dynamic>?;
+                if (documentData != null) {
+                  final idAtasan = documentData['id_user'];
+                  if (idAtasan == idUser) {
+                    newData['is_status'] = 1;
+                    izinRef.update(newData);
+                  }
+                }
+              });
+            } else {
+              debugPrint('Dokumen izin kosong.');
+            }
+          }
+        }
+      });
+    } catch (error) {
+      if (kDebugMode) {
+        print('Failed to update data: $error');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Konfirmasi Izin'),
+        elevation: 4,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushNamed(context, '/home-page'),
+        ),
+      ),
+      body: _riwayatIzin.isEmpty
+          ? const Center(child: Text('No data found'))
+          : ListView.builder(
+              itemCount: _riwayatIzin.length,
+              itemBuilder: (context, index) =>
+                  _buildIzinItem(context, _riwayatIzin[index]),
+            ),
+    );
+  }
+
+  Widget _buildIzinItem(BuildContext context, dynamic izin) {
+    String jenisStatus = _getStatus(izin['status'].toString());
+
+    return Card(
+      margin: const EdgeInsets.all(8),
+      elevation: 4,
+      child: ListTile(
+        title: Text(izin['nama_lengkap'] ?? ''),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Status: $jenisStatus'),
+            Text('Tanggal Pengajuan: \n ${izin['timestamp_masuk']}'),
+            Text('Durasi: ${izin['durasi']} Hari'),
+          ],
+        ),
+        trailing: InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/detail-konfirmasi-izin',
+                arguments: izin['id_approval']);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.blue,
+            ),
+            child: const Text(
+              'Detail',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getStatus(String statusCode) {
+    switch (statusCode) {
+      case '2':
+        return 'Dinas Luar';
+      case '3':
+        return 'Izin';
+      case '4':
+        return 'Sakit';
+      case '5':
+        return 'IDLK';
+      case '6':
+        return 'Cuti';
+      default:
+        return 'Belum Disetujui';
+    }
+  }
+}

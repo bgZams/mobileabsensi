@@ -1,0 +1,456 @@
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mobileabsensi/frontend/absen/absen.dart';
+import 'package:mobileabsensi/frontend/izin/izin.dart';
+import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
+import 'package:mobileabsensi/frontend/izin/buat.dart';
+import 'package:mobileabsensi/frontend/izin/diterima.dart';
+import 'package:mobileabsensi/frontend/izin/riwayat.dart';
+import 'package:mobileabsensi/frontend/izin/status.dart';
+import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
+import 'package:mobileabsensi/notifikasi/notification_controller.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:sp_util/sp_util.dart';
+
+import 'laporan_harian/laporan.dart';
+
+class Home extends StatefulWidget {
+  const Home({super.key, required this.title});
+  final String title;
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  final DatabaseReference databaseReference =
+      FirebaseDatabase.instance.reference();
+  final _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissions();
+    NotificationController notificationController = NotificationController();
+    notificationController.startListeningNotificationEvents();
+    readData();
+  }
+
+  // Memeriksa dan meminta izin
+  Future<void> _requestPermissions() async {
+    final locationStatus = await Permission.location.request();
+    final wifiStatus = await Permission.locationWhenInUse.request();
+    final status = await Permission.camera.request();
+    final galleryStatus = await Permission.photos.request();
+    final notification = await Permission.notification.isDenied.then((value) {
+      if (value) {
+        Permission.notification.request();
+      }
+    });
+
+    if (locationStatus.isGranted &&
+        wifiStatus.isGranted &&
+        status.isGranted &&
+        galleryStatus.isGranted &&
+        notification.isGranted) {
+      // Izin diberikan, Anda dapat mengakses lokasi dan Wi-Fi.
+    } else {
+      // Izin ditolak, beri tahu pengguna atau tangani dengan sesuai.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size;
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            height: size.height * .3,
+            decoration: const BoxDecoration(
+                image: DecorationImage(
+                    alignment: Alignment.topCenter,
+                    image: AssetImage('assets/images/imgheader.png'))),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  Container(
+                    height: 64,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacementNamed(context, '/profil');
+                          },
+                          child: const CircleAvatar(
+                            radius: 32,
+                            backgroundImage:
+                                (AssetImage('assets/images/profile.png')),
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        SizedBox(
+                          width: 200,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  " ${SpUtil.getString("nama_lengkap") ?? ''}"),
+                              Text(
+                                  " ${SpUtil.getString("nama_instansi") ?? ''}"),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.logout),
+                          onPressed: () {
+                            SpUtil.getInstance().then((sp) {
+                              SpUtil.clear()?.then((success) {
+                                if (success) {
+                                  if (kDebugMode) {
+                                    print('Cache cleared successfully.');
+                                  }
+                                } else {
+                                  if (kDebugMode) {
+                                    print('Failed to clear cache.');
+                                  }
+                                }
+                              }).catchError((error) {
+                                if (kDebugMode) {
+                                  print('Error: $error');
+                                }
+                              });
+                            }).catchError((error) {
+                              if (kDebugMode) {
+                                print(
+                                    'Error getting SharedPreferences instance: $error');
+                              }
+                            });
+
+                            Navigator.pushReplacementNamed(
+                                context, "/login-page");
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  PageView(
+                    controller: _pageController,
+                    children: const <Widget>[
+                      RiwayatAbsen(),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+      bottomNavigationBar: CurvedNavigationBar(
+        backgroundColor: Colors.blueGrey,
+        buttonBackgroundColor: Colors.white,
+        color: const Color.fromARGB(255, 255, 240, 219),
+        height: 65,
+        items: const <Widget>[
+          Icon(
+            Icons.home,
+            size: 35,
+            color: Colors.red,
+          ),
+          Icon(
+            Icons.camera,
+            size: 35,
+            color: Colors.deepPurpleAccent,
+          ),
+          Icon(
+            Icons.person,
+            size: 35,
+            color: Colors.green,
+          ),
+          Icon(
+            Icons.phone,
+            size: 35,
+            color: Colors.blue,
+          )
+        ],
+        onTap: (index) {
+          _pageController.animateToPage(index,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut);
+        },
+      ),
+    );
+  }
+
+  Future<void> readData() async {
+    final DatabaseReference databaseReference =
+        FirebaseDatabase.instance.reference();
+
+    try {
+      DataSnapshot snapshot = await databaseReference.once().then((event) {
+        return event.snapshot;
+      });
+
+      if (snapshot.value != null) {
+        final Map<dynamic, dynamic>? izinData =
+            snapshot.value as Map<dynamic, dynamic>?;
+        if (kDebugMode) {
+          // print(izinData);
+        }
+        if (izinData != null && izinData.containsKey('izin')) {
+          final Map<dynamic, dynamic>? izinMap =
+              izinData['izin'] as Map<dynamic, dynamic>?;
+
+          if (izinMap != null && izinMap.isNotEmpty) {
+            int countIzin = 0;
+            int countLaporan = 0;
+            int countApel = 0;
+            int countSenam = 0;
+            bool notificationCreated = false;
+
+            for (final MapEntry<dynamic, dynamic> entry in izinMap.entries) {
+              final Map<dynamic, dynamic>? documentData =
+                  entry.value as Map<dynamic, dynamic>?;
+
+              if (documentData != null) {
+                final idAtasan = documentData['id_atasan'];
+                final idStatus = documentData['id_status'];
+                final keyNotif = documentData['key_notif'];
+
+                if (idStatus == 0) {
+                  final parsedIdAtasan = int.tryParse(idAtasan);
+                  final user = SpUtil.getString('id_user');
+                  final userId = int.tryParse(user ?? '');
+
+                  if (userId == parsedIdAtasan) {
+                    if (keyNotif == 'izin') {
+                      countIzin++;
+                    } else if (keyNotif == 'laporan') {
+                      countLaporan++;
+                    } else if (keyNotif == 'apel') {
+                      countApel++;
+                    } else if (keyNotif == 'senam') {
+                      countSenam++;
+                    }
+                  }
+                }
+              }
+            }
+            int jlhCountIzin = countIzin;
+            int jlhCountLaporan = countLaporan;
+            int jlhCountApel = countApel;
+            int jlhCountSenam = countSenam;
+            bool shouldCreateNotification = false;
+
+            if (countIzin > 0) {
+              shouldCreateNotification = true;
+            }
+
+            for (final MapEntry<dynamic, dynamic> entry in izinMap.entries) {
+              final Map<dynamic, dynamic>? documentData =
+                  entry.value as Map<dynamic, dynamic>?;
+
+              if (documentData != null) {
+                final idAtasan = documentData['id_atasan'];
+                final idStatus = documentData['id_status'];
+                final jenisIzin = documentData['jenis_izin'];
+                final keyNotif = documentData['key_notif'];
+                final parsedIdAtasan = int.tryParse(idAtasan);
+                final user = SpUtil.getString('id_user');
+                final userId = int.tryParse(user ?? '');
+                if (idStatus == 0) {
+                  if (userId == parsedIdAtasan) {
+                    if (!notificationCreated && shouldCreateNotification) {
+                      if (keyNotif == 'izin') {
+                        try {
+                          NotificationController.createNewNotificationIzin(
+                            jlhCountIzin,
+                            idAtasan,
+                            jenisIzin,
+                            idStatus,
+                            keyNotif,
+                          );
+                          notificationCreated = true;
+                        } catch (e) {
+                          if (kDebugMode) {
+                            print('Error sending izin notification: $e');
+                          }
+                        }
+                      } else if (keyNotif == 'laporan') {
+                        try {
+                          NotificationController.createNewNotificationLaporan(
+                            jlhCountLaporan,
+                            idAtasan,
+                            jenisIzin,
+                            idStatus,
+                            keyNotif,
+                          );
+                          notificationCreated = true;
+                        } catch (e) {
+                          if (kDebugMode) {
+                            print('Error sending laporan notification: $e');
+                          }
+                        }
+                      } else if (keyNotif == 'apel') {
+                        try {
+                          NotificationController.createNewNotificationApel(
+                            jlhCountApel,
+                            idAtasan,
+                            jenisIzin,
+                            idStatus,
+                            keyNotif,
+                          );
+                          notificationCreated = true;
+                        } catch (e) {
+                          if (kDebugMode) {
+                            print('Error sending apel notification: $e');
+                          }
+                        }
+                      } else if (keyNotif == 'senam') {
+                        try {
+                          NotificationController.createNewNotificationSenam(
+                            jlhCountSenam,
+                            idAtasan,
+                            jenisIzin,
+                            idStatus,
+                            keyNotif,
+                          );
+                          notificationCreated = true;
+                        } catch (e) {
+                          if (kDebugMode) {
+                            print('Error sending senam notification: $e');
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            debugPrint('Dokumen izin kosong.');
+          }
+        } else {
+          debugPrint('Kunci "izin" tidak ditemukan dalam data.');
+        }
+      } else {
+        // Data tidak ditemukan
+        debugPrint('Data tidak ditemukan');
+      }
+    } catch (error) {
+      // Handle error jika terjadi masalah saat membaca data
+      debugPrint('Terjadi kesalahan: $error');
+    }
+  }
+
+  void goToAbsen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const Absen(),
+      ),
+    );
+  }
+
+  //Riwayat absensi
+  void goToRiwayatAbsen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const RiwayatAbsen(),
+      ),
+    );
+  }
+
+//laporan harian
+  void goToLaphar(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const Laporan(),
+      ),
+    );
+  }
+
+  void goToBuatIzin(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const BuatIzin(),
+      ),
+    );
+  }
+
+  void goToRiwayatIzin(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const RiwayatIzin(),
+      ),
+    );
+  }
+
+  void goToStatusIzin(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const StatusIzin(),
+      ),
+    );
+  }
+
+  void goToIzinDiterima(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const Terimaizin(),
+      ),
+    );
+  }
+
+  void goToIzinDitolak(BuildContext context) {}
+
+  void goToBuatLaphar(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => const BuatLaporan(),
+      ),
+    );
+  }
+
+  void goToStatusLaphar(BuildContext context) {}
+  void goToDiterimaLaphar(BuildContext context) {}
+
+  void goToDitolakLaphar(BuildContext context) {}
+
+  void goToBerita(BuildContext context) {}
+}
+
+//Izin
+void goToIzin(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (BuildContext context) => const Izin(),
+    ),
+  );
+}

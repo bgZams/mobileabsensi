@@ -1,0 +1,342 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer' as developer;
+import 'dart:io';
+import 'package:http/http.dart' as http;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:network_info_plus/network_info_plus.dart';
+import 'package:sp_util/sp_util.dart';
+
+class Absen extends StatefulWidget {
+  const Absen({Key? key}) : super(key: key);
+
+  @override
+  _AbsenState createState() => _AbsenState();
+}
+
+class _AbsenState extends State<Absen> {
+  String _connectionStatus = '';
+  String _timeString = '';
+  List<Map<String, dynamic>> wifiData = [];
+  final NetworkInfo _networkInfo = NetworkInfo();
+
+  String? wifiName;
+  String? wifiBSSID;
+  String? wifiIPv4;
+
+  String? masuk = '';
+  String? formattedDate;
+  String? jamMasuk;
+  String? jamPulang;
+  String? code;
+  bool isCodeMasuk = false;
+  bool isCodePulang = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initNetworkInfo();
+    _timeString = _formatDateTime(DateTime.now());
+    loadWifiData();
+    loadWifiData();
+    // if (SpUtil.getString('code_masuk') == '2') {
+    //   isCodeMasuk = true;
+    // }
+    // if (SpUtil.getString('code_pulang') == '2') {
+    //   isCodePulang = true;
+    // }
+    isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
+    isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
+  }
+
+  String _tglSekarang(DateTime dateTime) {
+    return DateFormat('yyyy-MM-dd').format(dateTime);
+  }
+
+  Future<void> loadWifiData() async {
+    String wifiDataJson = SpUtil.getString("wifi_data") ?? '[]';
+
+    if (wifiDataJson.isNotEmpty) {
+      List<dynamic> decodedData = json.decode(wifiDataJson);
+      wifiData = List<Map<String, dynamic>>.from(decodedData);
+    }
+
+    setState(() {});
+  }
+
+  Future<void> _initNetworkInfo() async {
+    try {
+      wifiName = await _networkInfo.getWifiName();
+      wifiBSSID = await _networkInfo.getWifiBSSID();
+      wifiIPv4 = await _networkInfo.getWifiIP();
+    } on PlatformException catch (e) {
+      developer.log('Failed to get Wi-Fi Name or BSSID', error: e);
+      wifiName = 'Failed to get Wi-Fi Name';
+      wifiBSSID = 'Failed to get Wi-Fi BSSID';
+    }
+  }
+
+  Future<void> absenMasuk(String? wifiName, String? wifiBSSID) async {
+    String connectedSSID = wifiName ?? '';
+    String ssID = connectedSSID.replaceAll('"', '');
+    String connectedBSSID = wifiBSSID ?? '';
+
+    bool foundMatch = false;
+    for (var wifi in wifiData) {
+      String dataSSID = wifi['SSID'];
+      String dataBSSID = wifi['BSSID'];
+
+      if (ssID == dataSSID && connectedBSSID == dataBSSID) {
+        foundMatch = true;
+        if (SpUtil.getString("id_user") != null) {
+          try {
+            var idServer = SpUtil.getString("id_server");
+            var idUser = SpUtil.getString("id_user");
+            var idAdmin = SpUtil.getString("id_admin_instansi");
+            var username = SpUtil.getString("username");
+            var namaLengkap = SpUtil.getString("nama_lengkap");
+            var instansi = SpUtil.getString("id_instansi");
+            var status = 1;
+            var tglAbsen = _tglSekarang(DateTime.now());
+            var versi = 1.4;
+            var ssidMasuk = ssID;
+            var bssidMasuk = connectedBSSID;
+
+            http.Response absenMasuk = await http.get(
+              Uri.parse(
+                  'http://mobileabsensi$idServer.pasamanbaratkab.go.id/api_android/post_absen_masuk2.php?id_user=$idUser&id_admin_instansi=$idAdmin&username=$username&nama_lengkap=$namaLengkap&instansi=$instansi&status=$status&tgl_absen=$tglAbsen&versi=$versi&SSID=$ssidMasuk&BSSID=$bssidMasuk'),
+              headers: {
+                'Content-type': 'application/json',
+                'Accept': 'application/json'
+              },
+            );
+            if (absenMasuk.statusCode == 200) {
+              final data = jsonDecode(absenMasuk.body);
+              code = data['code']?.toString();
+              SpUtil.putString('code_masuk', code!);
+              String message = json.encode(data['message']);
+              SpUtil.putString('message', message.replaceAll('"', ''));
+              String waktuJson = data['waktu'];
+              DateTime waktuText = DateTime.parse(waktuJson);
+              jamMasuk = DateFormat('HH:mm').format(waktuText);
+              SpUtil.putString('masuk', '$jamMasuk');
+              SpUtil.putBool('is_codeMasuk', true);
+
+              setState(() {
+                isCodeMasuk = true;
+              });
+            } else {
+              throw Exception('Kesalahan HTTP: ${absenMasuk.statusCode}');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Error: $e');
+            }
+          }
+        }
+        break;
+      }
+    }
+
+    if (!foundMatch) {
+      developer.log('No match found for $ssID, $connectedBSSID', level: 0);
+    }
+  }
+
+  Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
+    String connectedSSID = wifiName ?? '';
+    String ssID = connectedSSID.replaceAll('"', '');
+    String connectedBSSID = wifiBSSID ?? '';
+
+    bool foundMatch = false;
+    for (var wifi in wifiData) {
+      String dataSSID = wifi['SSID'];
+      String dataBSSID = wifi['BSSID'];
+
+      if (ssID == dataSSID && connectedBSSID == dataBSSID) {
+        foundMatch = true;
+        if (SpUtil.getString("id_user") != null) {
+          try {
+            var idServer = SpUtil.getString("id_server");
+            var idUser = SpUtil.getString("id_user");
+            var tglAbsen = _tglSekarang(DateTime.now());
+            var versi = 1.4;
+            var ssidMasuk = ssID;
+            var bssidMasuk = connectedBSSID;
+            print(idServer);
+            print(idUser);
+            print(tglAbsen);
+            print(versi);
+            print(ssidMasuk);
+            print(bssidMasuk);
+            http.Response absenPulang = await http.get(
+              Uri.parse(
+                  'http://mobileabsensi$idServer.pasamanbaratkab.go.id/api_android/post_absen_pulang2.php?id_user=$idUser&tgl_absen=$tglAbsen&versi=$versi&SSID=$ssidMasuk&BSSID=$bssidMasuk'),
+              headers: {
+                'Content-type': 'application/json',
+                'Accept': 'application/json'
+              },
+            );
+            if (absenPulang.statusCode == 200) {
+              final data = jsonDecode(absenPulang.body);
+              code = data['code']?.toString();
+              SpUtil.putString('code_pulang', code!);
+              String message = json.encode(data['message']);
+              SpUtil.putString('message', message.replaceAll('"', ''));
+              String waktuJson = data['waktu'];
+              DateTime waktuText = DateTime.parse(waktuJson);
+              jamPulang = DateFormat('HH:mm').format(waktuText);
+              SpUtil.putString('pulang', '$jamPulang');
+              SpUtil.putBool('is_codePulang', true);
+
+              setState(() {
+                isCodePulang = true;
+              });
+            } else {
+              throw Exception('Kesalahan HTTP: ${absenPulang.statusCode}');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Error: $e');
+            }
+          }
+        }
+        break;
+      }
+    }
+
+    if (!foundMatch) {
+      developer.log('No match found for $ssID, $connectedBSSID', level: 0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ambil Absen'),
+        elevation: 4,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Network info',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(_timeString, style: const TextStyle(fontSize: 30)),
+            const SizedBox(height: 16),
+            Text(_connectionStatus),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  children: [
+                    isCodeMasuk
+                        ? Text("${SpUtil.getString('masuk')}")
+                        : GestureDetector(
+                            onTap: () async {
+                              await _initNetworkInfo();
+                              if (wifiName != null &&
+                                  wifiBSSID != null &&
+                                  wifiName!.isNotEmpty &&
+                                  wifiBSSID!.isNotEmpty) {
+                                absenMasuk(wifiName, wifiBSSID);
+                              } else {
+                                developer.log(
+                                    'Tidak Ada Informasi Wi-Fi yang Tersedia',
+                                    level: 0);
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title:
+                                          const Text('Wi-Fi Tidak Ditemukan'),
+                                      content: const Text(
+                                          'Informasi Wi-Fi tidak tersedia.'),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: Text('OK'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              }
+                            },
+                            child: SizedBox(
+                              width: 100,
+                              child: Image.asset(
+                                  'assets/images/sidikjari1new.png'),
+                            ),
+                          ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    isCodePulang
+                        ? Text("${SpUtil.getString('pulang')}")
+                        : GestureDetector(
+                            onTap: () async {
+                              await _initNetworkInfo();
+                              if (wifiName != null &&
+                                  wifiBSSID != null &&
+                                  wifiName!.isNotEmpty &&
+                                  wifiBSSID!.isNotEmpty) {
+                                absenPulang(wifiName, wifiBSSID);
+                              } else {
+                                developer.log(
+                                    'Tidak Ada Informasi Wi-Fi yang Tersedia',
+                                    level: 0);
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title:
+                                          const Text('Wi-Fi Tidak Ditemukan'),
+                                      content: const Text(
+                                          'Informasi Wi-Fi tidak tersedia.'),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: Text('OK'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              }
+                            },
+                            child: SizedBox(
+                              width: 100,
+                              child: Image.asset(
+                                  'assets/images/sidikjari2new.png'),
+                            ),
+                          ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,154 @@
+Future<void> readData() async {
+  final DatabaseReference databaseReference =
+      FirebaseDatabase.instance.reference();
+
+  databaseReference.onValue.listen((event) {
+    final DataSnapshot? snapshot = event.snapshot;
+
+    if (snapshot != null && snapshot.value != null) {
+      final Map<dynamic, dynamic>? izinData =
+          snapshot.value as Map<dynamic, dynamic>?;
+
+      if (izinData != null && izinData.containsKey('izin')) {
+        final Map<dynamic, dynamic>? izinMap =
+            izinData['izin'] as Map<dynamic, dynamic>?;
+
+        if (izinMap != null && izinMap.isNotEmpty) {
+          int countIzin = 0;
+          int countLaporan = 0;
+          int countApel = 0;
+          int countSenam = 0;
+          bool notificationCreated = false;
+
+          for (final MapEntry<dynamic, dynamic> entry in izinMap.entries) {
+            final Map<dynamic, dynamic>? documentData =
+                entry.value as Map<dynamic, dynamic>?;
+            if (documentData != null) {
+              final idAtasan = documentData['id_atasan'];
+              final idStatus = documentData['id_status'];
+              final keyNotif = documentData['key_notif'];
+
+              final parsedIdAtasan = int.tryParse(idAtasan);
+              final user = SpUtil.getString('id_user');
+              final userId = int.tryParse(user ?? '');
+              if (userId == parsedIdAtasan) {
+                if (idStatus == 0) {
+                  if (keyNotif == 'izin') {
+                    countIzin++;
+                  } else if (keyNotif == 'laporan') {
+                    countLaporan++;
+                  } else if (keyNotif == 'apel') {
+                    countApel++;
+                  } else if (keyNotif == 'senam') {
+                    countSenam++;
+                  }
+                }
+              }
+            }
+          }
+          int jlhCountIzin = countIzin;
+          int jlhCountLaporan = countLaporan;
+          int jlhCountApel = countApel;
+          int jlhCountSenam = countSenam;
+          bool shouldCreateNotification = false;
+          if (countIzin > 0) {
+            shouldCreateNotification = true;
+          }
+          SpUtil.putInt('jlh_izin', jlhCountIzin);
+
+          for (final MapEntry<dynamic, dynamic> entry in izinMap.entries) {
+            final Map<dynamic, dynamic>? documentData =
+                entry.value as Map<dynamic, dynamic>?;
+
+            if (documentData != null) {
+              final idAtasan = documentData['id_atasan'];
+              final idStatus = documentData['id_status'];
+              final jenisIzin = documentData['jenis_izin'];
+              final keyNotif = documentData['key_notif'];
+              final parsedIdAtasan = int.tryParse(idAtasan);
+              final user = SpUtil.getString('id_user');
+              final userId = int.tryParse(user ?? '');
+              if (idStatus == 0) {
+                if (userId == parsedIdAtasan) {
+                  if (!notificationCreated && shouldCreateNotification) {
+                    if (keyNotif == 'izin') {
+                      try {
+                        NotificationController.createNewNotificationIzin(
+                          jlhCountIzin,
+                          idAtasan,
+                          jenisIzin,
+                          idStatus,
+                          keyNotif,
+                        );
+                        notificationCreated = true;
+                      } catch (e) {
+                        if (kDebugMode) {
+                          print('Error sending izin notification: $e');
+                        }
+                      }
+                    } else if (keyNotif == 'laporan') {
+                      try {
+                        NotificationController.createNewNotificationLaporan(
+                          jlhCountLaporan,
+                          idAtasan,
+                          jenisIzin,
+                          idStatus,
+                          keyNotif,
+                        );
+                        notificationCreated = true;
+                      } catch (e) {
+                        if (kDebugMode) {
+                          print('Error sending laporan notification: $e');
+                        }
+                      }
+                    } else if (keyNotif == 'apel') {
+                      try {
+                        NotificationController.createNewNotificationApel(
+                          jlhCountApel,
+                          idAtasan,
+                          jenisIzin,
+                          idStatus,
+                          keyNotif,
+                        );
+                        notificationCreated = true;
+                      } catch (e) {
+                        if (kDebugMode) {
+                          print('Error sending apel notification: $e');
+                        }
+                      }
+                    } else if (keyNotif == 'senam') {
+                      try {
+                        NotificationController.createNewNotificationSenam(
+                          jlhCountSenam,
+                          idAtasan,
+                          jenisIzin,
+                          idStatus,
+                          keyNotif,
+                        );
+                        notificationCreated = true;
+                      } catch (e) {
+                        if (kDebugMode) {
+                          print('Error sending senam notification: $e');
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          debugPrint('Dokumen izin kosong.');
+        }
+      } else {
+        debugPrint('Kunci "izin" tidak ditemukan dalam data.');
+      }
+    } else {
+      // Data tidak ditemukan
+      debugPrint('Data tidak ditemukan');
+    }
+  }, onError: (error) {
+    // Handle error jika terjadi masalah saat membaca data
+    debugPrint('Terjadi kesalahan: $error');
+  });
+}

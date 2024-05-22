@@ -1,0 +1,458 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:mobileabsensi/core.dart';
+import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
+import 'package:mobileabsensi/frontend/blog.dart';
+import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
+import 'package:mobileabsensi/frontend/list_wifi.dart';
+import 'package:mobileabsensi/frontend/navigasi.dart';
+import 'package:mobileabsensi/frontend/pengumuman.dart';
+import 'package:network_info_plus/network_info_plus.dart';
+import 'package:quickalert/quickalert.dart';
+import 'package:sp_util/sp_util.dart';
+
+class Absen extends StatefulWidget {
+  const Absen({Key? key}) : super(key: key);
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _AbsenState createState() => _AbsenState();
+}
+
+class _AbsenState extends State<Absen> {
+  var url = SpUtil.getString("url");
+  String _jamSekarang = '';
+  List<Map<String, dynamic>> wifiData = [];
+  final NetworkInfo _networkInfo = NetworkInfo();
+  bool _isLoading = false;
+  bool _isMasuk = false;
+  bool _isPulang = false;
+
+  String? wifiName = '';
+  String? wifiBSSID = '';
+  // String? wifiName = 'SEKRETARIAT KOMINFO';
+  // String? wifiBSSID = 'e0:63:da:a1:9d:6b';
+  String? wifiIPv4;
+
+  String? masuk = '';
+  String? formattedDate;
+  String? jamMasuk;
+  String? jamPulang;
+  String? code;
+  bool isCodeMasuk = false;
+  bool isCodePulang = false;
+  bool isPulangCepat = false;
+  var idUser = SpUtil.getString("id_user");
+  var idAdmin = SpUtil.getString("id_admin_instansi");
+  var admin = SpUtil.getString("username_admin");
+  String jlh_izin = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initNetworkInfo();
+    _jamSekarang = _formatDateTime(DateTime.now());
+    Timer.periodic(const Duration(seconds: 1), (Timer t) => _getCurrentTime());
+    loadWifiData();
+    isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
+    isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
+    isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
+    jlh_izin = SpUtil.getInt("jlh_izin").toString();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  void _getCurrentTime() {
+    if (mounted) {
+      setState(() {
+        _jamSekarang = _formatDateTime(DateTime.now());
+      });
+    }
+  }
+ 
+
+  @override
+  Widget build(BuildContext context) {
+    print(jlh_izin);
+
+    Size size = MediaQuery.of(context).size;
+    double deviceHeight = MediaQuery.of(context).size.height;
+    double deviceWidth = MediaQuery.of(context).size.width;
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // loadWifiData();
+          // _refreshData();
+        },
+        child: SizedBox(
+          height: deviceHeight * 1.2,
+          child: Container(
+            color: const Color.fromARGB(255, 238, 238, 238),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Stack(
+                children: [
+                  // Background Image
+                  Container(
+                    height: size.height * .3,
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        alignment: Alignment.topCenter,
+                        image: AssetImage('assets/images/imgheader.png'),
+                      ),
+                    ),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Header with Profile and Logout Button
+                                Container(
+                                  height: 70,
+                                  margin: const EdgeInsets.only(bottom: 20),
+                                  child: Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const Navigasi()),
+                                          );
+                                        },
+                                        child: const CircleAvatar(
+                                          radius: 32,
+                                          backgroundImage: AssetImage(
+                                              'assets/images/profile.png'),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 1),
+                                      SizedBox(
+                                        width: 180,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "${SpUtil.getString("nama_lengkap") ?? ''}",
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                            Text(
+                                                "${SpUtil.getString("nama_instansi") ?? ''}",
+                                                style: TextStyle(fontSize: 12)),
+                                          ],
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      IconButton(
+                                        icon: SizedBox(
+                                          width: 60,
+                                          height: 30,
+                                          child: Stack(
+                                            alignment: Alignment.bottomLeft,
+                                            children: [
+                                              const Icon(Icons.notifications),
+                                              if (jlh_izin != null)
+                                                Positioned(
+                                                  right: 28,
+                                                  top: 0,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(1),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                    ),
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                      minWidth: 18,
+                                                      minHeight: 18,
+                                                    ),
+                                                    child: Text(
+                                                      jlh_izin,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const KonfirmasiIzin(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(5.0),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10.0),
+                                    clipBehavior: Clip.hardEdge,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: const Color.fromARGB(
+                                              255, 14, 60, 129),
+                                          width: 3),
+                                      color: Color.fromARGB(255, 1, 74, 184),
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        Column(
+                                          children: [
+                                            Container(
+                                              clipBehavior: Clip.hardEdge,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2),
+                                                color: const Color.fromARGB(
+                                                    255, 14, 60, 129),
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(10),
+                                                ),
+                                              ),
+                                              child: IconButton(
+                                                icon: const FaIcon(
+                                                  FontAwesomeIcons.envelope,
+                                                  color: Colors.white,
+                                                ),
+                                                onPressed: () {},
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 2,
+                                            ),
+                                            const Text(
+                                              'Pesan',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white),
+                                            ),
+                                          ],
+                                        ),
+                                        Column(
+                                          children: [
+                                            Container(
+                                              clipBehavior: Clip.hardEdge,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2),
+                                                color: const Color.fromARGB(
+                                                    255, 14, 60, 129),
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(10),
+                                                ),
+                                              ),
+                                              child: IconButton(
+                                                icon: const FaIcon(
+                                                  FontAwesomeIcons
+                                                      .usersBetweenLines,
+                                                  color: Colors.white,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const Apel()),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 2,
+                                            ),
+                                            const Text(
+                                              'Apel',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Column(
+                                          children: [
+                                            Container(
+                                              clipBehavior: Clip.hardEdge,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2),
+                                                color: const Color.fromARGB(
+                                                    255, 14, 60, 129),
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(10),
+                                                ),
+                                              ),
+                                              child: IconButton(
+                                                icon: const Icon(
+                                                  Icons.wifi,
+                                                  color: Colors.white,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const ListWifi()),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 2,
+                                            ),
+                                            const Text(
+                                              'Wifi',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Column(
+                                          children: [
+                                            Container(
+                                              clipBehavior: Clip.hardEdge,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2),
+                                                color: const Color.fromARGB(
+                                                    255, 14, 60, 129),
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(10),
+                                                ),
+                                              ),
+                                              child: IconButton(
+                                                icon: const FaIcon(
+                                                  FontAwesomeIcons.bullhorn,
+                                                  color: Colors.white,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const Pengumuman()),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 2,
+                                            ),
+                                            const Text(
+                                              'Info',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Column(
+                                          children: [
+                                            Container(
+                                              clipBehavior: Clip.hardEdge,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2),
+                                                color: const Color.fromARGB(
+                                                    255, 14, 60, 129),
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                        Radius.circular(10)),
+                                              ),
+                                              child: IconButton(
+                                                icon: const Icon(
+                                                  Icons.newspaper,
+                                                  color: Colors.white,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const Blog()),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 2,
+                                            ),
+                                            const Text(
+                                              'Blog',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
