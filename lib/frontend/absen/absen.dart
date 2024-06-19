@@ -1,22 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
-import 'package:mobileabsensi/frontend/blog.dart';
+import 'package:mobileabsensi/frontend/absen/widget_header.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
-import 'package:mobileabsensi/frontend/list_wifi.dart';
+import 'package:mobileabsensi/frontend/izin/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/frontend/navigasi.dart';
-import 'package:mobileabsensi/frontend/pengumuman.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
+
+import '../../services/alert.dart';
 
 class Absen extends StatefulWidget {
   const Absen({Key? key}) : super(key: key);
@@ -40,8 +39,6 @@ class _AbsenState extends State<Absen> {
 
   String? wifiName = '';
   String? wifiBSSID = '';
-  // String? wifiName = 'SEKRETARIAT KOMINFO';
-  // String? wifiBSSID = 'e0:63:da:a1:9d:6b';
   String? wifiIPv4;
 
   String? masuk = '';
@@ -53,10 +50,12 @@ class _AbsenState extends State<Absen> {
   bool isCodePulang = false;
   bool isPulangCepat = false;
   var idUser = SpUtil.getString("id_user");
-  var idAdmin = SpUtil.getString("id_admin_instansi");
-  var admin = SpUtil.getString("username_admin");
-  String jlh_izin = '';
-  String? notif = '';
+  var idAdmin = SpUtil.getString("id_admin_instansi") ?? '';
+  var admin = SpUtil.getString("username_admin") ?? '';
+  var nama = SpUtil.getString("nama_lengkap").toString();
+  var instansi = SpUtil.getString("nama_instansi").toString();
+
+  String? notif = '0';
 
   @override
   void initState() {
@@ -71,7 +70,12 @@ class _AbsenState extends State<Absen> {
     _jlhIzinController.add(SpUtil.getInt("jlh_izin").toString());
     _simulateDataUpdate();
     _fetchNotif();
+    refreshData();
+    _checkAndUpdatePreferences();
   }
+
+
+
 
   @override
   void dispose() {
@@ -107,7 +111,6 @@ class _AbsenState extends State<Absen> {
 
   Future<void> loadWifiData() async {
     String wifiDataJson = SpUtil.getString("wifi_data") ?? '[]';
-
     if (wifiDataJson.isNotEmpty) {
       List<dynamic> decodedData = json.decode(wifiDataJson);
       wifiData = List<Map<String, dynamic>>.from(decodedData);
@@ -122,7 +125,7 @@ class _AbsenState extends State<Absen> {
       wifiBSSID = await _networkInfo.getWifiBSSID();
       wifiIPv4 = await _networkInfo.getWifiIP();
       // Check if wifiName is null
-      wifiName ??= 'Not connected to Wi-Fi';
+      // wifiName ??= 'Not connected to Wi-Fi';
     } on PlatformException catch (e) {
       developer.log('Failed to get Wi-Fi Name or BSSID', error: e);
       wifiName = 'Failed to get Wi-Fi Name';
@@ -131,99 +134,81 @@ class _AbsenState extends State<Absen> {
   }
 
   Future<void> absenMasuk(String? wifiName, String? wifiBSSID) async {
-    // Future<void> absenMasuk() async {
-    String connectedSSID = wifiName ?? '';
-    String ssID = connectedSSID.replaceAll('"', '');
-    String connectedBSSID = wifiBSSID ?? '';
+  String connectedSSID = wifiName ?? '';
+  String ssID = connectedSSID.replaceAll('"', '');
+  String connectedBSSID = wifiBSSID ?? '';
+  var listWifiString = SpUtil.getString("wifi_data");
 
-    if (SpUtil.getString("id_user") != null) {
-      try {
-        print('$url/api/masuk');
-        var datamasuk = {
-          'id_user': idUser,
-          'id_admin_instansi': idAdmin,
-          'ssid': ssID,
-          'bssid': connectedBSSID,
-          'versi': '1.4'
-        };
-        http.Response absenMasuk = await http.post(
-          Uri.parse('$url/api/masuk'),
-          body: datamasuk,
-        );
-        if (absenMasuk.statusCode == 200) {
-          final data = jsonDecode(absenMasuk.body);
+  if (listWifiString != null) {
+    List<dynamic> listWifi = jsonDecode(listWifiString);
+    bool isWifiMatch = listWifi.any((wifi) =>
+      wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID
+    );
 
-          String message = json.encode(data["message"]).replaceAll('"', '');
-          if (data["code"] == "wifi") {
-            // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.warning,
-              text: message,
-            );
-          } else if (data["code"] == "versi_app") {
-            // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.warning,
-              text: message,
-            );
-          } else if (data["code"] == "unknown") {
-            // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.warning,
-              text: message,
-            );
-          } else if (data["code"] == "1") {
-            code = data['code']?.toString();
-            SpUtil.putString('code_masuk', code!);
-            String message = json.encode(data['message']);
-            SpUtil.putString('message', message.replaceAll('"', ''));
-            String waktuJson = data['waktu'];
-            DateTime waktuText = DateTime.parse(waktuJson);
-            jamMasuk = DateFormat('HH:mm').format(waktuText);
-            SpUtil.putString('masuk', '$jamMasuk');
-            SpUtil.putBool('is_codeMasuk', true);
-            // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.success,
-              text: message,
-            );
-            setState(() {
-              isCodeMasuk = true;
-            });
-          } else if (data["code"] == "2") {
-            code = data['code']?.toString();
-            SpUtil.putString('code_masuk', code!);
-            String message = json.encode(data['message']);
-            SpUtil.putString('message', message.replaceAll('"', ''));
-            String waktuJson = data['waktu'];
-            DateTime waktuText = DateTime.parse(waktuJson);
-            jamMasuk = DateFormat('HH:mm').format(waktuText);
-            SpUtil.putString('masuk', '$jamMasuk');
-            SpUtil.putBool('is_codeMasuk', true);
-            // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.info,
-              text: message,
-            );
-            setState(() {
-              isCodeMasuk = true;
-            });
+    if (isWifiMatch) {
+      if (SpUtil.getString("id_user") != null) {
+        try {
+          var datamasuk = {
+            'id_user': idUser,
+            'id_admin_instansi': idAdmin,
+            'nama_lengkap': nama,
+            'ssid': ssID,
+            'bssid': connectedBSSID,
+            'versi': '1.4'
+          };
+          http.Response absenMasuk = await http.post(
+            Uri.parse('$url/api/masuk'),
+            body: datamasuk,
+          );
+
+          await Future.delayed(const Duration(seconds: 2));
+          if (mounted) {
+            if (absenMasuk.statusCode == 200) {
+              final data = jsonDecode(absenMasuk.body);
+              String message = json.encode(data["message"]).replaceAll('"', '');
+              if (data["code"] == "wifi" || data["code"] == "versi_app" || data["code"] == "unknown") {
+                Alert.alertwarning(context, message);
+              } else if (data["code"] == "1" || data["code"] == "2") {
+                code = data['code']?.toString();
+                String waktuJson = data['waktu'];
+                DateTime waktuText = DateTime.parse(waktuJson);
+                SpUtil.putString('saved_date', DateFormat('yyyy-MM-dd').format(waktuText));
+                jamMasuk = DateFormat('HH:mm').format(waktuText);
+                SpUtil.putString('masuk', '$jamMasuk');
+                SpUtil.putBool('is_codeMasuk', true);
+
+                Alert.alertsuccess(context, message);
+
+                setState(() {
+                  isCodeMasuk = true;
+                });
+              } else {
+                Alert.alertinfo(context, message);
+
+                setState(() {
+                  isCodeMasuk = false;
+                });
+              }
+            } else {
+              throw Exception('Kesalahan HTTP: ${absenMasuk.statusCode}');
+            }
           }
-        } else {
-          throw Exception('Kesalahan HTTP: ${absenMasuk.statusCode}');
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print('Error: $e');
+        } catch (e) {
+          // ignore: use_build_context_synchronously
+          Alert.alerterror(context, 'Gagal mengambil absen!');
+
         }
       }
+    } else {
+      Alert.alertwarning(context, 'SSID atau BSSID tidak ditemukan dalam daftar WiFi!');
     }
+  } else {
+    Alert.alerterror(context, 'Gagal mengambil absen!');
   }
+}
+
+
+
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
     // Future<void> absenPulang() async {
@@ -249,60 +234,38 @@ class _AbsenState extends State<Absen> {
 
         if (absenPulang.statusCode == 200) {
           final data = jsonDecode(absenPulang.body);
-
           code = data['code']?.toString();
           String message = json.encode(data["message"]).replaceAll('"', '');
-          if (data["code"] == "wifi") {
+          if (data["code"] == "wifi" || data["code"] == "versi_app" || data["code"] == "unknown") {
             // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.warning,
-              text: message,
-            );
-          } else if (data["code"] == "versi_app") {
-            // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.warning,
-              text: message,
-            );
-          } else if (data["code"] == "unknown") {
-            // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.warning,
-              text: message,
-            );
+            Alert.alertwarning(context, message);
           } else if (data["code"] == "1") {
             SpUtil.putString('code_pulang', code!);
-            SpUtil.putString('message', message.replaceAll('"', ''));
             String waktuJson = data['waktu'];
             DateTime waktuText = DateTime.parse(waktuJson);
             jamPulang = DateFormat('HH:mm').format(waktuText);
             SpUtil.putString('pulang', '$jamPulang');
             SpUtil.putBool('is_codePulang', true);
             // ignore: use_build_context_synchronously
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.success,
-              text: message,
-            );
+            Alert.alertsuccess(context, message);
             setState(() {
               isCodePulang = true;
+              isPulangCepat = false;
             });
           }
         } else {
-          throw Exception('Kesalahan HTTP: ${absenPulang.statusCode}');
+          // ignore: dead_code, use_build_context_synchronously
+            Alert.alertsuccess(context, 'Tidak dapat terhubung ke server');
         }
       } catch (e) {
-        if (kDebugMode) {
-          print('Error: $e');
-        }
+                  // ignore: dead_code, use_build_context_synchronously
+            Alert.alertsuccess(context, 'Gagal mengambil absen!');
       }
     }
   }
 
   Future<void> _fetchNotif() async {
+
     if (idUser!.isEmpty || url!.isEmpty) {
       debugPrint('Error: idUser or url is empty');
       return;
@@ -332,26 +295,46 @@ class _AbsenState extends State<Absen> {
     }
   }
 
-  Future<void> _refreshData() async {
+  Future<void> refreshData() async {
     await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _getCurrentTime();
-      _initNetworkInfo();
-      _fetchNotif();
-      _isLoading = false;
-    });
+      if (mounted) {
+        setState(() {
+          _getCurrentTime();
+          _initNetworkInfo();
+          _fetchNotif();
+          _checkAndUpdatePreferences();
+          _isLoading = false;
+        });
+      }
   }
+
+    void _checkAndUpdatePreferences() {
+      DateTime now = DateTime.now();
+      String todayString = DateFormat('yyyy-MM-dd').format(now);
+      String? savedDate = SpUtil.getString('saved_date');
+      if (savedDate != todayString) {
+        SpUtil.remove('masuk');
+        SpUtil.remove('is_codeMasuk');
+        SpUtil.remove('pulang');
+        SpUtil.remove('is_codePulang');
+        SpUtil.remove('saved_date');
+          SpUtil.putBool('is_codeMasuk', false);
+          SpUtil.putBool('is_codePulang', false);
+          SpUtil.putBool('is_PulangCepat', false);
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
+    var namaSSID = wifiName.toString().replaceAll('"', '');
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
           // loadWifiData();
-          // _refreshData();
+          refreshData();
         },
         child: SizedBox(
           height: deviceHeight * 1.2,
@@ -400,7 +383,7 @@ class _AbsenState extends State<Absen> {
                                               'assets/images/profile.png'),
                                         ),
                                       ),
-                                      const SizedBox(width: 1),
+                                      const SizedBox(width: 5),
                                       SizedBox(
                                         width: 180,
                                         child: Column(
@@ -410,12 +393,12 @@ class _AbsenState extends State<Absen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              "${SpUtil.getString("nama_lengkap") ?? ''}",
-                                              style: TextStyle(fontSize: 12),
+                                              nama,
+                                              style: const TextStyle(fontSize: 12),
                                             ),
                                             Text(
-                                                "${SpUtil.getString("nama_instansi") ?? ''}",
-                                                style: TextStyle(fontSize: 12)),
+                                                instansi,
+                                                style: const TextStyle(fontSize: 12)),
                                           ],
                                         ),
                                       ),
@@ -480,237 +463,13 @@ class _AbsenState extends State<Absen> {
                                           );
                                         },
                                       ),
-                                      SizedBox(
+                                      const SizedBox(
                                         width: 10,
-                                      )
+                                      ),
                                     ],
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(5.0),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10.0),
-                                    clipBehavior: Clip.hardEdge,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                          color: const Color.fromARGB(
-                                              255, 14, 60, 129),
-                                          width: 3),
-                                      color: Color.fromARGB(255, 1, 74, 184),
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(10),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        Column(
-                                          children: [
-                                            Container(
-                                              clipBehavior: Clip.hardEdge,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2),
-                                                color: const Color.fromARGB(
-                                                    255, 14, 60, 129),
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                  Radius.circular(10),
-                                                ),
-                                              ),
-                                              child: IconButton(
-                                                icon: const FaIcon(
-                                                  FontAwesomeIcons.envelope,
-                                                  color: Colors.white,
-                                                ),
-                                                onPressed: () {},
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              height: 2,
-                                            ),
-                                            const Text(
-                                              'Pesan',
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                        Column(
-                                          children: [
-                                            Container(
-                                              clipBehavior: Clip.hardEdge,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2),
-                                                color: const Color.fromARGB(
-                                                    255, 14, 60, 129),
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                  Radius.circular(10),
-                                                ),
-                                              ),
-                                              child: IconButton(
-                                                icon: const FaIcon(
-                                                  FontAwesomeIcons
-                                                      .usersBetweenLines,
-                                                  color: Colors.white,
-                                                ),
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            const Apel()),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              height: 2,
-                                            ),
-                                            const Text(
-                                              'Apel',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Column(
-                                          children: [
-                                            Container(
-                                              clipBehavior: Clip.hardEdge,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2),
-                                                color: const Color.fromARGB(
-                                                    255, 14, 60, 129),
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                  Radius.circular(10),
-                                                ),
-                                              ),
-                                              child: IconButton(
-                                                icon: const Icon(
-                                                  Icons.wifi,
-                                                  color: Colors.white,
-                                                ),
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            const ListWifi()),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              height: 2,
-                                            ),
-                                            const Text(
-                                              'Wifi',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Column(
-                                          children: [
-                                            Container(
-                                              clipBehavior: Clip.hardEdge,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2),
-                                                color: const Color.fromARGB(
-                                                    255, 14, 60, 129),
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                  Radius.circular(10),
-                                                ),
-                                              ),
-                                              child: IconButton(
-                                                icon: const FaIcon(
-                                                  FontAwesomeIcons.bullhorn,
-                                                  color: Colors.white,
-                                                ),
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            const Pengumuman()),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              height: 2,
-                                            ),
-                                            const Text(
-                                              'Info',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Column(
-                                          children: [
-                                            Container(
-                                              clipBehavior: Clip.hardEdge,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2),
-                                                color: const Color.fromARGB(
-                                                    255, 14, 60, 129),
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                        Radius.circular(10)),
-                                              ),
-                                              child: IconButton(
-                                                icon: const Icon(
-                                                  Icons.newspaper,
-                                                  color: Colors.white,
-                                                ),
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            const Blog()),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              height: 2,
-                                            ),
-                                            const Text(
-                                              'Blog',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                Header().headerMenu(context),
                                 const SizedBox(height: 20),
                                 Container(
                                     color: Colors.white,
@@ -727,7 +486,7 @@ class _AbsenState extends State<Absen> {
                                           child: Padding(
                                             padding: const EdgeInsets.all(8.0),
                                             child: Text(
-                                              '$wifiName',
+                                              namaSSID,
                                               style: const TextStyle(
                                                 color: Color.fromARGB(
                                                     255, 255, 31, 31),
@@ -827,41 +586,45 @@ class _AbsenState extends State<Absen> {
                                                   children: [
                                                     // Check-in Button
                                                     isCodeMasuk
-                                                        ? Container(
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: const Color
-                                                                  .fromARGB(
-                                                                  255,
-                                                                  173,
-                                                                  218,
-                                                                  255),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          10),
-                                                            ),
-                                                            width: 100,
-                                                            height: 100,
-                                                            alignment: Alignment
-                                                                .center,
-                                                            child: Text(
-                                                                "${SpUtil.getString('masuk')}",
-                                                                style: const TextStyle(
-                                                                    fontSize:
-                                                                        30,
-                                                                    color: Color
-                                                                        .fromARGB(
-                                                                            255,
-                                                                            2,
-                                                                            53,
-                                                                            95))),
-                                                          )
+                                                        ? Column(
+                                                          children: [
+                                                            Container(
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: const Color
+                                                                      .fromARGB(
+                                                                      255,
+                                                                      173,
+                                                                      218,
+                                                                      255),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10),
+                                                                ),
+                                                                width: 100,
+                                                                height: 100,
+                                                                alignment: Alignment
+                                                                    .center,
+                                                                child: Text("${SpUtil.getString('masuk')}",
+                                                                    style: const TextStyle(
+                                                                        fontSize:
+                                                                            30,
+                                                                        color: Color
+                                                                            .fromARGB(
+                                                                                255,
+                                                                                2,
+                                                                                53,
+                                                                                95),),),
+                                                              ),
+                                                            const SizedBox(height: 25),
+                                                          ],
+                                                        )
                                                         : GestureDetector(
-                                                            onTap: () async {
-                                                              setState(() {
-                                                                _isMasuk = true;
-                                                              });
+                                                          onTap: _isLoading ? null :  () async {
+                                                            setState(() {
+                                                              _isMasuk = true;
+                                                            });
 
                                                               await _initNetworkInfo();
 
@@ -931,48 +694,49 @@ class _AbsenState extends State<Absen> {
                                                   children: [
                                                     // Check-out Button
                                                     isCodePulang
-                                                        ? Container(
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: const Color
-                                                                  .fromARGB(
-                                                                  255,
-                                                                  173,
-                                                                  218,
-                                                                  255),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          10),
-                                                            ),
-                                                            width: 100,
-                                                            height: 100,
-                                                            alignment: Alignment
-                                                                .center,
-                                                            child: Text(
-                                                                "${SpUtil.getString('pulang')}",
-                                                                style: const TextStyle(
-                                                                    fontSize:
-                                                                        30,
-                                                                    color: Color
-                                                                        .fromARGB(
-                                                                            255,
-                                                                            2,
-                                                                            53,
-                                                                            95))),
-                                                          )
+                                                        ? Column(
+                                                          children: [
+                                                            Container(
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: const Color
+                                                                      .fromARGB(
+                                                                      255,
+                                                                      173,
+                                                                      218,
+                                                                      255),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10),
+                                                                ),
+                                                                width: 100,
+                                                                height: 100,
+                                                                alignment: Alignment
+                                                                    .center,
+                                                                child: Text(
+                                                                    "${SpUtil.getString('pulang')}",
+                                                                    style: const TextStyle(
+                                                                        fontSize:
+                                                                            30,
+                                                                        color: Color
+                                                                            .fromARGB(
+                                                                                255,
+                                                                                2,
+                                                                                53,
+                                                                                95))),
+                                                              ),
+                                                            const SizedBox(height: 25),
+
+                                                          ],
+                                                        )
                                                         : GestureDetector(
-                                                            onTap: () async {
+                                                            onTap:  _isLoading ? null :  () async {
                                                               setState(() {
-                                                                _isPulang =
-                                                                    true;
+                                                                _isPulang = true;
                                                               });
 
-                                                              if (isCodeMasuk ==
-                                                                  false) {
-                                                                // developer.log(
-                                                                //     'Belum mengambil absen masuk',
-                                                                //     level: 0);
+                                                              if (isCodeMasuk == false) {
                                                                 QuickAlert.show(
                                                                   context:
                                                                       context,
@@ -1056,61 +820,72 @@ class _AbsenState extends State<Absen> {
                                               MainAxisAlignment.center,
                                           children: [
                                             isCodeMasuk == true
+                                              ? isCodePulang == false
                                                 ? isPulangCepat == true
-                                                    ? Center(
-                                                        child: ElevatedButton(
-                                                        onPressed: () {
-                                                          Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                                builder:
-                                                                    (context) =>
-                                                                        const RiwayatIzin()),
-                                                          );
-                                                        },
-                                                        style: ElevatedButton
-                                                            .styleFrom(
-                                                          primary: const Color
-                                                              .fromARGB(
-                                                              255,
-                                                              173,
-                                                              218,
-                                                              255), // Mengatur warna latar belakang menjadi merah
-                                                        ),
-                                                        child: const Text(
-                                                            'Status Pengajuan',
-                                                            style: TextStyle(
-                                                                color: Color
-                                                                    .fromARGB(
-                                                                        255,
-                                                                        0,
-                                                                        162,
-                                                                        255))),
-                                                      ))
-                                                    : Center(
-                                                        child: ElevatedButton(
+                                                    ? Column(
+                                                      children: [
+                                                        Center(
+                                                            child: ElevatedButton(
                                                             onPressed: () {
                                                               Navigator.push(
                                                                 context,
                                                                 MaterialPageRoute(
                                                                     builder:
                                                                         (context) =>
-                                                                            const PulangCepat()),
+                                                                            const RiwayatPengajuanIzin()),
                                                               );
                                                             },
-                                                            style:
-                                                                ElevatedButton
-                                                                    .styleFrom(
-                                                              primary: Colors
-                                                                  .red, // Mengatur warna latar belakang menjadi merah
+                                                            style: ElevatedButton
+                                                                .styleFrom(
+                                                              primary: const Color
+                                                                  .fromARGB(
+                                                                  255,
+                                                                  173,
+                                                                  218,
+                                                                  255), // Mengatur warna latar belakang menjadi merah
                                                             ),
                                                             child: const Text(
-                                                              'Pulang Cepat',
-                                                              style: TextStyle(
-                                                                  color: Colors
-                                                                      .white), // Mengatur warna teks menjadi putih
-                                                            )))
-                                                : Container()
+                                                                'Status Pengajuan',
+                                                                style: TextStyle(
+                                                                    color: Color
+                                                                        .fromARGB(
+                                                                            255,
+                                                                            0,
+                                                                            162,
+                                                                            255))),
+                                                          )),
+                                                          const SizedBox(height: 20,)
+                                                      ],
+                                                    )
+                                                    : Padding(
+                                                      padding: const EdgeInsets.only(bottom: 8),
+                                                      child: Center(
+                                                          child: ElevatedButton(
+                                                              onPressed: () {
+                                                                Navigator.push(
+                                                                  context,
+                                                                  MaterialPageRoute(
+                                                                      builder:
+                                                                          (context) =>
+                                                                              const PulangCepat()),
+                                                                );
+                                                              },
+                                                              style:
+                                                                  ElevatedButton
+                                                                      .styleFrom(
+                                                                primary: Colors
+                                                                    .red,
+                                                              ),
+                                                              child: const Text(
+                                                                'Pulang Cepat',
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                        .white,),
+                                                              ),),),
+                                                    )
+
+                                                : Container(child: Text('OK'),)
+                                                : Container(),
                                           ]),
                                     ],
                                   ),

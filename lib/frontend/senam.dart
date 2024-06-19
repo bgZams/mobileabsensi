@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 
 class Senam extends StatefulWidget {
-  const Senam({super.key});
+  const Senam({Key? key}) : super(key: key);
 
   @override
   State<Senam> createState() => _SenamState();

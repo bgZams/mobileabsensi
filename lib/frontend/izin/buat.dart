@@ -14,7 +14,7 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
 class BuatIzin extends StatefulWidget {
-  const BuatIzin({super.key});
+  const BuatIzin({Key? key}) : super(key: key);
 
   @override
   State<BuatIzin> createState() => _BuatIzinState();
@@ -343,19 +343,22 @@ class _BuatIzinState extends State<BuatIzin> {
                 SizedBox(
                   width: 300,
                   child: TextFormField(
-                    controller: durasi,
-                    decoration: const InputDecoration.collapsed(
-                        border: UnderlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(6))),
-                        hintText: 'Durasi'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Durasi tidak boleh kosong';
-                      }
-                      return null;
-                    },
-                    keyboardType: TextInputType.number,
-                  ),
+                  controller: durasi,
+                  decoration: const InputDecoration.collapsed(
+                    border: UnderlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(6))),
+                    hintText: 'Durasi'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Durasi tidak boleh kosong';
+                    }
+                    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                      return 'Hanya angka yang diperbolehkan';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.number,
+                ),
                 ),
                 const SizedBox(
                   height: 40,
@@ -511,7 +514,7 @@ class _BuatIzinState extends State<BuatIzin> {
       if (response.statusCode == 200) {
         // Jika berhasil
         final DatabaseReference databaseReference =
-            FirebaseDatabase.instance.reference();
+            FirebaseDatabase.instance.ref();
         databaseReference.child("izin").push().set(addFirebaseIzin);
         final data = jsonDecode(response.body);
         String message = data["message"];
@@ -542,7 +545,6 @@ class _BuatIzinState extends State<BuatIzin> {
           type: QuickAlertType.error,
           text: 'Tidak dapat terhubung ke server',
         );
-        print(response.statusCode);
       }
     } catch (e) {
       // Tangkap error dan tampilkan pesan kesalahan

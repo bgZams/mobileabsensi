@@ -3,7 +3,7 @@ import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:flutter/material.dart';
 
 class NotifikasiLaporanHarian extends StatefulWidget {
-  const NotifikasiLaporanHarian({super.key});
+  const NotifikasiLaporanHarian({Key? key}) : super(key: key);
 
   @override
   State<NotifikasiLaporanHarian> createState() =>

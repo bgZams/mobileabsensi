@@ -7,10 +7,9 @@ class CustomPrimaryButton extends StatelessWidget {
   final Color textColor;
 
   const CustomPrimaryButton(
-      {super.key,
-      this.buttonColor = Colors.black,
+      {Key? key, this.buttonColor = Colors.black,
       this.textValue = '',
-      this.textColor = Colors.black});
+      this.textColor = Colors.black}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return Material(

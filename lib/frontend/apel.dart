@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/frontend/buat_apel.dart';
 import 'package:path_provider/path_provider.dart';
@@ -70,14 +71,16 @@ class _ApelState extends State<Apel> {
     return monthNames[monthName] ?? '01';
   }
 
-  Future<List<Map<String, dynamic>>> fetchData(
-      String selectedMonth, String selectedYear) async {
+  Future<List<Map<String, dynamic>>> fetchData(String selectedMonth, String selectedYear) async {
     try {
+
       String selectedMonthNumber = _getMonthNumber(selectedMonth);
       final idUser = SpUtil.getString("id_user");
+      print('$url/api/riwayat-apel/$idUser/$selectedMonthNumber/$selectedYear');
+
       final response = await http.get(Uri.parse(
-          '$url/api/riwayat-epel/$idUser/$selectedMonthNumber/$selectedYear'));
-      print(json.decode(response.body)['data']);
+          '$url/api/riwayat-apel/$idUser/$selectedMonthNumber/$selectedYear'));
+
       if (response.statusCode == 200) {
         final List<dynamic> responseData = json.decode(response.body)['data'];
         _isLoading = false;
@@ -148,8 +151,15 @@ class _ApelState extends State<Apel> {
     double deviceHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(' :: Riwayat Apel'),
-        elevation: 4,
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Riwayat Apel',style: TextStyle(color: Colors.white),),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          color: Colors.white,
+          onPressed: () {
+            Navigator.pushNamed(context, '/home-page');
+          },
+        ),
       ),
       body: SizedBox(
         height: deviceHeight * 1.2,
@@ -166,24 +176,29 @@ class _ApelState extends State<Apel> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         //tambah data
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const BuatApel()),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 0, 110, 255),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text('+ Apel',
-                              style: TextStyle(color: Colors.white)),
-                        ),
+                        Container(
+                                clipBehavior: Clip.hardEdge,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  color: const Color.fromARGB(255, 14, 60, 129),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                ),
+                                child: IconButton(
+                                  icon: const FaIcon(
+                                    FontAwesomeIcons.plus,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => const BuatApel()),
+                                    );
+                                  },
+                                ),
+                              ),
                         const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -247,7 +262,7 @@ class _ApelState extends State<Apel> {
                                   child: CircularProgressIndicator());
                             } else if (snapshot.hasError) {
                               return const Center(
-                                  child: Text('Error: Data tidak ditemukan!'));
+                                  child: Text('Data tidak ditemukan!'));
                             } else {
                               return SingleChildScrollView(
                                 child: Center(

@@ -19,86 +19,12 @@ class Navigasi extends StatelessWidget {
         shrinkWrap: true,
         padding: const EdgeInsets.all(20.0),
         itemCount: choices.length,
-        itemBuilder: (BuildContext context, int index) {
+        itemBuilder: (context, index) {
           return Center(
             child: ChoiceCard(
               choice: choices[index],
               onTap: () {
-                // Navigate to the corresponding screen based on the selected choice
-                switch (index) {
-                  case 0: // Profil
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Profile(),
-                      ),
-                    );
-                    break;
-                  case 1: // Daftar Wifi
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ListWifi(),
-                      ),
-                    );
-                    break;
-                  case 2: // Daftar Wifi
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ListWifi(),
-                      ),
-                    );
-                    break;
-                  case 3: // Daftar Wifi
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ListWifi(),
-                      ),
-                    );
-                    break;
-                  case 4: // Daftar Wifi
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ListWifi(),
-                      ),
-                    );
-                    break;
-                  case 5: // Daftar Wifi
-                    SpUtil.getInstance().then((sp) {
-                      SpUtil.clear()?.then((success) {
-                        if (success) {
-                          // if (kDebugMode) {
-                          //   print('Cache cleared successfully.'); 
-                          // }
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const Login()),
-                            );
-                        } else {
-                          if (kDebugMode) {
-                            print('Failed to clear cache.');
-                          }
-                        }
-                      }).catchError((error) {
-                        if (kDebugMode) {
-                          print('Error: $error');
-                        }
-                      });
-                    }).catchError((error) {
-                      if (kDebugMode) {
-                        print(
-                            'Error getting SharedPreferences instance: $error');
-                      }
-                    });
-
-                    break;
-
-                  // Add cases for other choices here
-                }
+                navigateToScreen(context, index);
               },
             ),
           );
@@ -106,22 +32,54 @@ class Navigasi extends StatelessWidget {
       ),
     );
   }
+
+  void navigateToScreen(BuildContext context, int index) {
+    var screen = [
+      const Profile(),
+      const ListWifi(),
+      const ListWifi(),
+      const ListWifi(),
+      const ListWifi(),
+    ];
+    var screenIndex = index < screen.length ? index : 0;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => screen[screenIndex],
+      ),
+    );
+
+    if (index == 5) {
+      SpUtil.clear()?.then((success) {
+        if (success) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const Login(),
+            ),
+          );
+        }
+      }).catchError((error) {});
+    }
+  }
 }
 
 class Choice {
-  const Choice({required this.title, required this.icon});
+  const Choice({required this.title, required this.icon, required this.color});
 
   final String title;
   final IconData icon;
+  final Color color;
 }
 
 List<Choice> choices = <Choice>[
-  const Choice(title: 'Profil', icon: Icons.person),
-  const Choice(title: 'Daftar Wifi', icon: Icons.wifi),
-  const Choice(title: 'Kendala Absen', icon: Icons.warning_amber),
-  const Choice(title: 'Panduan', icon: Icons.book),
-  const Choice(title: 'Tentang', icon: Icons.abc_outlined),
-  const Choice(title: 'Keluar', icon: Icons.logout),
+  const Choice(title: 'Profil', icon: Icons.person, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Daftar Wifi', icon: Icons.wifi, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Kendala Absen', icon: Icons.warning_amber, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Panduan', icon: Icons.book, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Tentang', icon: Icons.abc_outlined, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Keluar', icon: Icons.logout, color:  Color.fromARGB(255, 14, 60, 129)),
 ];
 
 class ChoiceCard extends StatelessWidget {
@@ -136,7 +94,7 @@ class ChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextStyle? textStyle = Theme.of(context).textTheme.headline6;
+    TextStyle? textStyle = Theme.of(context).textTheme.titleLarge;
     return InkWell(
       onTap: onTap,
       child: Card(

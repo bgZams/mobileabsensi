@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 
 class KonfirmasiLaporanHarian extends StatefulWidget {
-  const KonfirmasiLaporanHarian({super.key});
+  const KonfirmasiLaporanHarian({Key? key}) : super(key: key);
 
   @override
   State<KonfirmasiLaporanHarian> createState() =>

@@ -14,7 +14,7 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
 class BuatApel extends StatefulWidget {
-  const BuatApel({super.key});
+  const BuatApel({Key? key}) : super(key: key);
 
   @override
   State<BuatApel> createState() => _BuatApelState();
@@ -54,13 +54,12 @@ class _BuatApelState extends State<BuatApel> {
   }
 
   Future<void> kirimApel() async {
-    String keteranganValue = keterangan.text;
-    String imagePath = image!.path;
-    String idUser = SpUtil.getString("id_user") ?? '';
-    String idadmininstansi = SpUtil.getString("id_admin_instansi") ?? '';
-    String idAtasan = SpUtil.getString("id_user_pimpinan") ?? '';
-    String addimageUrl =
-        'http://mobileabsensi5.pasamanbaratkab.go.id/api/simpanepel';
+    var keteranganValue = keterangan.text;
+    var imagePath = image!.path;
+    var idUser = SpUtil.getString("id_user") ?? '';
+    var idadmininstansi = SpUtil.getString("id_admin_instansi") ?? '';
+    var idAtasan = SpUtil.getString("id_user_pimpinan") ?? '';
+    var addimageUrl ='$url/api/apel-post/$idUser';
 
     Map<String, String> headers = {
       'Content-Type': 'multipart/form-data',
@@ -72,7 +71,14 @@ class _BuatApelState extends State<BuatApel> {
         imagePath,
         quality: 70, // Ubah quality sesuai kebutuhan Anda
       );
-
+      var data = {
+        'id_admin': idadmininstansi,
+        'id_atasan': idAtasan,
+        'id_user': idUser,
+        'keterangan': keteranganValue,
+        'file': imagePath,
+      };
+      print(data);
       var request = http.MultipartRequest('POST', Uri.parse(addimageUrl))
         ..fields.addAll({
           'id_admin': idadmininstansi,
@@ -87,14 +93,8 @@ class _BuatApelState extends State<BuatApel> {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      var data = {
-        'id_admin': idadmininstansi,
-        'id_atasan': idAtasan,
-        'id_user': idUser,
-        'keterangan': keteranganValue,
-        'file': imagePath,
-      };
-      print(data);
+
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         String message = data["message"];

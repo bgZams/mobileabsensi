@@ -7,7 +7,7 @@ import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Login extends StatefulWidget {
-  const Login({super.key});
+  const Login({Key? key}) : super(key: key);
 
   @override
   _LoginState createState() => _LoginState();
@@ -15,12 +15,11 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   bool passwordVisible = false;
-  final bool _isLoading = false;
+  bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
   TextEditingController username = TextEditingController();
   TextEditingController password = TextEditingController();
   TextEditingController versi = TextEditingController();
-
   void togglePassword() {
     setState(() {
       passwordVisible = !passwordVisible;
@@ -40,7 +39,35 @@ class _LoginState extends State<Login> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  void _login(String username, password) async {
+  void _startLoading() async {
+    setState(() {
+      _isLoading = true; // Menampilkan loader sebelum memulai pengiriman data
+    });
+
+    if (_formKey.currentState!.validate()) {
+      try {
+        await _login(username.text, password.text);
+      } catch (error) {
+        if (kDebugMode) {
+          print("Error: $error");
+        }
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future _login(username, password) async {
+    setState(() {
+      _isLoading = true;
+    });
+    await Future.delayed(Duration(seconds: 2));
     try {
       Response response = await post(
           Uri.parse(
@@ -52,7 +79,7 @@ class _LoginState extends State<Login> {
         if (body["success"] == 1) {
           Response dataWifi = await get(
             Uri.parse(
-                '${body['domain']}/api_mobile/data_wifi/validasi_absen/${body['username_admin']}'),
+                'http://mobileabsensi5.pasamanbaratkab.go.id/api/wifi/${body['username_admin']}'),
             headers: {
               'Content-type': 'application/json',
               'Accept': 'application/json'
@@ -92,7 +119,8 @@ class _LoginState extends State<Login> {
             SpUtil.putString(
                 'jabatan_atasan', userData['jabatan_atasan'] ?? '');
             // SpUtil.putString('url', userData['url'] ?? '');
-            SpUtil.putString('url', 'http://192.168.223.46');
+            // SpUtil.putString('url', 'http://192.168.79.108');
+            SpUtil.putString('url', 'http://mobileabsensi5.pasamanbaratkab.go.id');
           }
 
           SpUtil.putBool('isLogin', true);
@@ -100,7 +128,7 @@ class _LoginState extends State<Login> {
           if (dataWifi.statusCode == 200) {
             List<dynamic> wifiData = json.decode(dataWifi.body);
             SpUtil.putString('wifi_data',
-                json.encode(wifiData)); // Simpan semua data sebagai JSON
+                json.encode(wifiData));
           } else {
             // Handle error jika diperlukan
           }
@@ -122,7 +150,11 @@ class _LoginState extends State<Login> {
         }
       }
     } catch (e) {
+      setState(() {
+      _isLoading = false;
+    });
       if (kDebugMode) {
+
         print(Exception(e));
       }
     }
@@ -208,7 +240,7 @@ class _LoginState extends State<Login> {
                                       borderSide: BorderSide.none)),
                               validator: (passwordValue) {
                                 if (passwordValue!.isEmpty) {
-                                  return 'Please enter your password';
+                                  return 'Please enter your password'; 
                                 }
                                 return null;
                               }),
@@ -234,32 +266,30 @@ class _LoginState extends State<Login> {
                 const SizedBox(
                   height: 32,
                 ),
+ 
+
                 ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          if (_formKey.currentState!.validate()) {
-                            _login(username.text.toString(),
-                                password.text.toString());
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[800],
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 20),
-                      textStyle: const TextStyle(
-                          fontSize: 30, fontWeight: FontWeight.bold)),
-                  child: Text(
-                    _isLoading ? 'Processing..' : 'Login',
-                    textDirection: TextDirection.ltr,
-                    style: const TextStyle(
-                      color: Color.fromARGB(255, 255, 255, 255),
-                      fontSize: 16.0,
-                      decoration: TextDecoration.none,
-                      fontWeight: FontWeight.normal,
-                    ),
+                onPressed: _isLoading
+                    ? null
+                    : _startLoading,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[800],
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40, vertical: 20),
+                  textStyle: const TextStyle(
+                      fontSize: 30, fontWeight: FontWeight.bold),
+                ),
+                child: Text(
+                  _isLoading ? 'Processing..' : 'Login',
+                  textDirection: TextDirection.ltr,
+                  style: const TextStyle(
+                    color: Color.fromARGB(255, 255, 255, 255),
+                    fontSize: 16.0,
+                    decoration: TextDecoration.none,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
+              ),
                 const SizedBox(
                   height: 10,
                 ),

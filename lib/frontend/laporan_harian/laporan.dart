@@ -4,7 +4,7 @@ import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
 import '../absen/laporan_harian.dart';
 
 class Laporan extends StatefulWidget {
-  const Laporan({super.key});
+  const Laporan({Key? key}) : super(key: key);
 
   @override
   State<Laporan> createState() => _LaporanState();
@@ -16,8 +16,10 @@ class _LaporanState extends State<Laporan> {
     double deviceHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Laporan Harian'),
-      ),
+          backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+          title: const Center(child:  Text('Riwayat Laporan Harian',style: TextStyle(color: Colors.white),)),
+          elevation: 4,
+        ),
       body: SizedBox(
         height: deviceHeight * 1.2,
         child: Container(

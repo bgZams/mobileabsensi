@@ -5,6 +5,7 @@ import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/frontend/izin/detail_konfirmasi_atasan.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
+import 'package:mobileabsensi/frontend/pengumuman.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class Home extends StatefulWidget {
@@ -12,7 +13,7 @@ class Home extends StatefulWidget {
   final String title;
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
-
+ 
   @override
   State<Home> createState() => _HomeState();
 }
@@ -20,6 +21,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final DatabaseReference databaseReference =
       FirebaseDatabase.instance.reference();
+      bool _showBottomNavBar = true;
   final _pageController = PageController();
   int _currentIndex = 0;
 
@@ -27,8 +29,8 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _requestPermissions();
-    // NotificationController notificationController = NotificationController();
-    // notificationController.startListeningNotificationEvents();
+    NotificationController.startListeningNotificationEvents();
+    super.initState();
   }
 
   @override
@@ -39,26 +41,26 @@ class _HomeState extends State<Home> {
 
   // Memeriksa dan meminta izin
   Future<void> _requestPermissions() async {
-    final locationStatus = await Permission.location.request();
-    final wifiStatus = await Permission.locationWhenInUse.request();
-    final status = await Permission.camera.request();
-    final galleryStatus = await Permission.photos.request();
-    final notification = await Permission.notification.isDenied.then((value) {
-      if (value) {
-        Permission.notification.request();
-      }
-    });
+  final locationStatus = await Permission.location.request();
+  final wifiStatus = await Permission.locationWhenInUse.request();
+  final camera = await Permission.camera.request();
+  final galleryStatus = await Permission.photos.request();
+  var notificationStatus = await Permission.notification.status;
 
-    if (locationStatus.isGranted &&
-        wifiStatus.isGranted &&
-        status.isGranted &&
-        galleryStatus.isGranted &&
-        notification.isGranted) {
-      // Izin diberikan, Anda dapat mengakses lokasi dan Wi-Fi.
-    } else {
-      // Izin ditolak, beri tahu pengguna atau tangani dengan sesuai.
-    }
+  if (notificationStatus.isDenied) {
+    notificationStatus = await Permission.notification.request();
   }
+
+  if (locationStatus.isGranted &&
+      wifiStatus.isGranted &&
+      camera.isGranted &&
+      galleryStatus.isGranted &&
+      notificationStatus.isGranted) {
+    // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
+  } else {
+    // One or more permissions denied, notify the user or handle accordingly.
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -87,10 +89,12 @@ class _HomeState extends State<Home> {
         '/konfirmasi-laporan': (context) => const KonfirmasiLaporanHarian(),
         '/apel': (context) => const Apel(),
         '/senam': (context) => const Senam(),
+        '/pengumuman': (context) => const Pengumuman(),
+        '/edit_lhk': (context) => const EditLaporan(),
       },
       home: Scaffold(
         body: Container(
-          color: Color.fromARGB(255, 238, 238, 238),
+          color: const Color.fromARGB(255, 238, 238, 238),
           child: PageView(
             controller: _pageController,
             onPageChanged: (index) {
@@ -106,8 +110,8 @@ class _HomeState extends State<Home> {
             ],
           ),
         ),
-        bottomNavigationBar: CurvedNavigationBar(
-          // backgroundColor:  const Color.fromARGB(255, 238, 238, 238),
+        bottomNavigationBar: _showBottomNavBar ? CurvedNavigationBar(
+          backgroundColor:  const Color.fromARGB(255, 238, 238, 238),
           // buttonBackgroundColor: Colors.white,
           color: const Color.fromARGB(255, 14, 60, 129),
           height: 65,
@@ -124,8 +128,12 @@ class _HomeState extends State<Home> {
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOut,
             );
+            setState(() {
+            _currentIndex = index;
+            _showBottomNavBar = true;
+          });
           },
-        ),
+        ) : null,
       ),
     );
   }
@@ -141,7 +149,7 @@ class _HomeState extends State<Home> {
                 ] // Warna ungu gradian untuk ikon aktif
               : [
                   Colors.white,
-                  Colors.white
+             Colors.white,
                 ], // Warna abu-abu untuk ikon non-aktif
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,

@@ -52,7 +52,15 @@ class _PengumumanState extends State<Pengumuman> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pengumuman'),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Pengumuman',style: TextStyle(color: Colors.white),),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          color: Colors.white,
+          onPressed: () {
+            Navigator.pushNamed(context, '/home-page');
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -154,7 +162,7 @@ class _PengumumanState extends State<Pengumuman> {
                   size: 20,
                 ),
                 Text(
-                  "Dilihat: ${post.dilihat.toString() ?? ''}",
+                  "Di lihat: ${post.dilihat.toString()}",
                 ),
               ],
             )

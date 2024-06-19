@@ -35,7 +35,7 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
 
 
       if (response.statusCode == 200) {
-      print(response.body);
+      // print(response.body);
 
         return json.decode(response.body);
       } else {
@@ -52,8 +52,14 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Pengumuman'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushNamed(context, '/pengumuman');
+          },
+        ),
       ),
-      body: SingleChildScrollView( 
+      body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Container(
                     height: deviceHeight * 1.2,
@@ -95,7 +101,7 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
                               style: const TextStyle(fontSize: 16),
                             ),
                             ],),
-                            SizedBox(width: 15,),
+                            const SizedBox(width: 15,),
                             Text(
                               'Tanggal: ${pengumuman['date_tgl']}',
                               style: const TextStyle(fontSize: 16),

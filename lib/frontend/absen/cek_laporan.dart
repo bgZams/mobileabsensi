@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart'; 
 
 class CekLaporan extends StatefulWidget {
-  const CekLaporan({super.key});
+  const CekLaporan({Key? key}) : super(key: key);
 
   @override
   State<CekLaporan> createState() => _CekLaporanState();

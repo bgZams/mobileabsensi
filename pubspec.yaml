@@ -19,7 +19,8 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.3 <4.0.0'
+  # sdk: '>=3.2.3 <4.0.0'
+  sdk: ">=2.12.0 <3.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -68,12 +69,14 @@ dependencies:
   curved_navigation_bar: ^1.0.3
   flutter_neumorphic: ^3.0.0
   font_awesome_flutter: ^10.7.0
-  awesome_notifications: ^0.8.2
   flutter_launcher_icons: ^0.13.1
   flutter_file_dialog: ^3.0.2
   path: ^1.8.3
-  flutter_image_compress: ^2.2.0
+  flutter_image_compress: ^2.3.0
   firebase_auth: ^4.17.8
+  awesome_notifications: ^0.8.2
+  timezone: ^0.9.3
+  fl_chart: ^0.68.0
 
 dev_dependencies:
   flutter_test:
@@ -119,15 +122,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/sidikjari1new.png
-    - assets/images/sidikjari2new.png
-    - assets/images/icon/absen.png
-    - assets/images/icon/riwayat.png
-    - assets/images/icon/izin.png
-    - assets/images/icon/laporan.png
-    - assets/images/icon/pengumuman.png
-    - assets/images/icon/berita.png
-    - assets/images/icon/panduan.png
-    - assets/images/icon/pesan.png
+    - assets/images/sidikjari2new.png  
     - assets/images/imgheader.png
     - assets/images/profile.png
     - assets/images/profil.png
@@ -142,6 +137,9 @@ flutter:
     - assets/images/artikel.svg
     - assets/images/apel.svg
     - assets/images/logoapp.png
+    - assets/images/small_app.png
+    - assets/images/nodata.png
+    - assets/images/bannernav.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:sp_util/sp_util.dart';
 
 class DetailPengajuanIzin extends StatefulWidget {
@@ -32,41 +31,24 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
             : '';
     String jenisStatus;
     String statusApproval;
-    IconData iconData;
     Color iconColor;
 
     switch (widget.data['status_approval'].toString()) {
       case '1':
-        iconData = FontAwesomeIcons.stopwatch;
+        statusApproval = 'Diajukan';
         iconColor = Colors.orange;
         break;
       case '2':
-        iconData = Icons.check_outlined;
+        statusApproval = 'Disetujui';
         iconColor = Colors.green;
         break;
       case '3':
-        iconData = Icons.close;
+        statusApproval = 'Ditolak';
         iconColor = Colors.red;
         break;
       default:
-        iconData = Icons.error;
+        statusApproval = 'Diajukan';
         iconColor = Colors.black;
-    }
-    switch (widget.data['status_approval'].toString()) {
-      case '1':
-        statusApproval = 'Diajukan';
-
-        break;
-      case '2':
-        statusApproval = 'Disetujui';
-
-        break;
-      case '3':
-        statusApproval = 'Ditolak';
-
-        break;
-      default:
-        statusApproval = 'Diajukan';
     }
     switch (widget.data['jenis_approval'].toString()) {
       case '2':
@@ -87,9 +69,18 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
       default:
         jenisStatus = 'Belum Disetujui';
     }
+    var jamMasuk = widget.data['timestamp_masuk'].toString();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Pengajuan Izin'),
+        elevation: 4,
+         leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+            
+          },
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -105,8 +96,8 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
                 children: [
                   _buildTableRow(
                     'Tgl Pengajuan',
-                    ': ${widget.data['timestamp_masuk']}' != null
-                        ? ': ${widget.data['timestamp_masuk'].toString()}'
+                    ': $jamMasuk' != ''
+                        ? ': $jamMasuk'
                         : '',
                   ),
                   _buildTableRow(
@@ -117,19 +108,17 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
                     'Durasi',
                     ': ${widget.data['durasi'].toString()} Hari',
                   ),
-                  _buildTableRow('Jenis Izin', ': ${jenisStatus}'),
+                  _buildTableRow('Jenis Izin', ': $jenisStatus'),
                   _buildTableRow(
                       'Keterangan', ': ${widget.data['keterangan']}'),
                   _buildStatusApprovalRow(statusApproval, iconColor),
                 ],
               ),
-              imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.fitWidth,
-                      width: MediaQuery.of(context).size.width,
-                    )
-                  : const Text('Tidak ada file tersedia'),
+              imageUrl.isNotEmpty ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                        width: MediaQuery.of(context).size.width,
+                      ) : const Text('Tidak ada file tersedia'),
             ],
           ),
         ),

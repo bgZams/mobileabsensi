@@ -72,12 +72,13 @@ class _ListWifiState extends State<ListWifi> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Daftar Wifi'),
-        elevation: 4,
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Daftar Wifi',style: TextStyle(color: Colors.white),),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          color: Colors.white,
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pushNamed(context, '/home-page');
           },
         ),
       ),

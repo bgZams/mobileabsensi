@@ -12,13 +12,14 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
 class PulangCepat extends StatefulWidget {
-  const PulangCepat({super.key});
+  const PulangCepat({Key? key}) : super(key: key);
 
   @override
   State<PulangCepat> createState() => _PulangCepatState();
 }
 
 class _PulangCepatState extends State<PulangCepat> {
+  bool isPulangCepat = false;
   final _formKey = GlobalKey<FormState>();
   bool? sptSementara = false;
   bool _isLoading = false;
@@ -384,7 +385,6 @@ class _PulangCepatState extends State<PulangCepat> {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      print(response.statusCode);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         String message = data["message"];
@@ -395,7 +395,7 @@ class _PulangCepatState extends State<PulangCepat> {
             type: QuickAlertType.success,
             text: message,
           );
-          SpUtil.putBool('is_codePulang', true);
+          SpUtil.putBool('is_PulangCepat', true);
           resetState();
           // Future.delayed(Duration.zero, () {
           //   Navigator.pop(context);

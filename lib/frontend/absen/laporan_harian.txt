@@ -1,0 +1,380 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:mobileabsensi/core.dart';
+import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
+import 'package:sp_util/sp_util.dart';
+
+class LaporanHarian extends StatefulWidget {
+  const LaporanHarian({Key? key}) : super(key: key);
+
+  @override
+  State<LaporanHarian> createState() => _LaporanHarianState();
+}
+
+class _LaporanHarianState extends State<LaporanHarian> {
+  final String? url = SpUtil.getString("url");
+  List<DataRow> _rows = [];
+  bool _isLoading = true;
+  late String selectedYear;
+  late String selectedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    selectedYear = now.year.toString();
+    selectedMonth = _getMonthName(now.month);
+    _fetchData();
+  }
+
+  String _getMonthName(int month) {
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return monthNames[month - 1];
+  }
+
+  String _getMonthNumber(String monthName) {
+    const monthNumbers = {
+      'Januari': '01', 'Februari': '02', 'Maret': '03', 'April': '04',
+      'Mei': '05', 'Juni': '06', 'Juli': '07', 'Agustus': '08',
+      'September': '09', 'Oktober': '10', 'November': '11', 'Desember': '12'
+    };
+    return monthNumbers[monthName] ?? '01';
+  }
+
+  Future<void> _fetchData() async {
+    final idUser = SpUtil.getString("id_user");
+    String selectedMonthNumber = _getMonthNumber(selectedMonth);
+    try {
+      final response = await http.get(
+        Uri.parse('$url/api/riwayat-lhk/$idUser/$selectedMonthNumber/$selectedYear'),
+        headers: {
+          'Content-type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+        if (jsonData.containsKey('data')) {
+          final dataList = jsonData['data'] as List<dynamic>;
+          setState(() {
+            _rows = dataList.map((data) => DataRow(cells: [
+              DataCell(Text(data['tgl'])),
+              DataCell(Text(data['jammulai'])),
+              DataCell(Text(data['jamselesai'])),
+              DataCell(Text(data['rincian_kegiatan'])),
+              DataCell(Text(data['status'])),
+            ])).toList();
+            _isLoading = false;
+          });
+        } else {
+          _isLoading = false;
+          throw Exception('Failed to load data');
+        }
+      } else {
+        _isLoading = false;
+        throw Exception('HTTP Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _searchData(String month, String year) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String monthNumber = _getMonthNumber(month);
+      var idUser = SpUtil.getString("id_user");
+      final response = await http.get(
+        Uri.parse('$url/api/riwayat-lhk/$idUser/$monthNumber/$year'),
+        headers: {
+          'Content-type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+        if (jsonData.containsKey('data')) {
+          final dataList = jsonData['data'] as List<dynamic>;
+          setState(() {
+            _rows = dataList.map((data) => DataRow(cells: [
+              DataCell(Text(data['tgl'])),
+              DataCell(Text(data['jammulai'])),
+              DataCell(Text(data['jamselesai'])),
+              DataCell(Text(data['rincian_kegiatan'])),
+              DataCell(Text(data['status'])),
+            ])).toList();
+            _isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load data');
+        }
+      } else {
+        throw Exception('HTTP Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Widget _buildCards() {
+    Map<String, List<DataRow>> groupedData = {};
+    for (var dataRow in _rows) {
+      final date = (dataRow.cells[0].child as Text).data!;
+      groupedData.putIfAbsent(date, () => []).add(dataRow);
+    }
+
+    List<Widget> cards = groupedData.entries.map((entry) {
+      List<Widget> rowWidgets = entry.value.map((dataRow) {
+        final cells = dataRow.cells;
+        final startTime = (cells[1].child as Text).data!;
+        final endTime = (cells[2].child as Text).data!;
+        final activity = (cells[3].child as Text).data!;
+        final status = (cells[4].child as Text).data!;
+        IconData statusIcon;
+        Color statusColor;
+
+        switch (status) {
+          case '1':
+            statusIcon = Icons.check;
+            statusColor = Colors.green;
+            break;
+          case '2':
+            statusIcon = Icons.close;
+            statusColor = Colors.red;
+            break;
+          case '3':
+            statusIcon = Icons.close;
+            statusColor = Colors.red;
+            break;
+          case '4':
+            statusIcon = Icons.browse_gallery_outlined;
+            statusColor = Colors.blue;
+            break;
+          default:
+            statusIcon = Icons.check;
+            statusColor = Colors.green;
+        }
+
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, color: Colors.blue),
+                    Text(startTime),
+                    const Icon(Icons.arrow_forward_outlined),
+                    Text(endTime),
+                  ],
+                ),
+                CircleAvatar(
+                  backgroundColor: statusColor,
+                          radius: 12,
+                          child: Icon(
+                            statusIcon,
+                            color: Colors.white,
+                            size: 15,
+                          ),
+                ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.topLeft,
+              child: Text(activity),
+            ),
+            const Divider(),
+          ],
+        );
+      }).toList();
+      var tgl = DateFormat('yyyy-MM-dd').parse(entry.key);
+      var formattedDate = DateFormat('dd/MM/yyyy').format(tgl);
+      return Card(
+        margin: const EdgeInsets.all(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Tanggal: $formattedDate'),
+              ...rowWidgets,
+            ],
+          ),
+        ),
+      );
+    }).toList();
+
+    return Column(children: cards);
+  }
+
+  Future<void> _refreshData() async {
+    await Future.delayed(const Duration(seconds: 2));
+    _fetchData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+          backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+          title: const Center(child:  Text('Riwayat Laporan Harian',style: TextStyle(color: Colors.white),)),
+          elevation: 4,
+        ),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: 1,
+                itemBuilder: (_, __) => Column(
+                  children: [
+                    Container(
+                      color: const Color.fromARGB(255, 240, 239, 239),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 5),
+                          Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(width: 15,),
+                                    Container(
+                                      clipBehavior: Clip.hardEdge,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.white, width: 2),
+                                        color: const Color.fromARGB(255, 14, 60, 129),
+                                        borderRadius: const BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                      ),
+                                      child: IconButton(
+                                        icon: const FaIcon(
+                                          FontAwesomeIcons.plus,
+                                          color: Colors.white,
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) => const BuatLaporan()),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10,),
+                                    Container(
+                                      clipBehavior: Clip.hardEdge,
+                                      decoration: const BoxDecoration(
+                                        color:  Color.fromARGB(255, 237, 216, 20),
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                      ),
+                                      child: IconButton(
+                                        icon: const FaIcon(
+                                          FontAwesomeIcons.hourglassStart,
+                                          color: Colors.white,
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) => const RiwayatPengajuanLhk()),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                          const SizedBox(height: 5),
+                          Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    DropdownButton<String>(
+                                      value: selectedMonth,
+                                      hint: const Text('Pilih Bulan'),
+                                      onChanged: (newValue) {
+                                        setState(() {
+                                          selectedMonth = newValue!;
+                                        });
+                                      },
+                                      items: [
+                                        'Januari',
+                                        'Februari',
+                                        'Maret',
+                                        'April',
+                                        'Mei',
+                                        'Juni',
+                                        'Juli',
+                                        'Agustus',
+                                        'September',
+                                        'Oktober',
+                                        'November',
+                                        'Desember'
+                                      ].map<DropdownMenuItem<String>>((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // Inputan Tahun
+                                    DropdownButton<String>(
+                                      value: selectedYear,
+                                      hint: const Text('Pilih Tahun'),
+                                      onChanged: (newValue) {
+                                        setState(() {
+                                          selectedYear = newValue!;
+                                        });
+                                      },
+                                      items: _getYearItems(),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // Tombol Cari
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        _searchData(selectedMonth, selectedYear);
+                                      },
+                                      child: const Text('Cari'),
+                                    ),
+                                  ],
+                                ),
+                          const SizedBox(height: 5),
+                        ],
+                      ),
+                    ),
+                    _buildCards(),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  List<DropdownMenuItem<String>> _getYearItems() {
+    int currentYear = DateTime.now().year;
+    return List.generate(currentYear - 2018 + 1, (index) {
+      return DropdownMenuItem<String>(
+        value: (2018 + index).toString(),
+        child: Text((2018 + index).toString()),
+      );
+    });
+  }
+}

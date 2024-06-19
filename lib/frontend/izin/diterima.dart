@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 
 class Terimaizin extends StatefulWidget {
-  const Terimaizin({super.key});
+    const Terimaizin({Key? key}) : super(key: key);
+
 
   @override
   State<Terimaizin> createState() => _TerimaizinState();

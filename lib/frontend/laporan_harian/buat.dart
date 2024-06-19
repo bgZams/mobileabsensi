@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
@@ -206,6 +207,8 @@ class _BuatLaporanState extends State<BuatLaporan> {
     String? idUser = SpUtil.getString('id_user');
     String? idPimpinan = SpUtil.getString('id_user_pimpinan');
     String? idAdmin = SpUtil.getString('id_admin_instansi');
+    String namalengkap = SpUtil.getString("nama_lengkap").toString();
+    var now = DateFormat('yyyy-mm-dd').format(DateTime.now());
 
     Map<String, dynamic> data = {
       'id_user': idUser,
@@ -213,6 +216,16 @@ class _BuatLaporanState extends State<BuatLaporan> {
       'jammulai': mulai,
       'jamselesai': selesai,
       'rincian_kegiatan': kegiatan,
+      'id_status':0,
+    };
+    Map<String, dynamic> storeFirebase = {
+      'tanggal': now,
+      'id_user': idUser,
+      'id_atasan': idPimpinan,
+      'id_status': 0, 
+      'nama_lengkap': namalengkap,
+      'jenis_izin': 'laporan harian',
+      'key_notif': 'laporan'
     };
 
     if (idServer == null ||
@@ -237,9 +250,12 @@ class _BuatLaporanState extends State<BuatLaporan> {
           'Accept': 'application/json',
         },
       );
-      print(kirimLaporanHarian.statusCode);
+      // print(kirimLaporanHarian.statusCode);
 
       if (kirimLaporanHarian.statusCode == 200) {
+        final DatabaseReference databaseReference =
+            FirebaseDatabase.instance.ref();
+        databaseReference.child("laporan").push().set(storeFirebase);
         prosesResponSukses(kirimLaporanHarian.body);
       } else {
         // ignore: use_build_context_synchronously
@@ -270,6 +286,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
         text: message,
       );
     } else {
+      
       bersihkanForm();
       QuickAlert.show(
         context: context,

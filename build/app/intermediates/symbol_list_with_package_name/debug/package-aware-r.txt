@@ -3721,6 +3721,7 @@ layout select_dialog_singlechoice_material
 layout support_simple_spinner_dropdown_item
 layout toast_custom
 mipmap ic_launcher
+mipmap launcher_icon
 plurals mtrl_badge_content_description
 raw firebase_common_keep
 string abc_action_bar_home_description

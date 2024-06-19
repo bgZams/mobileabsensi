@@ -19,7 +19,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   String? url;
   String? idUser;
   TabController? _controller;
-  int _selectedIndex = 0;
+  int selectedIndex = 0;
 
   List<Widget> list = [
     const Tab(
@@ -56,7 +56,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     _controller = TabController(length: list.length, vsync: this);
     _controller?.addListener(() {
       setState(() {
-        _selectedIndex = _controller!.index;
+        selectedIndex = _controller!.index;
       });
       _fetchData();
 
@@ -135,7 +135,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
 
       if (response.statusCode == 200) {
         setState(() {
-          _selectedIndex = 1; // Set index to LHK tab
+          selectedIndex = 1; // Set index to LHK tab
           _controller?.animateTo(1); // Move to LHK tab
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -164,9 +164,8 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('$url/api/lhk/terima/$id');
         setState(() {
-          _selectedIndex = 1; // Set index to LHK tab
+          selectedIndex = 1; // Set index to LHK tab
           _controller?.animateTo(1); // Move to LHK tab
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -268,9 +267,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     );
   }
 
-  Widget _buildLhkItem(BuildContext context, dynamic lhk) {
-    String jenisStatus = _getStatus(lhk['status'].toString());
-
+  Widget _buildLhkItem(BuildContext context, dynamic lhk) { 
     return Card(
       margin: const EdgeInsets.all(8),
       elevation: 4,
@@ -281,7 +278,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           children: [
             Text(
               lhk['nama_lengkap'] ?? '',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
@@ -310,10 +307,10 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        vertical: 13, horizontal: 60),
+                        vertical: 13, horizontal: 50),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(5),
-                      color: Color.fromARGB(255, 161, 255, 156),
+                      color: const Color.fromARGB(255, 161, 255, 156),
                     ),
                     child: const Text(
                       'Terima',
@@ -325,14 +322,14 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
                     ),
                   ),
                 ),
-                SizedBox(width: 10),
+                const Spacer(),
                 InkWell(
                   onTap: () {
                     _showRejectDialog(lhk['id']);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        vertical: 13, horizontal: 60),
+                        vertical: 13, horizontal: 50),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(5),
                       color: const Color.fromARGB(255, 255, 160,
@@ -373,7 +370,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   }
 
   void _showRejectDialog(int id) {
-    TextEditingController _controller = TextEditingController();
+    TextEditingController controller = TextEditingController();
 
     showDialog(
       context: context,
@@ -381,7 +378,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
         return AlertDialog(
           title: const Text('Alasan Penolakan'),
           content: TextField(
-            controller: _controller,
+            controller: controller,
             decoration: const InputDecoration(hintText: "Masukkan alasan"),
           ),
           actions: <Widget>[
@@ -394,7 +391,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
             TextButton(
               child: const Text('Kirim'),
               onPressed: () {
-                String alasan = _controller.text;
+                String alasan = controller.text;
                 if (alasan.isNotEmpty) {
                   _sendRejection(id, alasan);
                   Navigator.of(context).pop();

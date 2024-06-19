@@ -22,7 +22,7 @@ class NotificationController {
   ///
   static Future<void> initializeLocalNotifications() async {
     await AwesomeNotifications().initialize(
-        null, //'resource://drawable/res_app_icon',//
+        null,//'resource://assets/images/small_app.png',
         [
           NotificationChannel(
               channelKey: 'alerts',
@@ -54,13 +54,18 @@ class NotificationController {
         receivePort!.sendPort, 'notification_action_port');
   }
 
-  Future<void> startListeningNotificationEvents() async {
+  // Future<void> startListeningNotificationEvents() async {
+  //   AwesomeNotifications()
+  //       .setListeners(onActionReceivedMethod: onActionReceivedMethod);
+  // }
+
+  static Future<void> startListeningNotificationEvents() async {
     AwesomeNotifications()
         .setListeners(onActionReceivedMethod: onActionReceivedMethod);
   }
 
   void updateFirebase(keyNotif) async {
-    final izinRef = FirebaseDatabase.instance.reference().child(keyNotif);
+    final DatabaseReference izinRef = FirebaseDatabase.instance.ref().child(keyNotif);
     final idUser = SpUtil.getString('id_user');
     Query query = izinRef.orderByChild("id_atasan").equalTo(idUser);
     DatabaseEvent event = await query.once();
@@ -77,39 +82,62 @@ class NotificationController {
   }
 
   @pragma('vm:entry-point')
-  Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
+  static  Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
     final payload = receivedAction.payload ?? {};
     final navigate = payload["navigate"];
 
     if (navigate == "izin") {
       String keyNotif = "izin";
 
-      updateFirebase(keyNotif);
+      // updateFirebase(keyNotif);
+      final DatabaseReference izinRef = FirebaseDatabase.instance.ref().child(keyNotif);
+      final idUser = SpUtil.getString('id_user');
+      Query query = izinRef.orderByChild("id_atasan").equalTo(idUser);
+      DatabaseEvent event = await query.once();
+      DataSnapshot snapshot = event.snapshot;
+      if (snapshot.value != null) {
+        Map<dynamic, dynamic> values = snapshot.value as Map<dynamic, dynamic>;
+        values.forEach((key, data) {
+          if (data["id_status"] == 2 && data["key_notif"] == keyNotif) {
+            // Perbarui data jika id_status adalah 1
+            izinRef.child(key).update({"id_status": 1});
+          }
+        });
+      }
       MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
           '/konfirmasi-izin',
           (route) =>
               (route.settings.name != '/konfirmasi-izin') || route.isFirst,
           arguments: receivedAction);
     } else if (navigate == "laporan") {
+
       String keyNotif = "laporan";
 
-      updateFirebase(keyNotif);
+      // updateFirebase(keyNotif);
+      final DatabaseReference izinRef = FirebaseDatabase.instance.ref().child(keyNotif);
+      final idUser = SpUtil.getString('id_user');
+      Query query = izinRef.orderByChild("id_atasan").equalTo(idUser);
+      DatabaseEvent event = await query.once();
+      DataSnapshot snapshot = event.snapshot;
+      if (snapshot.value != null) {
+        Map<dynamic, dynamic> values = snapshot.value as Map<dynamic, dynamic>;
+        values.forEach((key, data) {
+          if (data["id_status"] == 2 && data["key_notif"] == keyNotif) {
+            // Perbarui data jika id_status adalah 1
+            izinRef.child(key).update({"id_status": 1});
+          }
+        });
+      }
       MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          '/konfirmasi-laporan',
+          '/konfirmasi-izin',
           (route) =>
-              (route.settings.name != '/konfirmasi-laporan') || route.isFirst,
+              (route.settings.name != '/konfirmasi-izin') || route.isFirst,
           arguments: receivedAction);
     } else if (navigate == "apel") {
-      String keyNotif = "apel";
-
-      updateFirebase(keyNotif);
-
       MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
           '/apel', (route) => (route.settings.name != '/apel') || route.isFirst,
           arguments: receivedAction);
     } else if (navigate == "senam") {
-      String keyNotif = "senam";
-      updateFirebase(keyNotif);
       MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil('/senam',
           (route) => (route.settings.name != '/senam') || route.isFirst,
           arguments: receivedAction);
@@ -201,34 +229,36 @@ class NotificationController {
   ///
 
   static Future<void> createNewNotificationIzin(
-      int jlhCountIzin, idAtasan, jenisIzin, idStatus, keyNotif) async {
-    String? notificationMessage;
+    int countIzin, String idAtasan, String jenisIzin, int idStatus, String keyNotif) async {
+  bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
+  if (!isAllowed) isAllowed = await displayNotificationRationale();
+  if (!isAllowed) return;
 
-    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
-    if (!isAllowed) isAllowed = await displayNotificationRationale();
-    if (!isAllowed) return;
-    await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: -1, // -1 is replaced by a random number
-            channelKey: 'alerts',
-            title: SpUtil.getString('nama_lengkap'),
-            body:
-                "Terdapat $notificationMessage pengajuan $keyNotif yang harus di tindaklanjuti!",
-            // bigPicture:
-            //     'https://storage.googleapis.com/cms-storage-bucket/d406c736e7c4c57f5f61.png',
-            largeIcon: 'asset://assets/images/logo.png',
-            notificationLayout: NotificationLayout.BigPicture,
-            payload: {
-              'navigate': 'izin',
-            }),
-        actionButtons: [
-          NotificationActionButton(key: 'REDIRECT', label: 'Lihat'),
-          NotificationActionButton(
-              key: 'CLOSE',
-              label: 'Tutup',
-              actionType: ActionType.SilentAction),
-        ]);
-  }
+  await AwesomeNotifications().createNotification(
+    content: NotificationContent(
+      id: -1, // -1 is replaced by a random number
+      channelKey: 'alerts',
+      // title: SpUtil.getString('nama_lengkap'),
+      title: 'Izin',
+      body: "Terdapat $countIzin pengajuan $keyNotif yang harus di tindaklanjuti!",
+      // bigPicture: 'https://storage.googleapis.com/cms-storage-bucket/d406c736e7c4c57f5f61.png',
+      largeIcon: 'Asset://assets/images/logoapp.png',
+      notificationLayout: NotificationLayout.BigPicture,
+      payload: {
+        'navigate': 'izin',
+      }
+    ),
+    actionButtons: [
+      NotificationActionButton(key: 'REDIRECT', label: 'Lihat'),
+      NotificationActionButton(
+        key: 'CLOSE',
+        label: 'Tutup',
+        actionType: ActionType.SilentAction,
+      ),
+    ],
+  );
+}
+
 
   static Future<void> createNewNotificationLaporan(
       int jlhCountLaporan, idAtasan, jenisIzin, idStatus, keyNotif) async {
@@ -239,7 +269,8 @@ class NotificationController {
         content: NotificationContent(
             id: -1, // -1 is replaced by a random number
             channelKey: 'alerts',
-            title: SpUtil.getString('nama_lengkap'),
+            // title: SpUtil.getString('nama_lengkap'),
+            title: 'Laporan Harian',
             body:
                 "Terdapat $jlhCountLaporan pengajuan $keyNotif yang harus di tindaklanjuti!",
             // bigPicture:
