@@ -139,7 +139,11 @@ flutter:
     - assets/images/logoapp.png
     - assets/images/small_app.png
     - assets/images/nodata.png
-    - assets/images/bannernav.png
+    - assets/images/ui/bg-white.png
+    - assets/images/ui/book.png
+    - assets/images/ui/header.png
+    - assets/images/ui/web.png
+    - assets/images/ui/help.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
