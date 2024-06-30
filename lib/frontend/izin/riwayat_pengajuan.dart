@@ -248,7 +248,7 @@ class _RiwayatPengajuanIzinState extends State<RiwayatPengajuanIzin> {
                                                       navigateToDetailPage(
                                                           data,
                                                           data[
-                                                              'no_urut']); // Gunakan data['no_urut'] untuk mendapatkan nomor urut
+                                                              'no_urut']);
                                                     }
                                                   });
                                             }).toList(),

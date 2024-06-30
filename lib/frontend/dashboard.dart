@@ -74,7 +74,6 @@ class _HomeState extends State<Home> {
         '/riwayat': (context) => const RiwayatAbsen(),
         '/laporan': (context) => const Laporan(),
         '/create-laporan': (context) => const BuatLaporan(),
-        '/update-laporan': (context) => const EditLaporan(),
         '/riwayat-laporan': (context) => const LaporanHarian(),
         '/riwayat-laporan/pengajuan': (context) => const RiwayatPengajuanLhk(),
         '/status-laporan': (context) => const StatusLaporan(),
@@ -90,7 +89,6 @@ class _HomeState extends State<Home> {
         '/apel': (context) => const Apel(),
         '/senam': (context) => const Senam(),
         '/pengumuman': (context) => const Pengumuman(),
-        '/edit_lhk': (context) => const EditLaporan(),
       },
       home: Scaffold(
         body: Container(

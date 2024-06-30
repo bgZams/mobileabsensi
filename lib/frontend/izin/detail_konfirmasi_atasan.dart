@@ -136,8 +136,10 @@ class _DetailKonfirmasiIzinAtasanState
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        // ignore: use_build_context_synchronously
         Navigator.pushNamed(context, '/konfirmasi-izin');
 
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"])),
         );

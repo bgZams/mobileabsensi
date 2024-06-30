@@ -308,7 +308,7 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '$tanggal',
+                        tanggal,
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -463,8 +463,15 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
     double deviceHeight = MediaQuery.of(context).size.height;
     return Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-          title: const Center(child:  Text('Riwayat Absen',style: TextStyle(color: Colors.white),)),
+          // backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+          title: const Center(child:  Padding(
+            padding: EdgeInsets.only(bottom: 12.0),
+            child: Text('Riwayat Absen',style: TextStyle(color: Colors.white),),
+          )),
+          flexibleSpace: const Image(
+          image: AssetImage('assets/images/bannernav.png'),
+          fit: BoxFit.cover,
+        ),
           elevation: 4,
         ),
         body: SizedBox(

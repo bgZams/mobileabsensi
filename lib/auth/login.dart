@@ -165,157 +165,197 @@ class _LoginState extends State<Login> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Mobile Absensi\nLogin',
-                      style: heading2.copyWith(color: textBlack),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Image.asset(
-                      'assets/images/accent.png',
-                      width: 99,
-                      height: 4,
-                    )
-                  ],
-                ),
-                const SizedBox(
-                  height: 100,
-                ),
-                Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                              color: textWhiteGrey,
-                              borderRadius: BorderRadius.circular(14)),
-                          child: TextFormField(
-                            controller: username,
+      body: Container(
+        decoration: const BoxDecoration(
+      image: DecorationImage(
+        image: AssetImage("assets/images/ui/bg-white.png"),
+        fit: BoxFit.cover,
+      ),
+              ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 250,),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mobile Absensi\nLogin',
+                    style: heading2.copyWith(color: textBlack),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Image.asset(
+                    'assets/images/accent.png',
+                    width: 99,
+                    height: 4,
+                  )
+                ],
+              ),
+              const SizedBox(
+                height: 25,
+              ),
+              Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                            color: textWhiteGrey,
+                            borderRadius: BorderRadius.circular(14)),
+                        child: TextFormField(
+                          controller: username,
+                          decoration: InputDecoration(
+                              hintText: 'Usename',
+                              hintStyle: heading6.copyWith(color: textGrey),
+                              border: const OutlineInputBorder(
+                                  borderSide: BorderSide.none)),
+                          validator: (usernameValue) {
+                            if (usernameValue!.isEmpty) {
+                              return 'Please enter your username';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 25,
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                            color: textWhiteGrey,
+                            borderRadius: BorderRadius.circular(14)),
+                        child: TextFormField(
+                            controller: password,
+                            obscureText: !passwordVisible,
                             decoration: InputDecoration(
-                                hintText: 'Usename',
+                                hintText: 'Password',
                                 hintStyle: heading6.copyWith(color: textGrey),
+                                suffixIcon: IconButton(
+                                  color: textGrey,
+                                  splashRadius: 1,
+                                  icon: Icon(passwordVisible
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined),
+                                  onPressed: togglePassword,
+                                ),
                                 border: const OutlineInputBorder(
                                     borderSide: BorderSide.none)),
-                            validator: (usernameValue) {
-                              if (usernameValue!.isEmpty) {
-                                return 'Please enter your username';
+                            validator: (passwordValue) {
+                              if (passwordValue!.isEmpty) {
+                                return 'Please enter your password'; 
                               }
                               return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 32,
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                              color: textWhiteGrey,
-                              borderRadius: BorderRadius.circular(14)),
-                          child: TextFormField(
-                              controller: password,
-                              obscureText: !passwordVisible,
-                              decoration: InputDecoration(
-                                  hintText: 'Password',
-                                  hintStyle: heading6.copyWith(color: textGrey),
-                                  suffixIcon: IconButton(
-                                    color: textGrey,
-                                    splashRadius: 1,
-                                    icon: Icon(passwordVisible
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined),
-                                    onPressed: togglePassword,
-                                  ),
-                                  border: const OutlineInputBorder(
-                                      borderSide: BorderSide.none)),
-                              validator: (passwordValue) {
-                                if (passwordValue!.isEmpty) {
-                                  return 'Please enter your password'; 
-                                }
-                                return null;
-                              }),
-                        )
-                      ],
-                    )),
-                const SizedBox(
-                  height: 32,
+                            }),
+                      )
+                    ],
+                  ),),
+              const SizedBox(
+                height: 25,
+              ),  
+        
+              ElevatedButton(
+              clipBehavior: Clip.hardEdge,
+              onPressed: _isLoading
+                  ? null
+                  : _startLoading,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[800],
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 45, vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    const CustomCheckbox(),
-                    const SizedBox(
-                      width: 12,
-                    ),
-                    Text(
-                      'Remember me',
-                      style: regular16pt,
-                    )
-                  ],
-                ),
-                const SizedBox(
-                  height: 32,
-                ),
- 
-
-                ElevatedButton(
-                onPressed: _isLoading
-                    ? null
-                    : _startLoading,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[800],
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 40, vertical: 20),
-                  textStyle: const TextStyle(
-                      fontSize: 30, fontWeight: FontWeight.bold),
-                ),
-                child: Text(
-                  _isLoading ? 'Processing..' : 'Login',
-                  textDirection: TextDirection.ltr,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 255, 255, 255),
-                    fontSize: 16.0,
-                    decoration: TextDecoration.none,
-                    fontWeight: FontWeight.normal,
-                  ),
+                textStyle: const TextStyle(
+                    fontSize: 30, fontWeight: FontWeight.bold),
+              ),
+              child: Text(
+                _isLoading ? 'Processing..' : 'Login',
+                textDirection: TextDirection.ltr,
+                style: const TextStyle(
+                  color: Color.fromARGB(255, 255, 255, 255),
+                  fontSize: 16.0,
+                  decoration: TextDecoration.none,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
-                const SizedBox(
-                  height: 10,
-                ),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.center,
-                //   children: [
-                //     Text(
-                //       'Belum punya akun? ',
-                //       style: regular16pt.copyWith(color: textGrey),
-                //     ),
-                //     GestureDetector(
-                //       onTap: () {
-                //         Navigator.push(
-                //             context,
-                //             MaterialPageRoute(
-                //                 builder: (context) => const Register()));
-                //       },
-                //       child: Text(
-                //         'Register',
-                //         style: regular16pt.copyWith(color: primaryBlue),
-                //       ),
-                //     )
-                //   ],
-                // )
-              ],
             ),
+            const SizedBox(
+                height: 25,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  ElevatedButton(
+                  onPressed: (){},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 143, 195, 255),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 25, vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                  child:  Icon(Icons.book,size: 30,color: Colors.blue[900])),
+                  ElevatedButton(
+                  onPressed: (){},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 143, 195, 255),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 25, vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    textStyle: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  child: Icon(Icons.browse_gallery_sharp,size: 30,color: Colors.blue[900])
+                              ),
+                              ElevatedButton(
+                  onPressed: (){},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 143, 195, 255),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 25, vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    textStyle: const TextStyle(
+                        fontSize: 30, fontWeight: FontWeight.bold),
+                  ),
+                  child: Icon(Icons.info,size: 30,color: Colors.blue[900])
+                              )
+                ],
+              ),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.center,
+              //   children: [
+              //     Text(
+              //       'Belum punya akun? ',
+              //       style: regular16pt.copyWith(color: textGrey),
+              //     ),
+              //     GestureDetector(
+              //       onTap: () {
+              //         Navigator.push(
+              //             context,
+              //             MaterialPageRoute(
+              //                 builder: (context) => const Register()));
+              //       },
+              //       child: Text(
+              //         'Register',
+              //         style: regular16pt.copyWith(color: primaryBlue),
+              //       ),
+              //     )
+              //   ],
+              // )
+            ],
           ),
         ),
       ),

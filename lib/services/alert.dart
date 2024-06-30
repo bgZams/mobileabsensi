@@ -12,7 +12,7 @@ class Alert {
   static void alertsuccess(BuildContext context, String message) {
     QuickAlert.show(
       context: context,
-      type: QuickAlertType.warning,
+      type: QuickAlertType.success,
       text: message,
     );
   }

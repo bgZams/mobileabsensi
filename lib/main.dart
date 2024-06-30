@@ -331,7 +331,6 @@ class MyApp extends StatelessWidget {
         '/riwayat': (context) => const RiwayatAbsen(),
         '/laporan': (context) => const Laporan(),
         '/create-laporan': (context) => const BuatLaporan(),
-        '/update-laporan': (context) => const EditLaporan(),
         '/riwayat-laporan': (context) => const LaporanHarian(),
         '/riwayat-laporan/pengajuan': (context) => const RiwayatPengajuanLhk(),
         '/status-laporan': (context) => const StatusLaporan(),

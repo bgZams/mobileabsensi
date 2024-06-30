@@ -187,13 +187,23 @@ class _BuatIzinState extends State<BuatIzin> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buat Izin'),
+        title: const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: Center(child: Text('Buat Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),)),
+        ),
         elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+        flexibleSpace: const Image(
+          image: AssetImage('assets/images/bannernav.png'),
+          fit: BoxFit.cover,
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back,color: Colors.white,),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -398,7 +408,7 @@ class _BuatIzinState extends State<BuatIzin> {
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
                     padding: const EdgeInsets.all(10),
-                    color: Colors.white,
+                    color: const Color.fromARGB(255, 255, 255, 255),
                     child: TextFormField(
                       controller: keterangan,
                       validator: (value) {
@@ -418,17 +428,31 @@ class _BuatIzinState extends State<BuatIzin> {
                     ),
                   ),
                 ),
-                ElevatedButton.icon(
-                  icon: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Icon(Icons.save_outlined),
-                  label: Text(
-                    _isLoading ? 'Loading...' : 'Simpan',
-                    style: const TextStyle(fontSize: 14),
+                SizedBox(
+                  width: 200,
+                  child: Expanded(
+                    child: ElevatedButton.icon(
+                      icon: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Icon(Icons.save_outlined,size: 10,),
+                      label: Text(
+                        _isLoading ? 'Loading...' : 'Simpan',
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.white, shadows: [
+                          Shadow(
+                              blurRadius: 2,
+                              color: Colors.black,
+                              offset: Offset(1, 1))
+                        ]),
+                      ),
+                      onPressed: _isLoading ? null : _startLoading,
+                      clipBehavior: Clip.hardEdge,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 17, 110, 160),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10))),
+                    ),
                   ),
-                  onPressed: _isLoading ? null : _startLoading,
-                  style:
-                      ElevatedButton.styleFrom(fixedSize: const Size(140, 40)),
                 ),
                 const SizedBox(
                   height: 40,
@@ -486,7 +510,7 @@ class _BuatIzinState extends State<BuatIzin> {
 
     // Buat multipart request
     var request =
-        http.MultipartRequest('POST', Uri.parse('$url/api/kirim-izin/$iduser'));
+        http.MultipartRequest('POST', Uri.parse('$url/api/izin/kirim-izin/$iduser'));
     // Tambahkan file gambar
     request.files.add(await http.MultipartFile.fromPath('file', imagePath));
     // Tambahkan data lainnya
