@@ -1,5 +1,3 @@
-import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -29,6 +27,7 @@ class _LaporanHarianState extends State<LaporanHarian>
   bool isLoading = true;
   bool value = false;
   List<DataRow> _rows = [];
+  bool isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
 
   void dataChange(){
     setState(() {
@@ -51,7 +50,6 @@ class _LaporanHarianState extends State<LaporanHarian>
     });
     _refreshData();
     initializePreferences();
-    
   }
 
   String _getMonthName(int month) {
@@ -384,13 +382,13 @@ void navigateToEditLaporan(Map<String, dynamic> data) async {
               )
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: isCodeMasuk ? FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, '/create-laporan');
         },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ),
+      ) : null
     );
   }
 

@@ -244,31 +244,34 @@ class _BuatIzinState extends State<BuatIzin> {
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: 300,
-                      child: DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Jenis Izin', // Add a label for clarity.
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: 'Jenis Izin', // Add a label for clarity.
+                          ),
+                          value: _valJenisIzin,
+                          hint: const Text("Pilih jenis izin"),
+                          items: _jenisIzin.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (String? value) {
+                            setState(() {
+                              _valJenisIzin = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Tidak boleh kosong';
+                            }
+                            return null;
+                          },
                         ),
-                        value: _valJenisIzin,
-                        hint: const Text("Pilih jenis izin"),
-                        items: _jenisIzin.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? value) {
-                          setState(() {
-                            _valJenisIzin = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Tidak boleh kosong';
-                          }
-                          return null;
-                        },
                       ),
                     ),
                     if (_valJenisIzin == 'Dinas Luar')
@@ -288,31 +291,34 @@ class _BuatIzinState extends State<BuatIzin> {
                     else if (_valJenisIzin == 'Cuti')
                       Column(
                         children: [
-                          SizedBox(
-                            width: 300,
-                            child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                labelText: 'Jenis Cuti',
+                          Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: SizedBox(
+                              width: MediaQuery.of(context).size.width,
+                              child: DropdownButtonFormField<String>(
+                                decoration: const InputDecoration(
+                                  labelText: 'Jenis Cuti',
+                                ),
+                                value: valueJenisCuti,
+                                hint: const Text("Pilih jenis cuti"),
+                                items: _jenisCuti.map((String valjenisCuti) {
+                                  return DropdownMenuItem<String>(
+                                    value: valjenisCuti,
+                                    child: Text(valjenisCuti),
+                                  );
+                                }).toList(),
+                                onChanged: (String? valjenisCuti) {
+                                  setState(() {
+                                    valueJenisCuti = valjenisCuti;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Jenis Cuti tidak boleh kosong';
+                                  }
+                                  return null;
+                                },
                               ),
-                              value: valueJenisCuti,
-                              hint: const Text("Pilih jenis cuti"),
-                              items: _jenisCuti.map((String valjenisCuti) {
-                                return DropdownMenuItem<String>(
-                                  value: valjenisCuti,
-                                  child: Text(valjenisCuti),
-                                );
-                              }).toList(),
-                              onChanged: (String? valjenisCuti) {
-                                setState(() {
-                                  valueJenisCuti = valjenisCuti;
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Jenis Cuti tidak boleh kosong';
-                                }
-                                return null;
-                              },
                             ),
                           ),
                           SizedBox(
@@ -350,87 +356,91 @@ class _BuatIzinState extends State<BuatIzin> {
                 const SizedBox(
                   height: 20,
                 ),
-                SizedBox(
-                  width: 300,
-                  child: TextFormField(
-                  controller: durasi,
-                  decoration: const InputDecoration.collapsed(
-                    border: UnderlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(6))),
-                    hintText: 'Durasi'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Durasi tidak boleh kosong';
-                    }
-                    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                      return 'Hanya angka yang diperbolehkan';
-                    }
-                    return null;
-                  },
-                  keyboardType: TextInputType.number,
-                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: TextFormField(
+                    controller: durasi,
+                    decoration: const InputDecoration.collapsed(
+                      border: UnderlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(6))),
+                      hintText: 'Durasi'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Durasi tidak boleh kosong';
+                      }
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null;
+                    },
+                    keyboardType: TextInputType.number,
+                  ),
+                  ),
                 ),
                 const SizedBox(
                   height: 40,
                 ),
-                SizedBox(
-                  width: 300,
-                  child: TextField(
-                    controller: tanggal,
-                    decoration: const InputDecoration(
-                        icon: Icon(Icons.calendar_today), //icon of text field
-                        labelText: "Pilih tanggal" //label text of field
-                        ),
-                    readOnly: true,
-                    onTap: () async {
-                      DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2100));
-
-                      if (pickedDate != null) {
-                        String formattedDate =
-                            DateFormat('yyyy-MM-dd').format(pickedDate);
-
-                        setState(() {
-                          tanggal.text =
-                              formattedDate; // Pastikan nilai ini sesuai format "yyyy-MM-dd"
-                        });
-                      } else {}
-                    },
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: TextField(
+                      controller: tanggal,
+                      decoration: const InputDecoration(
+                          icon: Icon(Icons.calendar_today), //icon of text field
+                          labelText: "Pilih tanggal" //label text of field
+                          ),
+                      readOnly: true,
+                      onTap: () async {
+                        DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100));
+                  
+                        if (pickedDate != null) {
+                          String formattedDate =
+                              DateFormat('yyyy-MM-dd').format(pickedDate);
+                  
+                          setState(() {
+                            tanggal.text =
+                                formattedDate; // Pastikan nilai ini sesuai format "yyyy-MM-dd"
+                          });
+                        } else {}
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(
                   height: 20,
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    color: const Color.fromARGB(255, 255, 255, 255),
-                    child: TextFormField(
-                      controller: keterangan,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Keterangan tidak boleh kosong';
-                        }
-                        return null;
-                      },
-
-                      maxLines: 6, //or null
-                      decoration: InputDecoration(
-                        labelText: "Masukkan keterangan",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  color: const Color.fromARGB(255, 255, 255, 255),
+                  child: TextFormField(
+                    controller: keterangan,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Keterangan tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                
+                    maxLines: 6, //or null
+                    decoration: InputDecoration(
+                      labelText: "Masukkan keterangan",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
                 ),
                 SizedBox(
-                  width: 200,
-                  child: Expanded(
+                  width: MediaQuery.of(context).size.width,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton.icon(
                       icon: _isLoading
                           ? const CircularProgressIndicator()
@@ -535,6 +545,8 @@ class _BuatIzinState extends State<BuatIzin> {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
+        print(response.body);
+
       if (response.statusCode == 200) {
         // Jika berhasil
         final DatabaseReference databaseReference =

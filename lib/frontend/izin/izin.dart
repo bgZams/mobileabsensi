@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/frontend/izin/detail_izin.dart';
+import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:sp_util/sp_util.dart';
 
@@ -16,6 +17,7 @@ class Izin extends StatefulWidget {
 
 class _IzinState extends State<Izin> with TickerProviderStateMixin {
   late final String url = SpUtil.getString("url") ?? '';
+  var idUser = SpUtil.getString("id_user") ?? '';
   late Future<List<Map<String, dynamic>>> futureData;
   bool isLoading = false;
   late String selectedYear = DateTime.now().year.toString();
@@ -41,7 +43,8 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
     _refreshData();
   }
 
-  Future<List<Map<String, dynamic>>> fetchData(String month, String year) async {
+  Future<List<Map<String, dynamic>>> fetchData(
+      String month, String year) async {
     setState(() {
       isLoading = true;
     });
@@ -55,8 +58,6 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
     }
 
     final response = await http.get(Uri.parse(link));
-    print(response.body);
-
     if (response.statusCode == 200) {
       final List<dynamic> responseData = json.decode(response.body)['data'];
 
@@ -74,7 +75,7 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
       });
       return responseData.cast<Map<String, dynamic>>();
     } else {
-      if(mounted) {
+      if (mounted) {
         setState(() {
           isLoading = false;
         });
@@ -84,7 +85,7 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
   }
 
   void searchByDate(String month, String year) {
-    if(mounted){
+    if (mounted) {
       setState(() {
         futureData = fetchData(month, year);
       });
@@ -104,7 +105,10 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
           children: [
             FaIcon(FontAwesomeIcons.envelope, color: Colors.blue),
             SizedBox(width: 8),
-            Text("Riwayat Izin",style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),),
+            Text(
+              "Riwayat Izin",
+              style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+            ),
           ],
         ),
       ),
@@ -114,7 +118,8 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
           children: [
             FaIcon(FontAwesomeIcons.listCheck, color: Colors.yellow),
             SizedBox(width: 8),
-            Text("Pengajuan Izin",style: TextStyle(color: Color.fromARGB(255, 0, 0, 0))),
+            Text("Pengajuan Izin",
+                style: TextStyle(color: Color.fromARGB(255, 0, 0, 0))),
           ],
         ),
       ),
@@ -149,7 +154,8 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
         controller: _controller,
         children: [
           buildTabContentWidget(_riwayatIzin, 'Tidak ada data Riwayat Izin'),
-          buildTabContentWidget(_riwayatPengajuan, 'Tidak ada data Pengajuan Izin'),
+          buildTabContentWidget(
+              _riwayatPengajuan, 'Tidak ada data Pengajuan Izin'),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -246,143 +252,216 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
   }
 
   Widget buildTabContent(List<dynamic> data) {
-  if (data.isEmpty) {
-    return const Center(child: Text('No data found'));
-  } else {
-    return RefreshIndicator(
-      onRefresh: _refreshData,
-      child: ListView.builder(
-        itemCount: data.length,
-        itemBuilder: (context, index) {
-          Text jenisStatus;
-          Color iconColor;
-          switch (selectedIndex) {
-            case 2:
-              iconColor = const Color.fromARGB(255, 175, 255, 179);
-              break;
-            default:
-              iconColor = const Color.fromARGB(255, 231, 255, 122);
-          }
+    if (data.isEmpty) {
+      return const Center(child: Text('No data found'));
+    } else {
+      return RefreshIndicator(
+        onRefresh: _refreshData,
+        child: ListView.builder(
+          itemCount: data.length,
+          itemBuilder: (context, index) {
+            Text jenisStatus;
+            Color iconColor;
+            switch (selectedIndex) {
+              case 2:
+                iconColor = const Color.fromARGB(255, 175, 255, 179);
+                break;
+              default:
+                iconColor = const Color.fromARGB(255, 231, 255, 122);
+            }
 
-          switch (data[index]['jenis_approval'].toString()) {
-            case '2':
-              jenisStatus = const Text('Status : Dinas Luar', style: TextStyle(color: Colors.black));
-              break;
-            case '3':
-              jenisStatus = const Text('Status : Izin', style: TextStyle(color: Colors.black));
-              break;
-            case '4':
-              jenisStatus = const Text('Status : Sakit', style: TextStyle(color: Colors.black));
-              break;
-            case '5':
-              jenisStatus = const Text('Status : IDLK', style: TextStyle(color: Colors.black));
-              break;
-            case '6':
-              jenisStatus = const Text('Status : Cuti', style: TextStyle(color: Colors.black));
-              break;
-            default:
-              jenisStatus = const Text('Status : Belum Disetujui', style: TextStyle(color: Colors.black));
-          }
+            switch (data[index]['jenis_approval'].toString()) {
+              case '2':
+                jenisStatus = const Text('Status : Dinas Luar',
+                    style: TextStyle(color: Colors.black));
+                break;
+              case '3':
+                jenisStatus = const Text('Status : Izin',
+                    style: TextStyle(color: Colors.black));
+                break;
+              case '4':
+                jenisStatus = const Text('Status : Sakit',
+                    style: TextStyle(color: Colors.black));
+                break;
+              case '5':
+                jenisStatus = const Text('Status : IDLK',
+                    style: TextStyle(color: Colors.black));
+                break;
+              case '6':
+                jenisStatus = const Text('Status : Cuti',
+                    style: TextStyle(color: Colors.black));
+                break;
+              default:
+                jenisStatus = const Text('Status : Belum Disetujui',
+                    style: TextStyle(color: Colors.black));
+            }
 
-          return Padding(
-            padding: const EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 4),
-            child: Container(
-              color: iconColor,
+            return Padding(
+              padding:
+                  const EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 4),
               child: Container(
-                color: const Color.fromARGB(255, 230, 240, 255),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            margin: EdgeInsets.all(4.0), // Tambahkan margin jika diperlukan
+            decoration: BoxDecoration(
+              color: Colors.white, // Warna latar belakang Container
+              borderRadius: BorderRadius.circular(10), // Radius sudut jika diperlukan
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1), // Warna bayangan
+                  spreadRadius: 2, // Jarak penyebaran bayangan
+                  blurRadius: 5, // Jarak blur bayangan
+                  offset: Offset(0, 3), // Posisi bayangan (x, y)
+                ),
+              ],
+            ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 3, // Ketebalan border
+                      child: Container(
+                        color: Colors.blue, // Warna border biru
+                      ),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Expanded(
-                            child: Text(
-                              data[index]['tgl_group'].toString(),
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
+                        
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        data[index]['tgl_group'].toString(),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      Text(
+                                        'Lama Izin: ${data[index]['durasi']} Hari',
+                                        style: const TextStyle(color: Colors.black),
+                                      ),
+                                      jenisStatus
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Column(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(4),
+                                      color: const Color.fromARGB(255, 162, 190, 255),
+                                    ),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(Icons.remove_red_eye,
+                                          color: Color.fromARGB(255, 0, 26, 140)),
+                                      onPressed: () => navigateToDetailPage(data[index], data[index]['no_urut']),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 2,
+                                  ),
+                              if(data[index]['status_approval'] == 1)
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(4),
+                                      color:
+                                          const Color.fromARGB(255, 255, 168, 162),
+                                    ),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () => _confirmDelete(data[index]['id_approval']),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(
+                                    width: 8,
+                                  ),
+                            ],
                           ),
-                          jenisStatus
+                            const SizedBox(
+                                    height: 4,
+                                  ),
                         ],
                       ),
-                      const SizedBox(height: 4), // Menambahkan jarak antara baris
-                      Text(
-                        'Lama Izin: ${data[index]['durasi']} Hari',
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Kolom ikon detail dan hapus
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
-                              color: Color.fromARGB(255, 255, 168, 162),
-                            ),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.delete, color: Color.fromARGB(255, 126, 167, 255)),
-                              onPressed: () => _confirmDelete(data[index]),
-                            ),
-                          ),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _confirmDelete(data[index]),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  onTap: () => navigateToDetailPage(data[index], data[index]['no_urut']),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          );
-        },
-      ),
-    );
+            );
+          },
+        ),
+      );
+    }
   }
-}
-
-
 
 // Fungsi untuk mengkonfirmasi penghapusan data
-void _confirmDelete(dynamic item) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Konfirmasi Hapus'),
-        content: const Text('Apakah Anda yakin ingin menghapus item ini?'),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Batal'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text('Hapus'),
-            onPressed: () {
-              // Panggil fungsi untuk menghapus data di sini
-              _deleteItem(item);
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
+  void _confirmDelete(dynamic item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Konfirmasi Hapus'),
+          content: const Text('Apakah Anda yakin ingin menghapus item ini?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Batal'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Hapus'),
+              onPressed: () {
+                // Panggil fungsi untuk menghapus data di sini
+                _deleteItem(item);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
 // Fungsi untuk menghapus data
-void _deleteItem(dynamic item) {
-  // Implementasi penghapusan data
-}
+  Future<void> _deleteItem(id) async {
+    final urlDel = '$url/api/izin/hapus-izin/$idUser/$id';
+    print(urlDel);
+  try {
+    final response = await http.get(Uri.parse(urlDel));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      String message = json.encode(data["message"]).replaceAll('"', '');
+      // ignore: use_build_context_synchronously
+      Alert.alertsuccess(context, message);
+      setState(() {
+        _refreshData();
+      });
+    } else {
+      // ignore: use_build_context_synchronously
+      Alert.alerterror(context, 'Gagal menghapus data, silahkan coba lagi!');
 
+    }
+  } catch (error) {
+    print('Error: $error');
+  }
+  }
 
   void navigateToDetailPage(Map<String, dynamic> data, int id) {
     Navigator.push(

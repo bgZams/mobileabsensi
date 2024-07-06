@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobileabsensi/frontend/apel.dart';
-import 'package:mobileabsensi/frontend/blog.dart';
+import 'package:mobileabsensi/frontend/statistik.dart';
 import 'package:mobileabsensi/frontend/list_wifi.dart';
 import 'package:mobileabsensi/frontend/pengumuman.dart';
 
@@ -131,6 +131,40 @@ class Header {
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.white, width: 2),
                     color: const Color.fromARGB(255, 14, 60, 129),
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.pie_chart_rounded,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const Statistik()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(
+                  height: 2,
+                ),
+                const Text(
+                  'Statistik',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                Container(
+                  clipBehavior: Clip.hardEdge,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 2),
+                    color: const Color.fromARGB(255, 14, 60, 129),
                     borderRadius: const BorderRadius.all(
                       Radius.circular(10),
                     ),
@@ -161,40 +195,7 @@ class Header {
                 ),
               ],
             ),
-            Column(
-              children: [
-                Container(
-                  clipBehavior: Clip.hardEdge,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 2),
-                    color: const Color.fromARGB(255, 14, 60, 129),
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.newspaper,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Blog()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(
-                  height: 2,
-                ),
-                const Text(
-                  'Blog',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
+            
           ],
         ),
       ),
