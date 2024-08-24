@@ -1,113 +1,132 @@
-import 'package:mobileabsensi/frontend/dashboard.dart';
-import 'package:mobileabsensi/frontend/profile.dart';
 import 'package:flutter/material.dart';
+import 'package:mobileabsensi/core.dart';
+import 'package:mobileabsensi/frontend/list_wifi.dart';
+import 'package:mobileabsensi/frontend/teknis/list_opd.dart';
+import 'package:mobileabsensi/frontend/tentang.dart';
 import 'package:sp_util/sp_util.dart';
 
-class InkWellDrawer extends StatelessWidget {
-  const InkWellDrawer({Key? key}) : super(key: key);
+class Navigasi extends StatelessWidget {
+  const Navigasi({Key? key}) : super(key: key);
+
+  final title = "Menu";
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        children: <Widget>[
-          DrawerHeader(
-            decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    colors: <Color>[Colors.lightBlue, Colors.blue])),
-            child: SingleChildScrollView(
-              child: Column(
-                children: <Widget>[
-                  Material(
-                    borderRadius: const BorderRadius.all(Radius.circular(50.0)),
-                    elevation: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Image.asset("assets/images/logo.png",
-                          height: 90, width: 90),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                ],
-              ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+      ),
+      body: ListView.builder(
+        shrinkWrap: true,
+        padding: const EdgeInsets.all(20.0),
+        itemCount: choices.length,
+        itemBuilder: (context, index) {
+          return Center(
+            child: ChoiceCard(
+              choice: choices[index],
+              onTap: () {
+                navigateToScreen(context, index);
+              },
             ),
-          ),
-          const SizedBox(height: 5),
-          CustomListTile(
-              Icons.dashboard,
-              'Home',
-              () => {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (ctxt) => const Home(
-                                  title: 'Mobile Absensi',
-                                )))
-                  }),
-          CustomListTile(
-              Icons.person,
-              'Profile',
-              () => {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (ctxt) => const Profile()))
-                  }),
-          CustomListTile(
-              Icons.notifications,
-              'Notification',
-              () => {
-                    Navigator.pop(context),
-                  }),
-          CustomListTile(Icons.settings, 'Settings', () => {}),
-          CustomListTile(Icons.lock, 'Log Out', () {
-            SpUtil.clear();
-            Navigator.pushReplacementNamed(context, "login-page");
-          }),
-        ],
+          );
+        },
       ),
     );
   }
+
+  void navigateToScreen(BuildContext context, int index) {
+    var screen = [
+      const Profile(),
+      const ListWifi(),
+      const ListOPD(),
+      const ListWifi(),
+      const Tentang(),
+      const ListWifi(),
+      const ListWifi(),
+    ];
+    var screenIndex = index < screen.length ? index : 0;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => screen[screenIndex],
+      ),
+    );
+
+    if (index == 6) {
+      SpUtil.clear()?.then((success) {
+        if (success) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const Login(),
+            ),
+          );
+        }
+      }).catchError((error) {});
+    }
+  }
 }
 
-class CustomListTile extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Function onTap;
+class Choice {
+  const Choice({required this.title, required this.icon, required this.color});
 
-  const CustomListTile(this.icon, this.text, this.onTap, {Key? key})
-      : super(key: key);
+  final String title;
+  final IconData icon;
+  final Color color;
+}
+
+ 
+List<Choice> choices = <Choice>[
+  const Choice(title: 'Profil', icon: Icons.person, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Daftar Wifi', icon: Icons.wifi, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Kendala Absen', icon: Icons.warning_amber, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Panduan', icon: Icons.book, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Tentang', icon: Icons.abc_outlined, color:  Color.fromARGB(255, 14, 60, 129)),
+  const Choice(title: 'Keluar', icon: Icons.logout, color:  Color.fromARGB(255, 14, 60, 129)),
+  if(SpUtil.getString("id_user") == '7745')
+   const Choice(title: 'Wifi OPD', icon: Icons.wifi, color:  Color.fromARGB(255, 14, 60, 129))
+];
+
+class ChoiceCard extends StatelessWidget {
+  const ChoiceCard({
+    Key? key,
+    required this.choice,
+    required this.onTap,
+  }) : super(key: key);
+
+  final Choice choice;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    //ToDO
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 0),
-      child: Container(
-        decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: Colors.grey.shade400))),
-        child: InkWell(
-          splashColor: Colors.orangeAccent,
-          onTap: () => onTap(),
-          child: SizedBox(
-            height: 40,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Icon(icon),
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                    ),
-                    Text(
-                      text,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-                const Icon(Icons.arrow_right)
-              ],
+    TextStyle? textStyle = Theme.of(context).textTheme.titleLarge;
+    return InkWell(
+      onTap: onTap,
+      child: Card(
+        color: const Color.fromARGB(255, 236, 236, 236),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Icon(
+                choice.icon,
+                size: 60.0,
+              ),
             ),
-          ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10.0, top: 25),
+                child: Text(
+                  choice.title,
+                  style: textStyle,
+                  textAlign: TextAlign.left,
+                  maxLines: 7,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

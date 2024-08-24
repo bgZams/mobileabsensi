@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:mobileabsensi/core.dart';
-import 'package:quickalert/quickalert.dart';
+import 'package:mobileabsensi/frontend/admin/home.dart';
+import 'package:mobileabsensi/services/alert.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Login extends StatefulWidget {
@@ -17,31 +19,30 @@ class _LoginState extends State<Login> {
   bool passwordVisible = false;
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
-  TextEditingController username = TextEditingController();
-  TextEditingController password = TextEditingController();
-  TextEditingController versi = TextEditingController();
+  final TextEditingController username = TextEditingController();
+  final TextEditingController password = TextEditingController();
+  String? deviceId;
+  String? systemVersion;
+
+  @override
+  void initState() {
+    super.initState();
+    _getDeviceId();
+  }
+
   void togglePassword() {
     setState(() {
       passwordVisible = !passwordVisible;
     });
   }
 
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _secureText = true;
-
-  showHide() {
-    setState(() {
-      _secureText = !_secureText;
-    });
-  }
-
-  _showMsg(msg) {
+  void _showMsg(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   void _startLoading() async {
     setState(() {
-      _isLoading = true; // Menampilkan loader sebelum memulai pengiriman data
+      _isLoading = true;
     });
 
     if (_formKey.currentState!.validate()) {
@@ -63,99 +64,152 @@ class _LoginState extends State<Login> {
     }
   }
 
-  Future _login(username, password) async {
+  Future<void> _getDeviceId() async {
+    final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+    try {
+      final androidInfo = await deviceInfoPlugin.androidInfo;
+      setState(() {
+        deviceId = androidInfo.device;
+        systemVersion = androidInfo.version.release;
+      });
+    } catch (e) {
+      setState(() {
+        deviceId = 'Gagal mendapatkan device id';
+        systemVersion = 'Gagal mendapatkan versi sistem';
+      });
+      if (kDebugMode) {
+        print("Error: $e");
+      }
+    }
+  }
+
+  Future<void> _login(String username, String password) async {
     setState(() {
       _isLoading = true;
     });
-    await Future.delayed(Duration(seconds: 2));
     try {
-      Response response = await post(
-          Uri.parse(
-              'https://simpel.pasamanbaratkab.go.id/api_android/simaya/api/model_login2.php'),
-          body: {'username': username, 'password': password});
-      var body = json.decode(response.body);
+      final response = await post(
+        Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/api/model_login2.php'),
+        body: {'username': username, 'password': password},
+      ).timeout(const Duration(seconds: 20));
 
-      if (response.statusCode == 200) {
-        if (body["success"] == 1) {
-          Response dataWifi = await get(
-            Uri.parse(
-                'http://mobileabsensi5.pasamanbaratkab.go.id/api/wifi/${body['username_admin']}'),
-            headers: {
-              'Content-type': 'application/json',
-              'Accept': 'application/json'
-            },
-          );
+      final simpel = json.decode(response.body);
 
-          Response datapegawai = await get(
-            Uri.parse(
-                'https://simpel.pasamanbaratkab.go.id/api_android/simaya/getByIdUser.php?id_user=${body['id_user']}'),
-            headers: {
-              'Content-type': 'application/json',
-              'Accept': 'application/json'
-            },
-          );
-          var responseData = json.decode(datapegawai.body);
-          var user = responseData['data'];
-          for (var userData in user) {
-            SpUtil.putString('id_server', userData['id_server']);
-            SpUtil.putString('id_user', userData['id_user']);
-            SpUtil.putString('id_instansi', userData['id_instansi']);
-            SpUtil.putString('id_groups', userData['id_groups'] ?? '');
-            SpUtil.putString(
-                'id_user_pimpinan', userData['id_user_parent'] ?? '');
-            SpUtil.putString(
-                'id_admin_instansi', userData['id_admin_instansi'] ?? '');
-            SpUtil.putString('id_pimpinan', userData['id_pimpinan'] ?? '');
-            String usernameString = userData['username'];
-            SpUtil.putString('username', usernameString.replaceAll('"', ''));
-            String userAdminString = userData['username_admin'];
-            SpUtil.putString(
-                'username_admin', userAdminString.replaceAll('"', ''));
-            String namaLengkap = userData['nama_lengkap'];
-            SpUtil.putString('nama_lengkap', namaLengkap.replaceAll('"', ''));
-            SpUtil.putString('nama_instansi', userData['nama_instansi'] ?? '');
-            SpUtil.putString('nama_atasan', userData['nama_atasan'] ?? '');
-            SpUtil.putString('nip_atasan', userData['nip_atasan'] ?? '');
-            SpUtil.putString(
-                'jabatan_atasan', userData['jabatan_atasan'] ?? '');
-            // SpUtil.putString('url', userData['url'] ?? '');
-            // SpUtil.putString('url', 'http://192.168.79.108');
-            SpUtil.putString('url', 'http://mobileabsensi5.pasamanbaratkab.go.id');
-          }
-
-          SpUtil.putBool('isLogin', true);
-
-          if (dataWifi.statusCode == 200) {
-            List<dynamic> wifiData = json.decode(dataWifi.body);
-            SpUtil.putString('wifi_data',
-                json.encode(wifiData));
-          } else {
-            // Handle error jika diperlukan
-          }
-          // ignore: use_build_context_synchronously
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const Home(
-                      title: 'Dashboard',
-                    )),
-          );
-        } else {
-          // ignore: use_build_context_synchronously
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.warning,
-            text: body["message"],
-          );
-        }
+      if (response.statusCode == 200 && simpel["success"] == 1) {
+        await _handleSuccessfulLogin(simpel);
+      } else {
+        Alert.alertwarning(context, simpel["message"]);
       }
     } catch (e) {
-      setState(() {
-      _isLoading = false;
-    });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        Alert.alerterror(context, 'Pastikan perangkat terhubung ke Internet');
+      }
       if (kDebugMode) {
-
         print(Exception(e));
+      }
+    }
+  }
+
+  Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
+    final getDeviceResponse = await post(
+      Uri.parse('http://192.168.214.46:8000/api/getDevice'),
+      body: {
+        'id_user': simpel['id_user'].toString(),
+        'device_id': deviceId,
+        'username': simpel['username'],
+        'versiApp': systemVersion,
+      },
+    );
+
+    final deviceData = json.decode(getDeviceResponse.body);
+
+    if (deviceData['status']) {
+      await _syncUserData(simpel);
+    } else {
+      if (mounted) {
+        Alert.alertwarning(context, deviceData["message"]);
+      }
+    }
+  }
+
+  Future<void> _syncUserData(Map<String, dynamic> body) async {
+    final dataWifiResponse = await get(
+      Uri.parse('http://192.168.214.46:8000/api/wifi/${body['username_admin']}'),
+      headers: {
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+
+    final dataPegawaiResponse = await get(
+      Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/getByIdUser.php?id_user=${body['id_user']}'),
+      headers: {
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+
+    final responseData = json.decode(dataPegawaiResponse.body);
+    final user = responseData['data'];
+
+    for (var userData in user) {
+      _storeUserData(userData);
+    }
+
+
+    if (dataWifiResponse.statusCode == 200) {
+      final wifiData = json.decode(dataWifiResponse.body)['data'];
+      SpUtil.putString('wifi_data', json.encode(wifiData));
+      _navigateToHome();
+    } else {
+      if (mounted) {
+        Alert.alerterror(context, 'Gagal menyingkronkan wifi, silahkan login ulang');
+      }
+    }
+  }
+
+  void _storeUserData(Map<String, dynamic> userData) {
+    SpUtil.putString('id_server', userData['id_server'].toString());
+    SpUtil.putString('id_user', userData['id_user'].toString());
+    SpUtil.putString('id_instansi', userData['id_instansi'].toString());
+    SpUtil.putString('id_groups', userData['id_groups']?.toString() ?? '');
+    SpUtil.putString('id_user_pimpinan', userData['id_user_parent']?.toString() ?? '');
+    SpUtil.putString('id_admin_instansi', userData['id_admin_instansi']?.toString() ?? '');
+    SpUtil.putString('id_pimpinan', userData['id_pimpinan']?.toString() ?? '');
+    SpUtil.putString('username', userData['username'].replaceAll('"', ''));
+    SpUtil.putString('username_admin', userData['username_admin'].replaceAll('"', ''));
+    SpUtil.putString('nama_lengkap', userData['nama_lengkap'].replaceAll('"', ''));
+    SpUtil.putString('nama_instansi', userData['nama_instansi']?.toString() ?? '');
+    SpUtil.putString('nama_atasan', userData['nama_atasan']?.toString() ?? '');
+    SpUtil.putString('nip_atasan', userData['nip_atasan']?.toString() ?? '');
+    SpUtil.putString('jabatan_atasan', userData['jabatan_atasan']?.toString() ?? '');
+    SpUtil.putString('url', 'http://192.168.214.46:8000');
+  }
+
+  void _navigateToHome() {
+    if (mounted) {
+      if (SpUtil.getString('id_groups') == "2") {
+        SpUtil.putBool('isLogin', true);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Admin()),
+        );
+      } else if (SpUtil.getString('id_groups') == "3") {
+        SpUtil.putBool('isLogin', true);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home(title: 'Dashboard')),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Login()),
+        );
       }
     }
   }
@@ -163,22 +217,22 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Container(
+          height: MediaQuery.of(context).size.height,
           decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage("assets/images/ui/bg-white.png"),
-          fit: BoxFit.cover,
-        ),
-                ),
+            image: DecorationImage(
+              image: AssetImage("assets/images/ui/bg-white.png"),
+              fit: BoxFit.cover,
+            ),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 250,),
+                const SizedBox(height: 200),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -186,180 +240,86 @@ class _LoginState extends State<Login> {
                       'Mobile Absensi\nLogin',
                       style: heading2.copyWith(color: textBlack),
                     ),
-                    const SizedBox(
-                      height: 10,
-                    ),
+                    const SizedBox(height: 10),
                     Image.asset(
                       'assets/images/accent.png',
                       width: 99,
                       height: 4,
-                    )
+                    ),
                   ],
                 ),
-                const SizedBox(
-                  height: 25,
-                ),
+                const SizedBox(height: 25),
                 Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                              color: textWhiteGrey,
-                              borderRadius: BorderRadius.circular(14)),
-                          child: TextFormField(
-                            controller: username,
-                            decoration: InputDecoration(
-                                hintText: 'Usename',
-                                hintStyle: heading6.copyWith(color: textGrey),
-                                border: const OutlineInputBorder(
-                                    borderSide: BorderSide.none)),
-                            validator: (usernameValue) {
-                              if (usernameValue!.isEmpty) {
-                                return 'Please enter your username';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 25,
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                              color: textWhiteGrey,
-                              borderRadius: BorderRadius.circular(14)),
-                          child: TextFormField(
-                              controller: password,
-                              obscureText: !passwordVisible,
-                              decoration: InputDecoration(
-                                  hintText: 'Password',
-                                  hintStyle: heading6.copyWith(color: textGrey),
-                                  suffixIcon: IconButton(
-                                    color: textGrey,
-                                    splashRadius: 1,
-                                    icon: Icon(passwordVisible
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined),
-                                    onPressed: togglePassword,
-                                  ),
-                                  border: const OutlineInputBorder(
-                                      borderSide: BorderSide.none)),
-                              validator: (passwordValue) {
-                                if (passwordValue!.isEmpty) {
-                                  return 'Please enter your password'; 
-                                }
-                                return null;
-                              }),
-                        )
-                      ],
-                    ),),
-                const SizedBox(
-                  height: 25,
-                ),  
-          
-                ElevatedButton(
-                clipBehavior: Clip.hardEdge,
-                onPressed: _isLoading
-                    ? null
-                    : _startLoading,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[800],
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 45, vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  textStyle: const TextStyle(
-                      fontSize: 30, fontWeight: FontWeight.bold),
-                ),
-                child: Text(
-                  _isLoading ? 'Processing..' : 'Login',
-                  textDirection: TextDirection.ltr,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 255, 255, 255),
-                    fontSize: 16.0,
-                    decoration: TextDecoration.none,
-                    fontWeight: FontWeight.normal,
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildTextField(username, 'Username', false),
+                      const SizedBox(height: 25),
+                      _buildTextField(password, 'Password', true),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(
-                  height: 25,
+                const SizedBox(height: 25),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _startLoading,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 1, 50, 106),
+                      padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      textStyle: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                    ),
+                    child: Text(
+                      _isLoading ? 'Processing..' : 'Login',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16.0,
+                        decoration: TextDecoration.none,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    ElevatedButton(
-                    onPressed: (){},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 143, 195, 255),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 25, vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                    child:  Icon(Icons.book,size: 30,color: Colors.blue[900])),
-                    ElevatedButton(
-                    onPressed: (){},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 143, 195, 255),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 25, vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      textStyle: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    child: Icon(Icons.browse_gallery_sharp,size: 30,color: Colors.blue[900])
-                                ),
-                                ElevatedButton(
-                    onPressed: (){},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 143, 195, 255),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 25, vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      textStyle: const TextStyle(
-                          fontSize: 30, fontWeight: FontWeight.bold),
-                    ),
-                    child: Icon(Icons.info,size: 30,color: Colors.blue[900])
-                                )
-                  ],
-                ),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.center,
-                //   children: [
-                //     Text(
-                //       'Belum punya akun? ',
-                //       style: regular16pt.copyWith(color: textGrey),
-                //     ),
-                //     GestureDetector(
-                //       onTap: () {
-                //         Navigator.push(
-                //             context,
-                //             MaterialPageRoute(
-                //                 builder: (context) => const Register()));
-                //       },
-                //       child: Text(
-                //         'Register',
-                //         style: regular16pt.copyWith(color: primaryBlue),
-                //       ),
-                //     )
-                //   ],
-                // )
+                const SizedBox(height: 25),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String hintText, bool isPassword) {
+    return Container(
+      decoration: BoxDecoration(
+        color: textWhiteGrey,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isPassword && !passwordVisible,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: heading6.copyWith(color: textGrey),
+          suffixIcon: isPassword
+              ? IconButton(
+                  color: textGrey,
+                  splashRadius: 1,
+                  icon: Icon(passwordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: togglePassword,
+                )
+              : null,
+          border: const OutlineInputBorder(borderSide: BorderSide.none),
+        ),
+        validator: (value) {
+          if (value!.isEmpty) {
+            return 'Please enter your $hintText';
+          }
+          return null;
+        },
       ),
     );
   }

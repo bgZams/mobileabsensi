@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobileabsensi/services/alert.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
@@ -73,12 +74,12 @@ class _ListWifiState extends State<ListWifi> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Daftar Wifi',style: TextStyle(color: Colors.white),),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
+        title: const Text('Daftar Wifi',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+        elevation: 4,
+         leading: IconButton(
+              icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () {
-            Navigator.pushNamed(context, '/home-page');
+            Navigator.pop(context);
           },
         ),
       ),
@@ -163,43 +164,36 @@ class _ListWifiState extends State<ListWifi> {
       setState(() {
         _isLoading = false;
       });
-      return QuickAlert.show(
-        context: context,
-        type: QuickAlertType.warning,
-        text: "Syncron data minimal 1 menit sekali!",
-      );
+      if(mounted){
+          return Alert.alertinfo(context, "Syncron data minimal 1 menit sekali!");
+        }
     }
 
     try {
-       
       http.Response dataWifi = await http.get(
         Uri.parse('$url/api/wifi/$userAdmin'),
         headers: {
           'Content-type': 'application/json',
           'Accept': 'application/json'
-        }, 
+        },
       );
       if (dataWifi.statusCode == 200) {
         List<dynamic> wifiData = json.decode(dataWifi.body);
         SpUtil.putString('wifi_data', json.encode(wifiData));
-        // ignore: use_build_context_synchronously
-        QuickAlert.show(
-          context: context,
-          type: QuickAlertType.success,
-          text: "Syncron berhasil.",
-        );
+        if(mounted){
+          Alert.alertsuccess(context, "Syncron berhasil.");
+        }
       } else {
-        // Handle error jika diperlukan
+        if(mounted){
+          Alert.alerterror(context, "Syncron gagal.");
+        }
       }
 
       lastFetchTime = DateTime.now();
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        text: "Terjadi kesalahan koneksi, Coba lagi!",
-      );
+      if(mounted){
+          Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi!");
+      }
     }
 
     setState(() {

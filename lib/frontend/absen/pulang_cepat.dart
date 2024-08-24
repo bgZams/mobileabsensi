@@ -6,9 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:mobileabsensi/services/alert.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:quickalert/models/quickalert_type.dart';
-import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
 class PulangCepat extends StatefulWidget {
@@ -43,6 +42,10 @@ class _PulangCepatState extends State<PulangCepat> {
 
     if (_formKey.currentState!.validate()) {
       try {
+            if (image == null) {
+      Alert.alertwarning(context,'Foto tidak boleh kosong.');
+      return;
+    }
         await kirimizin();
       } catch (error) {
         if (kDebugMode) {
@@ -142,36 +145,33 @@ class _PulangCepatState extends State<PulangCepat> {
     "Dinas Luar",
     "Izin",
     "Sakit",
-    "IDLK",
   ];
 
-  // void _validateAndSubmitForm() {
-  //   if (image == null) {
-  //     _showAlertDialog('Info', 'Gambar tidak boleh kosong.');
-  //     return;
-  //   }
-  //   if (_valJenisIzin == null || _valJenisIzin!.isEmpty) {
-  //     _showAlertDialog('Info', 'Jenis izin belum di pilih.');
-  //     return;
-  //   }
-  //   if (durasi.text.isEmpty) {
-  //     _showAlertDialog('Info', 'Durasi belum diisi.');
-  //     return;
-  //   }
-  //   if (keterangan.text.isEmpty) {
-  //     _showAlertDialog('Info', 'Keterangan belum diisi.');
-  //     return;
-  //   }
-  // }
+  void _validateAndSubmitForm() {
+    if (image == null) {
+      Alert.alertwarning(context,'Gambar tidak boleh kosong.');
+      return;
+    }
+    if (_valJenisIzin == null || _valJenisIzin!.isEmpty) {
+      Alert.alertwarning(context,'Jenis izin belum di pilih.');
+      return;
+    }
+    if (keterangan.text.isEmpty) {
+      Alert.alertwarning(context,'Keterangan belum diisi.');
+
+      return;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pulang Cepat'),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Pulang Cepat',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
         elevation: 4,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -179,150 +179,169 @@ class _PulangCepatState extends State<PulangCepat> {
       ),
       body: SingleChildScrollView(
         child: Center(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  height: 20,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                  child: Container(
-                    child: TextFormField(
-                      controller: TextEditingController(
-                          text:
-                              DateFormat('dd/MM/yyyy').format(DateTime.now())),
-                      enabled: false, // Mengatur agar tidak dapat diedit
-                      decoration: const InputDecoration(
-                        labelText: 'Tanggal',
-                        prefixIcon: Icon(Icons.calendar_today),
-                      ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  InteractiveViewer(
+                    boundaryMargin: const EdgeInsets.all(double.infinity),
+                    minScale: 0.1, // Skala minimum (zoom out)
+                    maxScale: 2.0, // Skala maksimum (zoom in)
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: image != null
+                          ? Image.file(
+                              File(image!.path),
+                              fit: BoxFit.cover,
+                              width: 300,
+                              height: 300,
+                            )
+                          : Container(), // You can replace this with a placeholder widget or null widget
                     ),
                   ),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 300,
-                      child: DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText:
-                              'Jenis Pulang Cepat', // Add a label for clarity.
-                        ),
-                        value: _valJenisIzin,
-                        hint: const Text("Jenis Pulang Cepat"),
-                        items: _jenisIzin.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? value) {
-                          setState(() {
-                            _valJenisIzin = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Tidak boleh kosong';
-                          }
-                          return null;
-                        },
+                  ElevatedButton.icon(
+                      icon: const Icon(Icons.image_search_rounded,size: 20,color: Colors.white,),
+                      label: Text(
+                        _isLoading ? 'Loading...' : 'Unggah Foto',
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.white, shadows: [
+                          Shadow(
+                              blurRadius: 2,
+                              color: Colors.black,
+                              offset: Offset(1, 1))
+                        ]),
                       ),
+                      onPressed: _isLoading ? null : () {
+                        myAlert();
+                      },
+                      clipBehavior: Clip.hardEdge,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 255, 0, 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10))),
                     ),
-                    if (_valJenisIzin == 'Dinas Luar')
-                      Padding(
-                        padding: const EdgeInsets.only(left: 65),
-                        child: CheckboxListTile(
-                          value: sptSementara,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          onChanged: (bool? value) {
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  TextFormField(
+                    controller: TextEditingController(
+                        text:
+                            DateFormat('dd/MM/yyyy').format(DateTime.now())),
+                    enabled: false, // Mengatur agar tidak dapat diedit
+                    decoration: const InputDecoration(
+                      labelText: 'Tanggal',
+                      prefixIcon: Icon(Icons.calendar_today),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText:
+                                'Jenis Pulang Cepat', // Add a label for clarity.
+                          ),
+                          value: _valJenisIzin,
+                          hint: const Text("Jenis Pulang Cepat"),
+                          items: _jenisIzin.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (String? value) {
                             setState(() {
-                              sptSementara = value ?? false;
+                              _valJenisIzin = value;
                             });
                           },
-                          title: const Text("SPT Sementara"),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Tidak boleh kosong';
+                            }
+                            return null;
+                          },
                         ),
-                      )
-                  ],
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    color: Colors.white,
-                    child: TextFormField(
-                      controller: keterangan,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Keterangan tidak boleh kosong';
-                        }
-                        return null;
-                      },
-
-                      maxLines: 2, //or null
-                      decoration: InputDecoration(
-                        labelText: "Masukkan keterangan",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      ),
+                      if (_valJenisIzin == 'Dinas Luar')
+                        Padding(
+                          padding: const EdgeInsets.only(left: 65),
+                          child: CheckboxListTile(
+                            value: sptSementara,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                sptSementara = value ?? false;
+                              });
+                            },
+                            title: const Text("SPT Sementara"),
+                          ),
+                        )
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  TextFormField(
+                    controller: keterangan,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Keterangan tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                                  
+                    maxLines: 2, //or null
+                    decoration: InputDecoration(
+                      labelText: "Masukkan keterangan",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-                InteractiveViewer(
-                  boundaryMargin: const EdgeInsets.all(double.infinity),
-                  minScale: 0.1, // Skala minimum (zoom out)
-                  maxScale: 2.0, // Skala maksimum (zoom in)
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: image != null
-                        ? Image.file(
-                            File(image!.path),
-                            fit: BoxFit.cover,
-                            width: 300,
-                            height: 300,
-                          )
-                        : Container(), // You can replace this with a placeholder widget or null widget
+                  const SizedBox(
+                    height: 20,
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    myAlert();
-                  },
-                  child: const Text('Upload Photo'),
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-                ElevatedButton.icon(
-                  icon: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Icon(Icons.save_outlined),
-                  label: Text(
-                    _isLoading ? 'Loading...' : 'Simpan',
-                    style: const TextStyle(fontSize: 14),
+                  
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: ElevatedButton.icon(
+                      icon: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Icon(Icons.save_outlined,size: 20,color: Colors.white,),
+                      label: Text(
+                        _isLoading ? 'Loading...' : 'Simpan',
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.white, shadows: [
+                          Shadow(
+                              blurRadius: 2,
+                              color: Colors.black,
+                              offset: Offset(1, 1))
+                        ]),
+                      ),
+                      onPressed: _isLoading ? null : _startLoading,
+                      clipBehavior: Clip.hardEdge,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 17, 110, 160),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10))),
+                    ),
                   ),
-                  onPressed: _isLoading ? null : _startLoading,
-                  style:
-                      ElevatedButton.styleFrom(fixedSize: const Size(140, 40)),
-                ),
-                const SizedBox(
-                  height: 40,
-                )
-              ],
+                  const SizedBox(
+                    height: 40,
+                  )
+                ],
+              ),
             ),
           ),
         ),
@@ -369,7 +388,7 @@ class _PulangCepatState extends State<PulangCepat> {
     String? idAtasan = SpUtil.getString("id_user_pimpinan");
     // Buat multipart request
     var request = http.MultipartRequest(
-        'POST', Uri.parse('$url/api/kirim-pulang-cepat/$idUser'));
+        'POST', Uri.parse('$url/api/kirim-pulang-cepat/$idUser')); 
 
     // Tambahkan file gambar
     request.files.add(await http.MultipartFile.fromPath('file', imagePath));
@@ -385,44 +404,35 @@ class _PulangCepatState extends State<PulangCepat> {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
+
       if (response.statusCode == 200) {
+        setState(() {
+          SpUtil.putBool('is_PulangCepat', true);
+        });
         final data = jsonDecode(response.body);
         String message = data["message"];
         if (data['status'] == 'success') {
-          // ignore: use_build_context_synchronously
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.success,
-            text: message,
-          );
-          SpUtil.putBool('is_PulangCepat', true);
-          resetState();
-          // Future.delayed(Duration.zero, () {
-          //   Navigator.pop(context);
-          // });
+          if(mounted){
+            Alert.alertsuccess(context,message);
+            Navigator.pop(context, true);
+            SpUtil.putBool('is_PulangCepat', true);
+            resetState();
+          }
         } else {
-          // ignore: use_build_context_synchronously
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.warning,
-            text: message,
-          );
+          if(mounted){
+            Alert.alertwarning(context,message);
+          }
         }
       } else {
-        // ignore: use_build_context_synchronously
-        QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          text: 'Foto sudah ada, silahkan cek riwayat',
-        );
+        if(mounted){
+            Alert.alerterror(context,'Foto sudah ada, silahkan cek riwayat');
+          }
       }
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        text: 'Terjadi kesalahan silahkan coba kembali $e',
-      );
+      if(mounted){
+            Alert.alerterror(context,'Terjadi kesalahan silahkan coba kembali');
+          }
+      
     }
   }
 }

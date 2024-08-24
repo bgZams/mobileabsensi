@@ -90,6 +90,8 @@ class _HomeState extends State<Home> {
         '/senam': (context) => const Senam(),
         '/pengumuman': (context) => const Pengumuman(),
       },
+      // initialRoute:
+      //     (SpUtil.getBool('isLogin') ?? false) ? '/home-page' : '/login',
       home: Scaffold(
         body: Container(
           color: const Color.fromARGB(255, 238, 238, 238),

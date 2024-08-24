@@ -54,7 +54,7 @@ class _ProfileState extends State<Profile> {
           icon: const Icon(Icons.arrow_back),
           color: Colors.white,
           onPressed: () {
-            Navigator.pushNamed(context, '/home-page');
+            Navigator.pop(context);
           },
         ),
       ),

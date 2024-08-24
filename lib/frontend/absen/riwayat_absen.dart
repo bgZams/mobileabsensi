@@ -1,8 +1,10 @@
-// SELESAI MALAM SABTU 25 AGUSTUS 2023
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/frontend/absen/lihat_spt.dart';
+import 'package:mobileabsensi/services/alert.dart';
+import 'package:mobileabsensi/services/refresh.dart';
+import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:sp_util/sp_util.dart';
 
 class RiwayatAbsen extends StatefulWidget {
@@ -18,6 +20,8 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
   bool _isLoading = true;
   String selectedYear = '';
   String selectedMonth = '';
+  DateTime? lastFetchTime;
+  int syncCount = 0;
 
   @override
   void initState() {
@@ -28,74 +32,18 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
     _fetchData();
   }
 
-//BULAN
   String _getMonthName(int month) {
-    switch (month) {
-      case 1:
-        return 'Januari';
-      case 2:
-        return 'Februari';
-      case 3:
-        return 'Maret';
-      case 4:
-        return 'April';
-      case 5:
-        return 'Mei';
-      case 6:
-        return 'Juni';
-      case 7:
-        return 'Juli';
-      case 8:
-        return 'Agustus';
-      case 9:
-        return 'September';
-      case 10:
-        return 'Oktober';
-      case 11:
-        return 'November';
-      case 12:
-        return 'Desember';
-      default:
-        return 'Januari';
-    }
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return monthNames[month - 1];
   }
 
-  String _getMonthNumber(String monthName) {
-    switch (monthName) {
-      case 'Januari':
-        return '01';
-      case 'Februari':
-        return '02';
-      case 'Maret':
-        return '03';
-      case 'April':
-        return '04';
-      case 'Mei':
-        return '05';
-      case 'Juni':
-        return '06';
-      case 'Juli':
-        return '07';
-      case 'Agustus':
-        return '08';
-      case 'September':
-        return '09';
-      case 'Oktober':
-        return '10';
-      case 'November':
-        return '11';
-      case 'Desember':
-        return '12';
-      default:
-        return '01'; // Default to Januari if no match
-    }
-  }
-
-//END
   Future<void> _fetchData() async {
     if (SpUtil.getString("id_user") != null && mounted) {
       try {
-        String selectedMonthNumber = _getMonthNumber(selectedMonth);
+        String selectedMonthNumber = Bulan().getMonthNumber(selectedMonth);
         var idUser = SpUtil.getString("id_user");
         http.Response riwayatAbsen = await http.get(
           Uri.parse(
@@ -137,7 +85,6 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
           setState(() {
             _isLoading = false;
           });
-            // throw Exception('Tidak dapat terhubung ke server');
         }
       }
     }
@@ -149,7 +96,7 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
     });
 
     try {
-      String selectedMonthNumber = _getMonthNumber(selectedMonth);
+      String selectedMonthNumber = Bulan().getMonthNumber(selectedMonth);
       var idUser = SpUtil.getString("id_user");
       http.Response riwayatAbsen = await http.get(
         Uri.parse(
@@ -198,78 +145,86 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
   Widget _buildCard(int index) {
     final dataRow = _rows[index];
     final cells = dataRow.cells.toList();
-    final tanggal = (cells[0].child as Text).data ?? DateTime.now().toString().substring(0, 10);
+    final tanggal = (cells[0].child as Text).data ??
+        DateTime.now().toString().substring(0, 10);
     final jamMasuk = (cells[1].child as Text).data;
-    final status_absen = (cells[3].child as Text).data;
+    final statusAbsen = (cells[3].child as Text).data;
     final keterangan = (cells[4].child as Text).data;
     final file = (cells[5].child as Text).data;
     final jamPulang = (cells[2].child as Text).data;
     String? jamPulangOk;
-  if (jamPulang == 'Belum absen' &&
-      tanggal != DateTime.now().toString().substring(0, 10)) {
-    jamPulangOk = 'TK';
-  } else {
-    jamPulangOk = (cells[2].child as Text).data;
-  }
+    if (jamPulang == 'Belum Pulang' &&
+        tanggal != DateTime.now().toString().substring(0, 10)) {
+      jamPulangOk = 'TAP';
+    } else {
+      jamPulangOk = (cells[2].child as Text).data;
+    }
     IconData statusIcon;
     Color statusColor;
     Text status;
-    if (status_absen == '1') {
-      statusIcon = Icons.check;
-      statusColor = const Color.fromARGB(255, 128, 249, 170);
-      status = const Text('Hadir',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ));
-    } else if (status_absen == '2') {
-      statusIcon = Icons.car_repair;
-      statusColor = const Color.fromARGB(255, 134, 255, 245);
-      status = const Text('Dinas Luar',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ));
-    } else if (status_absen == '3') {
-      statusIcon = Icons.assignment;
-      statusColor = const Color.fromARGB(255, 255, 243, 131);
-      status = const Text('Izin',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ));
-    } else if (status_absen == '4') {
-      statusIcon = Icons.local_hospital;
-      statusColor = const Color.fromARGB(255, 255, 72, 133);
-      status = const Text('Sakit',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ));
-    } else if (status_absen == '6') {
-      statusIcon = Icons.close;
-      statusColor = const Color.fromARGB(255, 229, 80, 255);
-      status = const Text('Cuti',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ));
-    } else if (status_absen == '5') {
-      statusIcon = Icons.close;
-      statusColor = const Color.fromARGB(255, 255, 170, 43);
-      status = const Text('IDLK',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ));
-    } else {
-      statusIcon = Icons.error;
-      statusColor = Colors.white;
-      status = const Text('Tidak Diketahui',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ));
+    switch (statusAbsen) {
+      case '1':
+        statusIcon = Icons.check;
+        statusColor = const Color.fromARGB(255, 128, 249, 170);
+        status = const Text('Hadir',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ));
+        break;
+      case '2':
+        statusIcon = Icons.car_repair;
+        statusColor = const Color.fromARGB(255, 134, 255, 245);
+        status = const Text('Dinas Luar',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ));
+        break;
+      case '3':
+        statusIcon = Icons.assignment;
+        statusColor = const Color.fromARGB(255, 255, 243, 131);
+        status = const Text('Izin',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ));
+        break;
+      case '4':
+        statusIcon = Icons.local_hospital;
+        statusColor = const Color.fromARGB(255, 255, 72, 133);
+        status = const Text('Sakit',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ));
+        break;
+      case '6':
+        statusIcon = Icons.close;
+        statusColor = const Color.fromARGB(255, 229, 80, 255);
+        status = const Text('Cuti',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ));
+        break;
+      case '5':
+        statusIcon = Icons.close;
+        statusColor = const Color.fromARGB(255, 255, 170, 43);
+        status = const Text('IDLK',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ));
+        break;
+      default:
+        statusIcon = Icons.error;
+        statusColor = Colors.white;
+        status = const Text('Tidak Diketahui',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ));
     }
 
     return Card(
@@ -277,25 +232,22 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
       margin: const EdgeInsets.all(8),
       color: const Color.fromARGB(255, 255, 255, 255),
       elevation: 4,
-      shape: const RoundedRectangleBorder(
-          // borderRadius: BorderRadius.circular(10),
-
-          ),
+      shape: const RoundedRectangleBorder(),
       child: Stack(children: [
         Positioned(
           left: 0,
           top: 0,
           bottom: 0,
-          width: 3, // Ketebalan border
+          width: 3,
           child: Container(
-            color: Colors.blue, // Warna border biru
+            color: Colors.blue,
           ),
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min, // Mengatur ukuran vertikal
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,7 +294,7 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                 ],
               ),
               const SizedBox(height: 8),
-              if (status_absen != "1")
+              if (statusAbsen != "1")
                 Container(
                   color: Colors.white,
                   child: Column(
@@ -385,7 +337,7 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                   ],
                 ),
               const SizedBox(height: 8),
-              if (status_absen != "1")
+              if (statusAbsen != "1")
                 Row(
                   children: [
                     GestureDetector(
@@ -435,12 +387,12 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                    'Jam Pulang: $jamPulangOk',
-                        style: TextStyle(
-                          color: jamPulang != 'TK' ? Colors.black : Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      'Jam Pulang: $jamPulangOk',
+                      style: TextStyle(
+                        color: jamPulang != 'TK' ? Colors.black : Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
                   ],
                 ),
             ],
@@ -451,11 +403,15 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
   }
 
   Future<void> _refreshData() async {
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _fetchData();
-      _isLoading = false;
-    });
+    if (SyncLimiter.canSync()) {
+      await Future.delayed(const Duration(seconds: 2));
+      setState(() {
+        _fetchData();
+        _isLoading = false;
+      });
+    } else {
+      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    }
   }
 
   @override
@@ -463,17 +419,17 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
     double deviceHeight = MediaQuery.of(context).size.height;
     return Scaffold(
         appBar: AppBar(
-          // backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-          title: const Center(child:  Padding(
-            padding: EdgeInsets.only(bottom: 12.0),
-            child: Text('Riwayat Absen',style: TextStyle(color: Colors.white),),
-          )),
-          flexibleSpace: const Image(
-          image: AssetImage('assets/images/bannernav.png'),
-          fit: BoxFit.cover,
-        ),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+
+          title: const Center(
+            child: Text(
+              'Riwayat Absen',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
           elevation: 4,
         ),
+
         body: SizedBox(
           height: deviceHeight * 1.2,
           child: Container(
@@ -484,7 +440,7 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                       itemCount:
-                          1 + _rows.length, // ditambah 1 untuk teks 'data'
+                          1 + _rows.length,
                       itemBuilder: (context, index) {
                         if (index == 0) {
                           return Row(
@@ -520,7 +476,6 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                                   }).toList(),
                                 ),
                                 const SizedBox(width: 16),
-                                // Inputan Tahun
                                 DropdownButton<String>(
                                   value: selectedYear,
                                   hint: const Text('Pilih Tahun'),
@@ -532,17 +487,15 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                                   items: _getYearItems(),
                                 ),
                                 const SizedBox(width: 16),
-                                // Tombol Cari
                                 ElevatedButton(
                                   onPressed: () {
                                     _cariData(selectedMonth, selectedYear);
                                   },
                                   child: const Text('Cari'),
                                 ),
-                              ]); // Teks di atas daftar
+                              ]);
                         } else {
-                          return _buildCard(
-                              index - 1); // -1 untuk mengabaikan teks 'data'
+                          return _buildCard(index - 1);
                         }
                       },
                     ),

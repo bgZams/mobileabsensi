@@ -1,128 +1,257 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mobileabsensi/core.dart';
+import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/frontend/list_wifi.dart';
+import 'package:mobileabsensi/frontend/panduan.dart';
+import 'package:mobileabsensi/frontend/profile.dart';
+import 'package:mobileabsensi/frontend/teknis/list_opd.dart';
+import 'package:mobileabsensi/frontend/teknis/list_wifi.dart';
+import 'package:mobileabsensi/frontend/tentang.dart';
 import 'package:sp_util/sp_util.dart';
 
-class Navigasi extends StatelessWidget {
+class Navigasi extends StatefulWidget {
   const Navigasi({Key? key}) : super(key: key);
 
-  final title = "Menu";
+  @override
+  State<Navigasi> createState() => _NavigasiState();
+}
+
+class _NavigasiState extends State<Navigasi> {
 
   @override
   Widget build(BuildContext context) {
+      String namaLengkap = SpUtil.getString('nama_lengkap') ?? '';
+      String namaInstansi = SpUtil.getString('nama_instansi') ?? '';
+      String idUser = SpUtil.getString('id_user') ?? '';
+
+      if (namaLengkap.length > 30) {
+        namaLengkap = '${namaLengkap.substring(0, 30)}...';
+        namaInstansi = '${namaInstansi.substring(0, 30)}...';
+      }
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: const Text('Menu'),
       ),
-      body: ListView.builder(
-        shrinkWrap: true,
-        padding: const EdgeInsets.all(20.0),
-        itemCount: choices.length,
-        itemBuilder: (context, index) {
-          return Center(
-            child: ChoiceCard(
-              choice: choices[index],
-              onTap: () {
-                navigateToScreen(context, index);
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void navigateToScreen(BuildContext context, int index) {
-    var screen = [
-      const Profile(),
-      const ListWifi(),
-      const ListWifi(),
-      const ListWifi(),
-      const ListWifi(),
-    ];
-    var screenIndex = index < screen.length ? index : 0;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => screen[screenIndex],
-      ),
-    );
-
-    if (index == 5) {
-      SpUtil.clear()?.then((success) {
-        if (success) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const Login(),
-            ),
-          );
-        }
-      }).catchError((error) {});
-    }
-  }
-}
-
-class Choice {
-  const Choice({required this.title, required this.icon, required this.color});
-
-  final String title;
-  final IconData icon;
-  final Color color;
-}
-
-List<Choice> choices = <Choice>[
-  const Choice(title: 'Profil', icon: Icons.person, color:  Color.fromARGB(255, 14, 60, 129)),
-  const Choice(title: 'Daftar Wifi', icon: Icons.wifi, color:  Color.fromARGB(255, 14, 60, 129)),
-  const Choice(title: 'Kendala Absen', icon: Icons.warning_amber, color:  Color.fromARGB(255, 14, 60, 129)),
-  const Choice(title: 'Panduan', icon: Icons.book, color:  Color.fromARGB(255, 14, 60, 129)),
-  const Choice(title: 'Tentang', icon: Icons.abc_outlined, color:  Color.fromARGB(255, 14, 60, 129)),
-  const Choice(title: 'Keluar', icon: Icons.logout, color:  Color.fromARGB(255, 14, 60, 129)),
-];
-
-class ChoiceCard extends StatelessWidget {
-  const ChoiceCard({
-    Key? key,
-    required this.choice,
-    required this.onTap,
-  }) : super(key: key);
-
-  final Choice choice;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    TextStyle? textStyle = Theme.of(context).textTheme.titleLarge;
-    return InkWell(
-      onTap: onTap,
-      child: Card(
-        color: const Color.fromARGB(255, 236, 236, 236),
-        child: Row(
+      body:Container(
+        color:  const Color.fromARGB(255, 228, 224, 224),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Icon(
-                choice.icon,
-                size: 60.0,
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 10.0, top: 25),
-                child: Text(
-                  choice.title,
-                  style: textStyle,
-                  textAlign: TextAlign.left,
-                  maxLines: 6,
+          children: [
+            Container(
+              color:  const Color.fromARGB(255, 228, 224, 224),
+              child: Padding(padding: const EdgeInsets.all(16.0),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const Profile()));
+                },
+                child: Card(
+                  color: const Color.fromARGB(255, 255, 255, 255),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Image.asset('assets/images/profile.png',width: 50,),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 5),
+                           child: Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               Text(
+                                 namaLengkap,
+                                 style: const TextStyle(
+                                   fontSize: 18,
+                                   color: Color.fromARGB(255, 3, 53, 139),
+                                   fontWeight: FontWeight.bold,
+                                 ),
+                                 overflow: TextOverflow.ellipsis,  // Menambahkan overflow untuk memotong teks yang terlalu panjang
+                                 maxLines: 1,  // Menentukan maksimal baris teks yang ditampilkan
+                               ),
+                               Text(
+                                 namaInstansi,
+                                 style: const TextStyle(
+                                   fontSize: 11,
+                                   color: Color.fromARGB(255, 3, 53, 139),
+                                   fontWeight: FontWeight.bold,
+                                 ),
+                                 overflow: TextOverflow.ellipsis,  // Menambahkan overflow untuk memotong teks yang terlalu panjang
+                                 maxLines: 1,  // Menentukan maksimal baris teks yang ditampilkan
+                               ),
+                             ],
+                           ),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.arrow_forward_ios_rounded,color: Color.fromARGB(255, 3, 53, 139),),
+                      ],
+                    ),
+                  ),
                 ),
               ),
+              ),
             ),
+          Container(
+            color:  const Color.fromARGB(255, 255, 255, 255),
+            child:  Column(
+              children: [
+                InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ListWifi()));
+                  },
+                  child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 10),
+                        child: Text('Daftar Wifi'),
+                      ),
+                    ),
+                    Spacer(),
+                            Icon(Icons.arrow_forward_ios_rounded,color: Color.fromARGB(255, 3, 53, 139),),
+                    SizedBox(width: 25,)
+                  ],
+                                  ),
+                ),
+                Container(height: 2,color: const Color.fromARGB(255, 223, 223, 223),),
+                    InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const Panduan()));
+                  },
+                  child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Padding(
+                                              padding: EdgeInsets.only(left: 10),
+                  
+                        child: Text('Panduan'),
+                      ),
+                    ),
+                    Spacer(),
+                            Icon(Icons.arrow_forward_ios_rounded,color: Color.fromARGB(255, 3, 53, 139),),
+                    SizedBox(width: 25,)
+                                  
+                  ],
+                                  ),
+                ), 
+                Container(height: 2,color: const Color.fromARGB(255, 223, 223, 223),),
+
+                    InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const Tentang()));
+                  },
+                  child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Padding(
+                                              padding: EdgeInsets.only(left: 10),
+                  
+                        child: Text('Tentang'),
+                      ),
+                    ),
+                    Spacer(),
+                            Icon(Icons.arrow_forward_ios_rounded,color: Color.fromARGB(255, 3, 53, 139),),
+                    SizedBox(width: 25,)
+                                  
+                  ],
+                                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+                  color: const Color.fromARGB(255, 228, 224, 224),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text('Teknis'),
+                  ),
+                ),
+                Container(
+            color:  const Color.fromARGB(255, 255, 255, 255),
+            child:  Column(
+              children: [
+                  InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ListOPD()));
+                  },
+                  child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Padding(
+                                              padding: EdgeInsets.only(left: 10),
+                        child: Text('OPD'),
+                      ),
+                    ),
+                    Spacer(),
+                            Icon(Icons.arrow_forward_ios_rounded,color: Color.fromARGB(255, 3, 53, 139),),
+                    SizedBox(width: 25,)
+                  ],
+                                  ),
+                ),
+                Container(height: 2,color: const Color.fromARGB(255, 223, 223, 223),),
+
+                    InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const WifiOpd()));
+                  },
+                  child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Padding(
+                                              padding: EdgeInsets.only(left: 10),
+                        child: Text('Daftar Wifi OPD'),
+                      ),
+                    ),
+                    Spacer(),
+                            Icon(Icons.arrow_forward_ios_rounded,color: Color.fromARGB(255, 3, 53, 139),),
+                    SizedBox(width: 25,)
+                  ],
+                                  ),
+                ),
+              ],
+            ),),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text('Versi Aplikasi 1.1.0',style: TextStyle(color: Colors.blue),),
+          ),
+          SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.save_outlined,size: 10,),
+                      label: const Text('Keluar',
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.white, shadows: [
+                          Shadow(
+                              blurRadius: 2,
+                              color: Colors.black,
+                              offset: Offset(1, 1))
+                        ],),
+                      ),
+                      onPressed: (){
+                        SpUtil.clear();
+                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const Login()));
+                      },
+                      clipBehavior: Clip.hardEdge,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 17, 110, 160),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),),),
+                    ),
+                  ),
+                ),
           ],
         ),
-      ),
+      )
     );
   }
 }

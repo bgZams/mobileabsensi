@@ -50,10 +50,13 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
   Widget build(BuildContext context) {
         double deviceHeight = MediaQuery.of(context).size.height;
     return Scaffold(
+     
       appBar: AppBar(
-        title: const Text('Detail Pengumuman'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Detail Pengumuman',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+        elevation: 4,
+         leading: IconButton(
+              icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () {
             Navigator.pushNamed(context, '/pengumuman');
           },

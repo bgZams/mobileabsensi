@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/frontend/pengumuman_detail.dart';
 import 'package:mobileabsensi/model/model_pengumuman.dart';
+import 'package:mobileabsensi/services/alert.dart';
+import 'package:mobileabsensi/services/refresh.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Pengumuman extends StatefulWidget {
@@ -24,10 +26,15 @@ class _PengumumanState extends State<Pengumuman> {
   }
 
   Future<void> refreshData() async {
+    if (SyncLimiter.canSync()) {
+
     setState(() {
       // _isLoading = true;
       postsFuture = getPosts();
     });
+        } else {
+      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    }
   }
 
   Future<List<ModelPengumuman>> getPosts() async {
@@ -53,12 +60,12 @@ class _PengumumanState extends State<Pengumuman> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Pengumuman',style: TextStyle(color: Colors.white),),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
+        title: const Text('Pengumuman',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+        elevation: 4,
+         leading: IconButton(
+              icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () {
-            Navigator.pushNamed(context, '/home-page');
+            Navigator.pop(context);
           },
         ),
       ),

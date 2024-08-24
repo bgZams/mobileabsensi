@@ -72,10 +72,11 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
     var jamMasuk = widget.data['timestamp_masuk'].toString();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail Pengajuan Izin'),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Detail Pengajuan Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
         elevation: 4,
          leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () {
             Navigator.pop(context);
             

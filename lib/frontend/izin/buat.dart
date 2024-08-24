@@ -6,11 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
+import 'package:mobileabsensi/services/alert.dart';
 // import 'package:mobileabsensi/core.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:quickalert/models/quickalert_type.dart';
-import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
 class BuatIzin extends StatefulWidget {
@@ -48,19 +46,23 @@ class _BuatIzinState extends State<BuatIzin> {
 
     if (_formKey.currentState!.validate()) {
       try {
-        await kirimizin(); // Memanggil fungsi pengiriman data
+    if (image == null) {
+      Alert.alertwarning(context,'Foto tidak boleh kosong.');
+      return;
+    }
+        await kirimizin();
       } catch (error) {
         if (kDebugMode) {
           print("Error: $error");
         }
       } finally {
         setState(() {
-          _isLoading = false; // Menutup loader setelah proses selesai
+          _isLoading = false;
         });
       }
     } else {
       setState(() {
-        _isLoading = false; // Menutup loader jika validasi gagal
+        _isLoading = false;
       });
     }
   }
@@ -103,13 +105,12 @@ class _BuatIzinState extends State<BuatIzin> {
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          title: const Text('Please choose media to select'),
+          title: const Text('Pilih media'),
           content: SizedBox(
             height: MediaQuery.of(context).size.height / 6,
             child: Column(
               children: [
                 ElevatedButton(
-                  // If the user clicks this button, they can upload an image from the gallery
                   onPressed: () {
                     Navigator.pop(context);
                     getImage(ImageSource.gallery);
@@ -117,12 +118,11 @@ class _BuatIzinState extends State<BuatIzin> {
                   child: const Row(
                     children: [
                       Icon(Icons.image),
-                      Text('From Gallery'),
+                      Text(' Galeri'),
                     ],
                   ),
                 ),
                 ElevatedButton(
-                  // If the user clicks this button, they can upload an image from the camera
                   onPressed: () {
                     Navigator.pop(context);
                     getImage(ImageSource.camera);
@@ -130,7 +130,7 @@ class _BuatIzinState extends State<BuatIzin> {
                   child: const Row(
                     children: [
                       Icon(Icons.camera),
-                      Text('From Camera'),
+                      Text(' Kamera'),
                     ],
                   ),
                 ),
@@ -164,46 +164,19 @@ class _BuatIzinState extends State<BuatIzin> {
     "BULANAN",
     "TAHUNAN",
   ];
-  // void _validateAndSubmitForm() {
-  //   if (image == null) {
-  //     _showAlertDialog('Info', 'Gambar tidak boleh kosong.');
-  //     return;
-  //   }
-  //   if (_valJenisIzin == null || _valJenisIzin!.isEmpty) {
-  //     _showAlertDialog('Info', 'Jenis izin belum di pilih.');
-  //     return;
-  //   }
-  //   if (durasi.text.isEmpty) {
-  //     _showAlertDialog('Info', 'Durasi belum diisi.');
-  //     return;
-  //   }
-  //   if (keterangan.text.isEmpty) {
-  //     _showAlertDialog('Info', 'Keterangan belum diisi.');
-  //     return;
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: Center(child: Text('Buat Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),)),
-        ),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Buat Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
         elevation: 4,
-        flexibleSpace: const Image(
-          image: AssetImage('assets/images/bannernav.png'),
-          fit: BoxFit.cover,
-        ),
-        leading: Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back,color: Colors.white,),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back,color: Colors.white,),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
       ),
       body: SingleChildScrollView(
@@ -218,8 +191,8 @@ class _BuatIzinState extends State<BuatIzin> {
                 ),
                 InteractiveViewer(
                   boundaryMargin: const EdgeInsets.all(double.infinity),
-                  minScale: 0.1, // Skala minimum (zoom out)
-                  maxScale: 2.0, // Skala maksimum (zoom in)
+                  minScale: 0.1,
+                  maxScale: 2.0,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: image != null
@@ -229,15 +202,32 @@ class _BuatIzinState extends State<BuatIzin> {
                             width: 300,
                             height: 300,
                           )
-                        : Container(), // You can replace this with a placeholder widget or null widget
+                        : Container(  ),
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    myAlert();
-                  },
-                  child: const Text('Upload Photo'),
-                ),
+                ElevatedButton.icon(
+                      icon: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Icon(Icons.image_search_rounded,size: 20,color: Colors.white,),
+                      label: Text(
+                        _isLoading ? 'Loading...' : 'Unggah Foto',
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.white, shadows: [
+                          Shadow(
+                              blurRadius: 2,
+                              color: Colors.black,
+                              offset: Offset(1, 1))
+                        ]),
+                      ),
+                      onPressed: _isLoading ? null : () {
+                        myAlert();
+                      },
+                      clipBehavior: Clip.hardEdge,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 255, 0, 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10))),
+                    ),
                 const SizedBox(
                   height: 20,
                 ),
@@ -250,7 +240,7 @@ class _BuatIzinState extends State<BuatIzin> {
                         width: MediaQuery.of(context).size.width,
                         child: DropdownButtonFormField<String>(
                           decoration: const InputDecoration(
-                            labelText: 'Jenis Izin', // Add a label for clarity.
+                            labelText: 'Jenis Izin',
                           ),
                           value: _valJenisIzin,
                           hint: const Text("Pilih jenis izin"),
@@ -356,66 +346,73 @@ class _BuatIzinState extends State<BuatIzin> {
                 const SizedBox(
                   height: 20,
                 ),
+                
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width,
                     child: TextFormField(
-                    controller: durasi,
-                    decoration: const InputDecoration.collapsed(
-                      border: UnderlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(6))),
-                      hintText: 'Durasi'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Durasi tidak boleh kosong';
-                      }
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null;
-                    },
-                    keyboardType: TextInputType.number,
+                      controller: tanggal,
+                      decoration: const InputDecoration(
+                        icon: Icon(Icons.calendar_today), // icon of text field
+                        labelText: "Pilih tanggal",
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Tanggal tidak boleh kosong';
+                        }
+                        return null;
+                      },
+                      readOnly: true,
+                      onTap: () async {
+                        DateTimeRange? pickedDate = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+
+                        if (pickedDate != null) {
+                          setState(() {
+                            tanggal.text =
+                                '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
+                            durasi.text = (pickedDate.end.difference(pickedDate.start).inDays + 1).toString();
+                          });
+                        }
+                      },
+                    ),
                   ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 40,
                 ),
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width,
-                    child: TextField(
-                      controller: tanggal,
-                      decoration: const InputDecoration(
-                          icon: Icon(Icons.calendar_today), //icon of text field
-                          labelText: "Pilih tanggal" //label text of field
-                          ),
-                      readOnly: true,
-                      onTap: () async {
-                        DateTime? pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100));
-                  
-                        if (pickedDate != null) {
-                          String formattedDate =
-                              DateFormat('yyyy-MM-dd').format(pickedDate);
-                  
-                          setState(() {
-                            tanggal.text =
-                                formattedDate; // Pastikan nilai ini sesuai format "yyyy-MM-dd"
-                          });
-                        } else {}
+                    child: TextFormField(
+                      controller: durasi,
+                      decoration: const InputDecoration.collapsed(
+                        border: UnderlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(6)),
+                        ),
+                        hintText: 'Durasi',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Durasi tidak boleh kosong';
+                        }
+                        if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                          return 'Hanya angka yang diperbolehkan';
+                        }
+                        return null;
                       },
+                      keyboardType: TextInputType.number,
+                      enabled: false,
                     ),
                   ),
                 ),
                 const SizedBox(
-                  height: 20,
+                  height: 40,
                 ),
+
+
                 Container(
                   padding: const EdgeInsets.all(10),
                   color: const Color.fromARGB(255, 255, 255, 255),
@@ -444,7 +441,7 @@ class _BuatIzinState extends State<BuatIzin> {
                     child: ElevatedButton.icon(
                       icon: _isLoading
                           ? const CircularProgressIndicator()
-                          : const Icon(Icons.save_outlined,size: 10,),
+                          : const Icon(Icons.save_outlined,size: 20,color: Colors.white,),
                       label: Text(
                         _isLoading ? 'Loading...' : 'Simpan',
                         style: const TextStyle(
@@ -506,18 +503,19 @@ class _BuatIzinState extends State<BuatIzin> {
   }
 
   Future<void> kirimizin() async {
+
     // Ambil nilai dari inputan
-    String tanggalTerpilih = tanggal.text;
+    String imagePath = image!.path;
+    String tanggalTerpilih = tanggal.text.split(' - ')[0];
     String keteranganValue = keterangan.text;
     String durasiValue = durasi.text;
-    String imagePath = image!.path;
+
     // String fileName = imagePath.split('/').last;
     String? idUser = SpUtil.getString("id_user");
     String? idadmininstansi = SpUtil.getString("id_admin_instansi");
     String? jenisIzin = _valJenisIzin;
     String? idAtasan = SpUtil.getString("id_user_pimpinan");
     String namalengkap = SpUtil.getString("nama_lengkap").toString();
-
     // Buat multipart request
     var request =
         http.MultipartRequest('POST', Uri.parse('$url/api/izin/kirim-izin/$iduser'));
@@ -541,11 +539,11 @@ class _BuatIzinState extends State<BuatIzin> {
       'jenis_izin': _valJenisIzin,
       'key_notif': 'izin'
     };
+    
     try {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-        print(response.body);
 
       if (response.statusCode == 200) {
         // Jika berhasil
@@ -555,41 +553,24 @@ class _BuatIzinState extends State<BuatIzin> {
         final data = jsonDecode(response.body);
         String message = data["message"];
         if (data['status'] == 'success') {
-          // Tampilkan pesan sukses
-          // ignore: use_build_context_synchronously
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.success,
-            text: message,
-          );
-          // ignore: use_build_context_synchronously
-          Navigator.pushReplacementNamed(context, '/izin');
+          if(mounted){
+            Alert.alertsuccess(context,message);
+            Navigator.pop(context, true);
+          }
         } else {
-          // Tampilkan pesan gagal
-          // ignore: use_build_context_synchronously
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.warning,
-            text: message,
-          );
+          if(mounted){
+            Alert.alertwarning(context,message);
+          }
         }
       } else {
-        // Tampilkan pesan error jika status code bukan 200
-        // ignore: use_build_context_synchronously
-        QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          text: 'Tidak dapat terhubung ke server',
-        );
+        if(mounted){
+            Alert.alerterror(context,'Tidak dapat terhubung ke server');
+          }
       }
     } catch (e) {
-      // Tangkap error dan tampilkan pesan kesalahan
-      // ignore: use_build_context_synchronously
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        text: 'Terjadi kesalahan silahkan coba kembali',
-      );
+      if(mounted){
+        Alert.alerterror(context,'Terjadi kesalahan silahkan coba kembali');
+      }
     }
   }
 }

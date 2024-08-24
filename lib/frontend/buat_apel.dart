@@ -170,9 +170,9 @@ class _BuatApelState extends State<BuatApel> {
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          title: const Text('Pilih media'),
+          title: const Center(child: Text('Pilih media')),
           content: SizedBox(
-            height: MediaQuery.of(context).size.height / 6,
+            height: 50,
             child: Column(
               children: [
                 ElevatedButton(
@@ -181,9 +181,11 @@ class _BuatApelState extends State<BuatApel> {
                     getImage(ImageSource.camera);
                   },
                   child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(Icons.camera),
-                      Text('Dari Kamera'),
+                      Text(' Dari Kamera'),
                     ],
                   ),
                 ),
@@ -218,90 +220,105 @@ class _BuatApelState extends State<BuatApel> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buat Apel'),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Buat Apel',style: TextStyle(color: Colors.white)),
         elevation: 4,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
       ),
       body: SingleChildScrollView(
-        child: Center(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  height: 10,
-                ),
-                InteractiveViewer(
-                  boundaryMargin: const EdgeInsets.all(double.infinity),
-                  minScale: 0.1,
-                  maxScale: 2.0,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: image != null
-                        ? Image.file(
-                            File(image!.path),
-                            fit: BoxFit.cover,
-                            width: 300,
-                            height: 300,
-                          )
-                        : Container(),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Center(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 10,
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    myAlert();
-                  },
-                  child: const Text('Ambil Gambar'),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    color: Colors.white,
-                    child: TextFormField(
-                      controller: keterangan,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Keterangan tidak boleh kosong';
-                        }
-                        return null;
-                      },
-
-                      maxLines: 6, //or null
-                      decoration: InputDecoration(
-                        labelText: "Masukkan keterangan",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  InteractiveViewer(
+                    boundaryMargin: const EdgeInsets.all(double.infinity),
+                    minScale: 0.1,
+                    maxScale: 2.0,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: image != null
+                          ? Image.file(
+                              File(image!.path),
+                              fit: BoxFit.cover,
+                              width: 300,
+                              height: 300,
+                            )
+                          : Container(),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      myAlert();
+                    },
+                    child: const Text('Ambil Gambar'),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  TextFormField(
+                    controller: keterangan,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Keterangan tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                                  
+                    maxLines: 6, //or null
+                    decoration: InputDecoration(
+                      labelText: "Masukkan keterangan",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
-                ),
-                ElevatedButton.icon(
-                  icon: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Icon(Icons.save_outlined),
-                  label: Text(
-                    _isLoading ? 'Loading...' : 'Simpan',
-                    style: const TextStyle(fontSize: 14),
+                  SizedBox(height: 10,),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: ElevatedButton(
+                    clipBehavior: Clip.hardEdge,
+                    onPressed: _isLoading
+                        ? null
+                        : _startLoading,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 1, 50, 106),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 45, vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      textStyle: const TextStyle(
+                          fontSize: 30, fontWeight: FontWeight.bold),
+                    ),
+                    child: Text(
+                      _isLoading ? 'Loading...' : 'Simpan',
+                      textDirection: TextDirection.ltr,
+                      style: const TextStyle(
+                        color: Color.fromARGB(255, 255, 255, 255),
+                        fontSize: 16.0,
+                        decoration: TextDecoration.none,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                                  ),
                   ),
-                  onPressed: _isLoading ? null : _startLoading,
-                  style:
-                      ElevatedButton.styleFrom(fixedSize: const Size(140, 40)),
-                ),
-                const SizedBox(
-                  height: 40,
-                )
-              ],
+                  const SizedBox(
+                    height: 40,
+                  )
+                ],
+              ),
             ),
           ),
         ),

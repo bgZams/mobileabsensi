@@ -11,6 +11,7 @@ import 'package:mobileabsensi/frontend/absen/widget_header.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/izin/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/frontend/navigasi.dart';
+import 'package:mobileabsensi/services/refresh.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
@@ -21,15 +22,14 @@ class Absen extends StatefulWidget {
   const Absen({Key? key}) : super(key: key);
 
   @override
-  // ignore: library_private_types_in_public_api
-  _AbsenState createState() => _AbsenState();
+  State<Absen> createState() => _AbsenState();
 }
 
 class _AbsenState extends State<Absen> {
   final StreamController<String> _jlhIzinController =
       StreamController<String>();
   Timer? _timer;
-  var url = SpUtil.getString("url");
+  String? url = SpUtil.getString("url");
   String _jamSekarang = '';
   List<Map<String, dynamic>> wifiData = [];
   final NetworkInfo _networkInfo = NetworkInfo();
@@ -41,21 +41,21 @@ class _AbsenState extends State<Absen> {
   String? wifiBSSID = '';
   String? wifiIPv4;
 
-  String? masuk = '';
-  String? formattedDate;
   String? jamMasuk;
   String? jamPulang;
   String? code;
   bool isCodeMasuk = false;
   bool isCodePulang = false;
   bool isPulangCepat = false;
-  var idUser = SpUtil.getString("id_user");
-  var idAdmin = SpUtil.getString("id_admin_instansi") ?? '';
-  var admin = SpUtil.getString("username_admin") ?? '';
-  var nama = SpUtil.getString("nama_lengkap").toString();
-  var instansi = SpUtil.getString("nama_instansi").toString();
+  String? idUser = SpUtil.getString("id_user");
+  String? idAdmin = SpUtil.getString("id_admin_instansi") ?? '';
+  String? admin = SpUtil.getString("username_admin") ?? '';
+  String? nama = SpUtil.getString("nama_lengkap").toString();
+  String? instansi = SpUtil.getString("nama_instansi").toString();
 
   String? notif = '0';
+  DateTime? lastFetchTime;
+  int syncCount = 0;
 
   @override
   void initState() {
@@ -64,18 +64,19 @@ class _AbsenState extends State<Absen> {
     _jamSekarang = _formatDateTime(DateTime.now());
     Timer.periodic(const Duration(seconds: 1), (Timer t) => _getCurrentTime());
     loadWifiData();
-    isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
-    isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
-    isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
+    setState(() {
+      isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
+      isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
+      isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
+    });
+
     _jlhIzinController.add(SpUtil.getInt("jlh_izin").toString());
     _simulateDataUpdate();
     _fetchNotif();
     refreshData();
     _checkAndUpdatePreferences();
+
   }
-
-
-
 
   @override
   void dispose() {
@@ -105,10 +106,22 @@ class _AbsenState extends State<Absen> {
     return DateFormat('HH:mm:ss').format(dateTime);
   }
 
-  String _tglSekarang(DateTime dateTime) {
-    return DateFormat('yyyy-MM-dd').format(dateTime);
+  void _checkAndUpdatePreferences() {
+    DateTime now = DateTime.now();
+    String todayString = DateFormat('yyyy-MM-dd').format(now);
+    String? savedDate = SpUtil.getString('saved_date');
+    if (savedDate != todayString) {
+      SpUtil.remove('masuk');
+      SpUtil.remove('is_codeMasuk');
+      SpUtil.remove('pulang');
+      SpUtil.remove('is_codePulang');
+      SpUtil.remove('saved_date');
+      SpUtil.putBool('is_codeMasuk', false);
+      SpUtil.putBool('is_codePulang', false);
+      SpUtil.putBool('is_PulangCepat', false);
+      SpUtil.putBool('_isMasuk', false);
+    }
   }
-
   Future<void> loadWifiData() async {
     String wifiDataJson = SpUtil.getString("wifi_data") ?? '[]';
     if (wifiDataJson.isNotEmpty) {
@@ -124,8 +137,6 @@ class _AbsenState extends State<Absen> {
       wifiName = await _networkInfo.getWifiName();
       wifiBSSID = await _networkInfo.getWifiBSSID();
       wifiIPv4 = await _networkInfo.getWifiIP();
-      // Check if wifiName is null
-      // wifiName ??= 'Not connected to Wi-Fi';
     } on PlatformException catch (e) {
       developer.log('Failed to get Wi-Fi Name or BSSID', error: e);
       wifiName = 'Failed to get Wi-Fi Name';
@@ -134,138 +145,155 @@ class _AbsenState extends State<Absen> {
   }
 
   Future<void> absenMasuk(String? wifiName, String? wifiBSSID) async {
-  String connectedSSID = wifiName ?? '';
-  String ssID = connectedSSID.replaceAll('"', '');
-  String connectedBSSID = wifiBSSID ?? '';
-  var listWifiString = SpUtil.getString("wifi_data");
+    String connectedSSID = wifiName ?? '';
+    String ssID = connectedSSID.replaceAll('"', '');
+    String connectedBSSID = wifiBSSID ?? '';
+    var listWifiString = SpUtil.getString("wifi_data");
 
-  if (listWifiString != null) {
-    List<dynamic> listWifi = jsonDecode(listWifiString);
-    bool isWifiMatch = listWifi.any((wifi) =>
-      wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID
-    );
+    // if (listWifiString != null) {
+    //   List<dynamic> listWifi = jsonDecode(listWifiString);
+    //   bool isWifiMatch = listWifi.any((wifi) =>
+    //       wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
 
-    if (isWifiMatch) {
-      if (SpUtil.getString("id_user") != null) {
-        try {
-          var datamasuk = {
-            'id_user': idUser,
-            'id_admin_instansi': idAdmin,
-            'nama_lengkap': nama,
-            'ssid': ssID,
-            'bssid': connectedBSSID,
-            'versi': '1.4'
-          };
-          http.Response absenMasuk = await http.post(
-            Uri.parse('$url/api/masuk'),
-            body: datamasuk,
-          );
+    //   if (isWifiMatch) {
+    if (SpUtil.getString("id_user") != null) {
+      try {
+        var datamasuk = {
+          'id_user': idUser,
+          'id_admin_instansi': idAdmin,
+          'nama_lengkap': nama,
+          'ssid': ssID,
+          'bssid': connectedBSSID,
+          'versi': '1.4'
+        };
+        http.Response absenMasuk = await http.post(
+          Uri.parse('$url/api/masuk'),
+          body: datamasuk,
+        );
 
-          await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 2));
+        if (absenMasuk.statusCode == 200) {
           if (mounted) {
-            if (absenMasuk.statusCode == 200) {
-              final data = jsonDecode(absenMasuk.body);
-              String message = json.encode(data["message"]).replaceAll('"', '');
-              if (data["code"] == "wifi" || data["code"] == "versi_app" || data["code"] == "unknown") {
-                Alert.alertwarning(context, message);
-              } else if (data["code"] == "1" || data["code"] == "2") {
-                code = data['code']?.toString();
-                String waktuJson = data['waktu'];
-                DateTime waktuText = DateTime.parse(waktuJson);
-                SpUtil.putString('saved_date', DateFormat('yyyy-MM-dd').format(waktuText));
-                jamMasuk = DateFormat('HH:mm').format(waktuText);
-                SpUtil.putString('masuk', '$jamMasuk');
-                SpUtil.putBool('is_codeMasuk', true);
+            final data = jsonDecode(absenMasuk.body);
+            String message = json.encode(data["message"]).replaceAll('"', '');
+            if (data["code"] == "wifi" ||
+                data["code"] == "versi_app" ||
+                data["code"] == "unknown") {
+              Alert.alertwarning(context, message);
+            } else if (data["code"] == "1" || data["code"] == "2") {
+              code = data['code']?.toString();
+              String waktuJson = data['waktu'];
+              DateTime waktuText = DateTime.parse(waktuJson);
+              SpUtil.putString(
+                  'saved_date', DateFormat('yyyy-MM-dd').format(waktuText));
+              jamMasuk = DateFormat('HH:mm').format(waktuText);
+              SpUtil.putString('masuk', '$jamMasuk');
+              SpUtil.putBool('is_codeMasuk', true);
 
-                Alert.alertsuccess(context, message);
+              Alert.alertsuccess(context, message);
 
-                setState(() {
-                  isCodeMasuk = true;
-                });
-              } else {
-                Alert.alertinfo(context, message);
-
-                setState(() {
-                  isCodeMasuk = false;
-                });
-              }
+              setState(() {
+                isCodeMasuk = true;
+              });
             } else {
-              throw Exception('Kesalahan HTTP: ${absenMasuk.statusCode}');
+              Alert.alertinfo(context, message);
+
+              setState(() {
+                isCodeMasuk = false;
+              });
             }
+          } else {
+            throw Exception('Kesalahan HTTP: ${absenMasuk.statusCode}');
           }
-        } catch (e) {
-          // ignore: use_build_context_synchronously
-          Alert.alerterror(context, 'Gagal mengambil absen!');
-
         }
+      } catch (e) {
+        Alert.alerterror(context, 'Gagal mengambil absen!');
       }
-    } else {
-      Alert.alertwarning(context, 'SSID atau BSSID tidak ditemukan dalam daftar WiFi!');
     }
-  } else {
-    Alert.alerterror(context, 'Gagal mengambil absen!');
+    //   } else {
+    //     Alert.alertwarning(context, 'SSID ditemukan dalam daftar WiFi!');
+    //   }
+    // } else {
+    //   Alert.alerterror(context, 'Gagal mengambil absen!');
+    // }
   }
-}
-
-
-
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
-    // Future<void> absenPulang() async {
+            if(isPulangCepat == true){
+          Alert.alertwarning(context, 'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
+          return;
+        }
     String connectedSSID = wifiName ?? '';
     String ssID = connectedSSID.replaceAll('"', '');
     String connectedBSSID = wifiBSSID ?? '';
     if (SpUtil.getString("id_user") != null) {
       try {
-        var datapulang = {
-          'id_user': idUser,
-          'id_admin_instansi': idAdmin,
-          'ssid': ssID,
-          'bssid': connectedBSSID,
-          'versi': '1.4'
-        };
-        http.Response absenPulang = await http.put(
-          Uri.parse('$url/api/pulang/$idUser'),
-          body: jsonEncode(datapulang),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-        );
+        var listWifiString = SpUtil.getString("wifi_data");
+        if (listWifiString != null) {
+          List<dynamic> listWifi = jsonDecode(listWifiString);
+          bool isWifiMatch = listWifi.any((wifi) =>
+              wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
 
-        if (absenPulang.statusCode == 200) {
-          final data = jsonDecode(absenPulang.body);
-          code = data['code']?.toString();
-          String message = json.encode(data["message"]).replaceAll('"', '');
-          if (data["code"] == "wifi" || data["code"] == "versi_app" || data["code"] == "unknown") {
-            // ignore: use_build_context_synchronously
-            Alert.alertwarning(context, message);
-          } else if (data["code"] == "1") {
-            SpUtil.putString('code_pulang', code!);
-            String waktuJson = data['waktu'];
-            DateTime waktuText = DateTime.parse(waktuJson);
-            jamPulang = DateFormat('HH:mm').format(waktuText);
-            SpUtil.putString('pulang', '$jamPulang');
-            SpUtil.putBool('is_codePulang', true);
-            // ignore: use_build_context_synchronously
-            Alert.alertsuccess(context, message);
-            setState(() {
-              isCodePulang = true;
-              isPulangCepat = false;
-            });
+          if (isWifiMatch) {
+            var datapulang = {
+              'id_user': idUser,
+              'id_admin_instansi': idAdmin,
+              'ssid': ssID,
+              'bssid': connectedBSSID,
+              'versi': '1.4'
+            };
+            http.Response absenPulang = await http.put(
+              Uri.parse('$url/api/pulang/$idUser'),
+              body: jsonEncode(datapulang),
+              headers: <String, String>{
+                'Content-Type': 'application/json; charset=UTF-8',
+              },
+            );
+
+            if (absenPulang.statusCode == 200) {
+              if (mounted) {
+                final data = jsonDecode(absenPulang.body);
+                code = data['code']?.toString();
+                String message =
+                    json.encode(data["message"]).replaceAll('"', '');
+                if (data["code"] == "wifi" ||
+                    data["code"] == "versi_app" ||
+                    data["code"] == "unknown") {
+                  Alert.alertwarning(context, message);
+                } else if (data["code"] == "1") {
+                  SpUtil.putString('code_pulang', code!);
+                  String waktuJson = data['waktu'];
+                  DateTime waktuText = DateTime.parse(waktuJson);
+                  jamPulang = DateFormat('HH:mm').format(waktuText);
+                  SpUtil.putString('pulang', '$jamPulang');
+                  SpUtil.putBool('is_codePulang', true);
+                  Alert.alertsuccess(context, message);
+                  setState(() {
+                    isCodePulang = true;
+                    isPulangCepat = false;
+                  });
+                }
+              }
+            } else {
+              if (mounted) {
+                Alert.alertsuccess(context, 'Tidak dapat terhubung ke server');
+              }
+            }
+          } else {
+            Alert.alertwarning(context, 'SSID ditemukan dalam daftar WiFi!');
           }
         } else {
-          // ignore: dead_code, use_build_context_synchronously
-            Alert.alertsuccess(context, 'Tidak dapat terhubung ke server');
+          Alert.alerterror(context, 'Gagal mengambil absen!');
         }
       } catch (e) {
-                  // ignore: dead_code, use_build_context_synchronously
-            Alert.alertsuccess(context, 'Gagal mengambil absen!');
+        if (mounted) {
+          Alert.alertsuccess(context, 'Gagal mengambil absen!');
+        }
       }
     }
   }
 
   Future<void> _fetchNotif() async {
-
     if (idUser!.isEmpty || url!.isEmpty) {
       debugPrint('Error: idUser or url is empty');
       return;
@@ -296,33 +324,22 @@ class _AbsenState extends State<Absen> {
   }
 
   Future<void> refreshData() async {
+    if (SyncLimiter.canSync() && mounted) {
     await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
           _getCurrentTime();
           _initNetworkInfo();
           _fetchNotif();
-          _checkAndUpdatePreferences();
           _isLoading = false;
         });
       }
+    } else {
+      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    }
   }
 
-    void _checkAndUpdatePreferences() {
-      DateTime now = DateTime.now();
-      String todayString = DateFormat('yyyy-MM-dd').format(now);
-      String? savedDate = SpUtil.getString('saved_date');
-      if (savedDate != todayString) {
-        SpUtil.remove('masuk');
-        SpUtil.remove('is_codeMasuk');
-        SpUtil.remove('pulang');
-        SpUtil.remove('is_codePulang');
-        SpUtil.remove('saved_date');
-          SpUtil.putBool('is_codeMasuk', false);
-          SpUtil.putBool('is_codePulang', false);
-          SpUtil.putBool('is_PulangCepat', false);
-      }
-    }
+
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +350,6 @@ class _AbsenState extends State<Absen> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          // loadWifiData();
           refreshData();
         },
         child: SizedBox(
@@ -344,7 +360,6 @@ class _AbsenState extends State<Absen> {
               physics: const AlwaysScrollableScrollPhysics(),
               child: Stack(
                 children: [
-                  // Background Image
                   Container(
                     height: size.height * .3,
                     decoration: const BoxDecoration(
@@ -362,7 +377,6 @@ class _AbsenState extends State<Absen> {
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // Header with Profile and Logout Button
                                 Container(
                                   height: 70,
                                   margin: const EdgeInsets.only(bottom: 20),
@@ -393,12 +407,13 @@ class _AbsenState extends State<Absen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              nama,
-                                              style: const TextStyle(fontSize: 12),
+                                              nama!,
+                                              style:
+                                                  const TextStyle(fontSize: 12),
                                             ),
-                                            Text(
-                                                instansi,
-                                                style: const TextStyle(fontSize: 12)),
+                                            Text(instansi!,
+                                                style: const TextStyle(
+                                                    fontSize: 12)),
                                           ],
                                         ),
                                       ),
@@ -527,13 +542,11 @@ class _AbsenState extends State<Absen> {
                                         ),
                                       ],
                                     )),
-
                                 Container(
                                   color: const Color.fromARGB(255, 0, 0, 0),
                                   width: deviceWidth,
                                   padding: const EdgeInsets.all(2.0),
                                 ),
-
                                 Container(
                                   color:
                                       const Color.fromARGB(255, 255, 255, 255),
@@ -568,13 +581,11 @@ class _AbsenState extends State<Absen> {
                                         ),
                                       ),
                                       const SizedBox(height: 20),
-                                      // Wi-Fi Name Display
                                       Column(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
                                           const SizedBox(height: 20),
-                                          // Absent Buttons
                                           Container(
                                             margin:
                                                 const EdgeInsets.only(left: 40),
@@ -582,13 +593,13 @@ class _AbsenState extends State<Absen> {
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
                                               children: [
+                                                //TOMBOL MASUK PULANG
                                                 Column(
                                                   children: [
-                                                    // Check-in Button
-                                                    isCodeMasuk
+                                                    DateTime.now().toIso8601String().substring(0, 10) == SpUtil.getString('saved_date')
                                                         ? Column(
-                                                          children: [
-                                                            Container(
+                                                            children: [
+                                                              Container(
                                                                 decoration:
                                                                     BoxDecoration(
                                                                   color: const Color
@@ -604,64 +615,63 @@ class _AbsenState extends State<Absen> {
                                                                 ),
                                                                 width: 100,
                                                                 height: 100,
-                                                                alignment: Alignment
-                                                                    .center,
-                                                                child: Text("${SpUtil.getString('masuk')}",
-                                                                    style: const TextStyle(
-                                                                        fontSize:
-                                                                            30,
-                                                                        color: Color
-                                                                            .fromARGB(
-                                                                                255,
-                                                                                2,
-                                                                                53,
-                                                                                95),),),
+                                                                alignment:
+                                                                    Alignment
+                                                                        .center,
+                                                                child: Text(
+                                                                  "${SpUtil.getString('masuk')}",
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        30,
+                                                                    color: Color
+                                                                        .fromARGB(
+                                                                            255,
+                                                                            2,
+                                                                            53,
+                                                                            95),
+                                                                  ),
+                                                                ),
                                                               ),
-                                                            const SizedBox(height: 25),
-                                                          ],
-                                                        )
+                                                              const SizedBox(
+                                                                  height: 25),
+                                                            ],
+                                                          )
                                                         : GestureDetector(
-                                                          onTap: _isLoading ? null :  () async {
-                                                            setState(() {
-                                                              _isMasuk = true;
-                                                            });
+                                                            onTap: _isLoading
+                                                                ? null
+                                                                : () async {
+                                                                    setState(
+                                                                        () {
+                                                                      _isMasuk =
+                                                                          true;
+                                                                    });
 
-                                                              await _initNetworkInfo();
+                                                                    await _initNetworkInfo();
 
-                                                              if (wifiName != null &&
-                                                                  wifiBSSID !=
-                                                                      null &&
-                                                                  wifiName!
-                                                                      .isNotEmpty &&
-                                                                  wifiBSSID!
-                                                                      .isNotEmpty) {
-                                                                await absenMasuk(
-                                                                    wifiName,
-                                                                    wifiBSSID);
-                                                                // await absenMasuk(
-                                                                //     wifiName,
-                                                                //     wifiBSSID);
-                                                              } else {
-                                                                // developer.log(
-                                                                //     'Tidak Ada Informasi Wi-Fi yang Tersedia',
-                                                                //     level: 0);
-                                                                //ignore: use_build_context_synchronously
-                                                                QuickAlert.show(
-                                                                  context:
-                                                                      context,
-                                                                  type: QuickAlertType
-                                                                      .warning,
-                                                                  text:
-                                                                      "Tidak Ada Informasi Wi-Fi yang Tersedia",
-                                                                );
-                                                              }
-                                                              // await absenMasuk();
+                                                                    if (wifiName != null &&
+                                                                        wifiBSSID !=
+                                                                            null &&
+                                                                        wifiName!
+                                                                            .isNotEmpty &&
+                                                                        wifiBSSID!
+                                                                            .isNotEmpty) {
+                                                                      await absenMasuk(
+                                                                          wifiName,
+                                                                          wifiBSSID);
+                                                                    } else {
+                                                                      Alert.alertwarning(
+                                                                          // ignore: use_build_context_synchronously
+                                                                          context,
+                                                                          'Silahkan sambungkan ke Wifi!');
+                                                                    }
 
-                                                              setState(() {
-                                                                _isMasuk =
-                                                                    false;
-                                                              });
-                                                            },
+                                                                    setState(
+                                                                        () {
+                                                                      _isMasuk =
+                                                                          false;
+                                                                    });
+                                                                  },
                                                             child: Column(
                                                               mainAxisAlignment:
                                                                   MainAxisAlignment
@@ -692,11 +702,10 @@ class _AbsenState extends State<Absen> {
                                                 const SizedBox(width: 45),
                                                 Column(
                                                   children: [
-                                                    // Check-out Button
                                                     isCodePulang
                                                         ? Column(
-                                                          children: [
-                                                            Container(
+                                                            children: [
+                                                              Container(
                                                                 decoration:
                                                                     BoxDecoration(
                                                                   color: const Color
@@ -712,75 +721,106 @@ class _AbsenState extends State<Absen> {
                                                                 ),
                                                                 width: 100,
                                                                 height: 100,
-                                                                alignment: Alignment
-                                                                    .center,
+                                                                alignment:
+                                                                    Alignment
+                                                                        .center,
                                                                 child: Text(
                                                                     "${SpUtil.getString('pulang')}",
                                                                     style: const TextStyle(
                                                                         fontSize:
                                                                             30,
-                                                                        color: Color
-                                                                            .fromARGB(
-                                                                                255,
-                                                                                2,
-                                                                                53,
-                                                                                95))),
+                                                                        color: Color.fromARGB(
+                                                                            255,
+                                                                            2,
+                                                                            53,
+                                                                            95))),
                                                               ),
-                                                            const SizedBox(height: 25),
-
-                                                          ],
-                                                        )
+                                                              const SizedBox(
+                                                                  height: 25),
+                                                            ],
+                                                          )
                                                         : GestureDetector(
-                                                            onTap:  _isLoading ? null :  () async {
-                                                              setState(() {
-                                                                _isPulang = true;
-                                                              });
+                                                            onTap: _isLoading
+                                                                ? null
+                                                                : () async {
+                                                                    setState(
+                                                                        () {
+                                                                      _isPulang =
+                                                                          true;
+                                                                    });
 
-                                                              if (isCodeMasuk == false) {
-                                                                QuickAlert.show(
-                                                                  context:
-                                                                      context,
-                                                                  type: QuickAlertType
-                                                                      .warning,
-                                                                  text:
-                                                                      "Belum mengambil absen masuk!",
-                                                                );
-                                                              } else {
-                                                                await _initNetworkInfo();
-                                                                if (wifiName !=
-                                                                        null &&
-                                                                    wifiBSSID !=
-                                                                        null &&
-                                                                    wifiName!
-                                                                        .isNotEmpty &&
-                                                                    wifiBSSID!
-                                                                        .isNotEmpty) {
-                                                                  absenPulang(
-                                                                      wifiName,
-                                                                      wifiBSSID);
-                                                                } else {
-                                                                  // developer.log(
-                                                                  //     'Tidak Ada Informasi Wi-Fi yang Tersedia',
-                                                                  //     level: 0);
-                                                                  // ignore: use_build_context_synchronously
-                                                                  QuickAlert
-                                                                      .show(
-                                                                    context:
-                                                                        context,
-                                                                    type: QuickAlertType
-                                                                        .error,
-                                                                    text:
-                                                                        "Tidak Ada Informasi Wi-Fi yang Tersedia",
-                                                                  );
-                                                                }
-                                                                // absenPulang();
-                                                              }
+                                                                    if (isCodeMasuk ==
+                                                                        false) {
+                                                                      QuickAlert
+                                                                          .show(
+                                                                        context:
+                                                                            context,
+                                                                        type: QuickAlertType
+                                                                            .warning,
+                                                                        text:
+                                                                            "Belum mengambil absen masuk!",
+                                                                      );
+                                                                    } else {
+                                                                      await _initNetworkInfo();
+                                                                      if (wifiName != null &&
+                                                                          wifiBSSID !=
+                                                                              null &&
+                                                                          wifiName!
+                                                                              .isNotEmpty &&
+                                                                          wifiBSSID!
+                                                                              .isNotEmpty) {
+                                                                                showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Absen Pulang'),
+                  content: SizedBox(
+                    height: 50,
+                    width: MediaQuery.of(context).size.width,
+                    child: const Text('Yakin ingin absen pulang'),
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        textStyle: Theme.of(context).textTheme.labelLarge,
+                        backgroundColor: Colors.green,
+                      ),
+                      
+                      child: const Text('Pulang',style: TextStyle(color: Colors.white),),
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        absenPulang(
+                                                                            wifiName,
+                                                                            wifiBSSID);
+                      },
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        textStyle: Theme.of(context).textTheme.labelLarge,
+                        backgroundColor: Colors.red
+                      ),
+                      child: const Text('Batal',style: TextStyle(color: Colors.white),),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+                                                                        
+                                                                      } else {
+// ignore: use_build_context_synchronously
+Alert.alertwarning(context,'Silahkan sambungkan ke Wifi!');
+                                                                      }
+                                                                    }
 
-                                                              setState(() {
-                                                                _isPulang =
-                                                                    false; // Set isLoading back to false after operation is completed
-                                                              });
-                                                            },
+                                                                    setState(
+                                                                        () {
+                                                                      _isPulang =
+                                                                          false;
+                                                                    });
+                                                                  },
                                                             child: Column(
                                                               mainAxisAlignment:
                                                                   MainAxisAlignment
@@ -802,7 +842,7 @@ class _AbsenState extends State<Absen> {
                                                                                 TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                                                           )
                                                                         ],
-                                                                      ),
+                                                                      )
                                                               ],
                                                             ),
                                                           ),
@@ -820,76 +860,90 @@ class _AbsenState extends State<Absen> {
                                               MainAxisAlignment.center,
                                           children: [
                                             isCodeMasuk == true
-                                              ? isCodePulang == false
-                                                ? isPulangCepat == true
-                                                    ? Column(
-                                                      children: [
-                                                        Center(
-                                                            child: ElevatedButton(
-                                                            onPressed: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                    builder:
-                                                                        (context) =>
-                                                                            const RiwayatPengajuanIzin()),
-                                                              );
-                                                            },
-                                                            style: ElevatedButton
-                                                                .styleFrom(
-                                                              primary: const Color
-                                                                  .fromARGB(
-                                                                  255,
-                                                                  173,
-                                                                  218,
-                                                                  255), // Mengatur warna latar belakang menjadi merah
-                                                            ),
-                                                            child: const Text(
-                                                                'Status Pengajuan',
-                                                                style: TextStyle(
-                                                                    color: Color
-                                                                        .fromARGB(
+                                                ? isCodePulang == false
+                                                    ? isPulangCepat == true
+                                                        ? Column(
+                                                            children: [
+                                                              Center(
+                                                                  child:
+                                                                      ElevatedButton(
+                                                                onPressed: () {
+                                                                  Navigator
+                                                                      .push(
+                                                                    context,
+                                                                    MaterialPageRoute(
+                                                                        builder:
+                                                                            (context) =>
+                                                                                const RiwayatPengajuanIzin()),
+                                                                  );
+                                                                },
+                                                                style: ElevatedButton
+                                                                    .styleFrom(
+                                                                  backgroundColor:
+                                                                      const Color
+                                                                          .fromARGB(
+                                                                          255,
+                                                                          173,
+                                                                          218,
+                                                                          255),
+                                                                ),
+                                                                child: const Text(
+                                                                    'Status Pengajuan',
+                                                                    style: TextStyle(
+                                                                        color: Color.fromARGB(
                                                                             255,
                                                                             0,
                                                                             162,
                                                                             255))),
-                                                          )),
-                                                          const SizedBox(height: 20,)
-                                                      ],
-                                                    )
-                                                    : Padding(
-                                                      padding: const EdgeInsets.only(bottom: 8),
-                                                      child: Center(
-                                                          child: ElevatedButton(
-                                                              onPressed: () {
-                                                                Navigator.push(
-                                                                  context,
-                                                                  MaterialPageRoute(
-                                                                      builder:
-                                                                          (context) =>
-                                                                              const PulangCepat()),
-                                                                );
-                                                              },
-                                                              style:
-                                                                  ElevatedButton
-                                                                      .styleFrom(
-                                                                primary: Colors
-                                                                    .red,
-                                                              ),
-                                                              child: const Text(
-                                                                'Pulang Cepat',
-                                                                style: TextStyle(
+                                                              )),
+                                                              const SizedBox(
+                                                                height: 20,
+                                                              )
+                                                            ],
+                                                          )
+                                                        : Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .only(
+                                                                    bottom: 8),
+                                                            child: Center(
+                                                              child:
+                                                                  ElevatedButton(
+                                                                onPressed: () {
+                                                                  Navigator 
+                                                                      .push(
+                                                                    context,
+                                                                    MaterialPageRoute(
+                                                                        builder:
+                                                                            (context) =>
+                                                                                const PulangCepat()),
+                                                                  );
+                                                                },
+                                                                style: ElevatedButton
+                                                                    .styleFrom(
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .red,
+                                                                ),
+                                                                child:
+                                                                      const Text(
+                                                                  ' Pulang Cepat ',
+                                                                  style:
+                                                                      TextStyle(
                                                                     color: Colors
-                                                                        .white,),
-                                                              ),),),
-                                                    )
-
-                                                : Container(child: Text('OK'),)
+                                                                        .white,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          )
+                                                    : Container()
                                                 : Container(),
                                           ]),
                                     ],
                                   ),
                                 ),
+
                               ],
                             ),
                     ),

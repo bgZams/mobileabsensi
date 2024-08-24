@@ -19,7 +19,6 @@ import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/izin/riwayat.dart';
 import 'package:mobileabsensi/frontend/izin/status.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
-import 'package:mobileabsensi/frontend/laporan_harian/edit.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/konfirmasi_laporan.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/laporan.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
@@ -29,6 +28,7 @@ import 'package:mobileabsensi/frontend/profile.dart';
 import 'package:mobileabsensi/frontend/senam.dart';
 import 'package:mobileabsensi/notifikasi/notification_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
 import 'package:sp_util/sp_util.dart';
 
 // void _enablePlatformOverrideForDesktop() {
@@ -57,152 +57,6 @@ void main() async {
   HttpOverrides.global = MyHttpOverrides();
   runApp(MyApp());
 }
-
-// Future<void> readData() async {
-//   final DatabaseReference databaseReference =
-//       FirebaseDatabase.instance.reference();
-
-//   databaseReference.child('izin').onValue.listen((event) {
-//     final DataSnapshot? snapshot = event.snapshot;
-
-//     if (snapshot != null && snapshot.value != null) {
-//       final Map<dynamic, dynamic>? izinData =
-//           snapshot.value as Map<dynamic, dynamic>?;
-
-//       if (izinData != null && izinData.isNotEmpty) {
-//         int countIzin = 0;
-//         int countLaporan = 0;
-//         int countApel = 0;
-//         int countSenam = 0;
-//         // bool notificationCreated = false;
-
-//         for (final MapEntry<dynamic, dynamic> entry in izinData.entries) {
-//           final Map<dynamic, dynamic>? documentData =
-//               entry.value as Map<dynamic, dynamic>?;
-//           if (documentData != null) {
-//             final idAtasan = documentData['id_atasan'];
-//             final idStatus = documentData['id_status'];
-//             final keyNotif = documentData['key_notif'];
-//             final parsedIdAtasan = int.tryParse(idAtasan);
-
-//             final user = SpUtil.getString('id_user');
-//             final userId = int.tryParse(user ?? ''); 
-
-//             if (userId == parsedIdAtasan) {
-//               if (idStatus == 0) {
-//                 if (keyNotif == 'izin') {
-//                   countIzin++;
-//                 } else if (keyNotif == 'laporan') {
-//                   countLaporan++;
-//                 } else if (keyNotif == 'apel') {
-//                   countApel++;
-//                 } else if (keyNotif == 'senam') {
-//                   countSenam++;
-//                 }
-//               }
-//             }
-//           }
-//         }
-//         int jlhCountIzin = countIzin;
-//         int jlhCountLaporan = countLaporan;
-//         int jlhCountApel = countApel;
-//         int jlhCountSenam = countSenam;
-//         // bool shouldCreateNotification = false;
-//         // if (countIzin > 0) {
-//         //   shouldCreateNotification = true;
-//         // }
-//         SpUtil.putInt('jlh_izin', jlhCountIzin);
-
-//         for (final MapEntry<dynamic, dynamic> entry in izinData.entries) {
-//           final Map<dynamic, dynamic>? documentData =
-//               entry.value as Map<dynamic, dynamic>?;
-
-//           if (documentData != null) {
-//             final idAtasan = documentData['id_atasan'];
-//             final idStatus = documentData['id_status'];
-//             final jenisIzin = documentData['jenis_izin'];
-//             final keyNotif = documentData['key_notif'];
-//             final parsedIdAtasan = int.tryParse(idAtasan);
-//             final user = SpUtil.getString('id_user');
-//             final userId = int.tryParse(user ?? '');
-
-//             if (idStatus == 0 && userId == parsedIdAtasan) {
-
-
-//                   if (keyNotif == 'izin') {
-//                     try {
-//                       NotificationController.createNewNotificationIzin(
-//                         countIzin,
-//                         idAtasan,
-//                         jenisIzin,
-//                         idStatus,
-//                         keyNotif,
-//                       );
-//                       // notificationCreated = true;
-//                     } catch (e) {
-//                       if (kDebugMode) {
-//                         print('Error sending izin notification: $e');
-//                       }
-//                     }
-//                   } else if (keyNotif == 'laporan') {
-//                     try {
-//                       NotificationController.createNewNotificationLaporan(
-//                         jlhCountLaporan,
-//                         idAtasan,
-//                         jenisIzin,
-//                         idStatus,
-//                         keyNotif,
-//                       );
-//                       // notificationCreated = true;
-//                     } catch (e) {
-//                       if (kDebugMode) {
-//                         print('Error sending laporan notification: $e');
-//                       }
-//                     }
-//                   } else if (keyNotif == 'apel') {
-//                     try {
-//                       NotificationController.createNewNotificationApel(
-//                         jlhCountApel,
-//                         idAtasan,
-//                         jenisIzin,
-//                         idStatus,
-//                         keyNotif,
-//                       );
-//                     } catch (e) {
-//                       if (kDebugMode) {
-//                         print('Error sending apel notification: $e');
-//                       }
-//                     }
-//                   } else if (keyNotif == 'senam') {
-//                     try {
-//                       NotificationController.createNewNotificationSenam(
-//                         jlhCountSenam,
-//                         idAtasan,
-//                         jenisIzin,
-//                         idStatus,
-//                         keyNotif,
-//                       );
-//                     } catch (e) {
-//                       if (kDebugMode) {
-//                         print('Error sending senam notification: $e');
-//                       }
-//                     }
-//                   }
-//             }
-//           }
-//         }
-//       } else {
-//         debugPrint('Dokumen izin kosong.');
-//       }
-//     } else {
-//       // Data tidak ditemukan
-//       debugPrint('Data tidak ditemukan');
-//     }
-//   }, onError: (error) {
-//     // Handle error jika terjadi masalah saat membaca data
-//     debugPrint('Terjadi kesalahan: $error');
-//   });
-// }
 
 Future<void> readData() async {
   final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
@@ -317,6 +171,8 @@ class MyApp extends StatelessWidget {
   final int _currentIndex = 0;
   final _pageController = PageController();
 
+  
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -346,13 +202,13 @@ class MyApp extends StatelessWidget {
         '/apel': (context) => const Apel(),
         '/senam': (context) => const Senam(),
         '/pengumuman': (context) => const Pengumuman(),
+        '/wifi/pending': (context) => const WifiPendding(),
 
       },
       // theme: ThemeData(
       //   primarySwatch: Colors.blue,
       // ),
-      initialRoute:
-          (SpUtil.getBool('isLogin') ?? false) ? '/home-page' : '/login',
+      initialRoute: (SpUtil.getString('id_groups').toString() == "3" ? '/home-page' : (SpUtil.getString('id_groups').toString() == "2" ? '/admin' : '/login')),
       home: Scaffold(
         body: PageView(
           controller: _pageController,

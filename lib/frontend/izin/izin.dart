@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/frontend/izin/detail_izin.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/widget/bulan.dart';
@@ -31,12 +30,11 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _controller = TabController(length: list().length, vsync: this);
+    _controller = TabController(length: list.length, vsync: this);
     _controller?.addListener(() {
       setState(() {
         selectedIndex = _controller!.index;
         futureData = fetchData(selectedMonth, selectedYear);
-        print(selectedIndex);
       });
     });
     futureData = fetchData(selectedMonth, selectedYear);
@@ -50,7 +48,7 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
     });
     String monthNumber = Bulan().getMonthNumber(month);
     final idUser = SpUtil.getString("id_user") ?? '';
-    String link;
+    String? link;
     if (selectedIndex == 0) {
       link = '$url/api/izin/riwayat-izin/$idUser/$monthNumber/$year';
     } else {
@@ -97,57 +95,66 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
     searchByDate(selectedMonth, selectedYear);
   }
 
-  List<Widget> list() {
-    return [
-      const Tab(
-        icon: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FaIcon(FontAwesomeIcons.envelope, color: Colors.blue),
-            SizedBox(width: 8),
-            Text(
-              "Riwayat Izin",
-              style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-            ),
-          ],
-        ),
+  List<Widget> list = [
+    const Tab(
+      icon: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FaIcon(
+            FontAwesomeIcons.envelope,
+            color: Colors.blue,
+          ),
+          SizedBox(width: 8),
+          Text("Riwayat Izin"),
+        ],
       ),
-      const Tab(
-        icon: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FaIcon(FontAwesomeIcons.listCheck, color: Colors.yellow),
-            SizedBox(width: 8),
-            Text("Pengajuan Izin",
-                style: TextStyle(color: Color.fromARGB(255, 0, 0, 0))),
-          ],
-        ),
+    ),
+    const Tab(
+      icon: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FaIcon(
+            FontAwesomeIcons.listCheck,
+            color: Colors.yellow,
+          ),
+          SizedBox(width: 8),
+          Text("Pengajuan Izin"),
+        ],
       ),
-    ];
-  }
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 241, 239, 239),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
         title: const Center(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: 12.0),
-            child: Text(
-              'Riwayat Izin',
-              style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
-              textAlign: TextAlign.center,
-            ),
+          child: Text(
+            'Riwayat Izin',
+            style: TextStyle(color: Colors.white),
           ),
         ),
-        flexibleSpace: const Image(
-          image: AssetImage('assets/images/bannernav.png'),
-          fit: BoxFit.cover,
-        ),
-        bottom: TabBar(
-          controller: _controller,
-          tabs: list(),
+        elevation: 4,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Container(
+            color: const Color.fromARGB(163, 65, 65, 65),
+            child: Column(
+              children: [
+                const SizedBox(
+                    height: 10.0), // Memberikan jarak antara AppBar dan TabBar
+                TabBar(
+                  controller: _controller,
+                  tabs: list,
+                  indicatorColor: Colors.green,
+                  dividerColor: Colors.blue,
+                  unselectedLabelColor: Colors.grey[500],
+                  labelColor: Colors.white,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -158,10 +165,23 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
               _riwayatPengajuan, 'Tidak ada data Pengajuan Izin'),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.pushNamed(context, '/buat_izin'),
-        tooltip: 'Tambah Izin',
-        child: const Icon(Icons.add),
+      floatingActionButton: Transform.translate(
+        offset: const Offset(0, -20),
+        child: FloatingActionButton(
+          onPressed: () async {
+            // Navigasi ke halaman buat_izin dan tangkap data balikan
+            final result = await Navigator.pushNamed(context, '/buat_izin');
+            if (result == true) {
+              // Jika hasilnya sukses, ubah tab yang dipilih
+              setState(() {
+                _controller?.animateTo(1); // Ubah ke tab riwayat pengajuan
+                searchByDate(selectedMonth, selectedYear); // Refresh data
+              });
+            }
+          },
+          tooltip: 'Tambah Izin',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -261,58 +281,57 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
           itemCount: data.length,
           itemBuilder: (context, index) {
             Text jenisStatus;
-            Color iconColor;
             switch (selectedIndex) {
               case 2:
-                iconColor = const Color.fromARGB(255, 175, 255, 179);
                 break;
               default:
-                iconColor = const Color.fromARGB(255, 231, 255, 122);
             }
 
             switch (data[index]['jenis_approval'].toString()) {
               case '2':
-                jenisStatus = const Text('Status : Dinas Luar',
+                jenisStatus = const Text('Status : Dinas Luar ',
                     style: TextStyle(color: Colors.black));
                 break;
               case '3':
-                jenisStatus = const Text('Status : Izin',
+                jenisStatus = const Text('Status : Izin ',
                     style: TextStyle(color: Colors.black));
                 break;
               case '4':
-                jenisStatus = const Text('Status : Sakit',
+                jenisStatus = const Text('Status : Sakit ',
                     style: TextStyle(color: Colors.black));
                 break;
               case '5':
-                jenisStatus = const Text('Status : IDLK',
+                jenisStatus = const Text('Status : IDLK ',
                     style: TextStyle(color: Colors.black));
                 break;
               case '6':
-                jenisStatus = const Text('Status : Cuti',
+                jenisStatus = const Text('Status : Cuti ',
                     style: TextStyle(color: Colors.black));
                 break;
               default:
-                jenisStatus = const Text('Status : Belum Disetujui',
+                jenisStatus = const Text('Status : Belum Disetujui ',
                     style: TextStyle(color: Colors.black));
             }
+
+            
 
             return Padding(
               padding:
                   const EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 4),
               child: Container(
-            margin: EdgeInsets.all(4.0), // Tambahkan margin jika diperlukan
-            decoration: BoxDecoration(
-              color: Colors.white, // Warna latar belakang Container
-              borderRadius: BorderRadius.circular(10), // Radius sudut jika diperlukan
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1), // Warna bayangan
-                  spreadRadius: 2, // Jarak penyebaran bayangan
-                  blurRadius: 5, // Jarak blur bayangan
-                  offset: Offset(0, 3), // Posisi bayangan (x, y)
+                margin: const EdgeInsets.all(4.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-              ],
-            ),
                 child: Stack(
                   children: [
                     Positioned(
@@ -330,16 +349,15 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                        
                           Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              
                               Expanded(
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         data[index]['tgl_group'].toString(),
@@ -349,9 +367,22 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                                       ),
                                       Text(
                                         'Lama Izin: ${data[index]['durasi']} Hari',
-                                        style: const TextStyle(color: Colors.black),
+                                        style: const TextStyle(
+                                            color: Colors.black),
                                       ),
-                                      jenisStatus
+                                      Row(
+                                        children: [
+                                          jenisStatus,
+                                          if(data[index]['id_keterangan'] != null)
+                                          const Chip(
+                                            padding: EdgeInsets.all(0),
+                                            backgroundColor: Colors.red,
+                                            label: Text('Pulang Cepat',
+                                                style: TextStyle(
+                                                    color: Colors.white)),
+                                          ),
+                                        ],
+                                      )
                                     ],
                                   ),
                                 ),
@@ -361,42 +392,46 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                                   Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(4),
-                                      color: const Color.fromARGB(255, 162, 190, 255),
+                                      color: const Color.fromARGB(
+                                          255, 162, 190, 255),
                                     ),
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
                                       icon: const Icon(Icons.remove_red_eye,
-                                          color: Color.fromARGB(255, 0, 26, 140)),
-                                      onPressed: () => navigateToDetailPage(data[index], data[index]['no_urut']),
+                                          color:
+                                              Color.fromARGB(255, 0, 26, 140)),
+                                      onPressed: () => navigateToDetailPage(
+                                          data[index], data[index]['no_urut']),
                                     ),
                                   ),
                                   const SizedBox(
                                     height: 2,
                                   ),
-                              if(data[index]['status_approval'] == 1)
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(4),
-                                      color:
-                                          const Color.fromARGB(255, 255, 168, 162),
+                                  if (data[index]['status_approval'] == 1)
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(4),
+                                        color: const Color.fromARGB(
+                                            255, 255, 168, 162),
+                                      ),
+                                      child: IconButton(
+                                        padding: EdgeInsets.zero,
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () => _confirmDelete(
+                                            data[index]['id_approval']),
+                                      ),
                                     ),
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () => _confirmDelete(data[index]['id_approval']),
-                                    ),
-                                  ),
                                 ],
                               ),
-                            const SizedBox(
-                                    width: 8,
-                                  ),
+                              const SizedBox(
+                                width: 8,
+                              ),
                             ],
                           ),
-                            const SizedBox(
-                                    height: 4,
-                                  ),
+                          const SizedBox(
+                            height: 4,
+                          ),
                         ],
                       ),
                     ),
@@ -442,25 +477,24 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
 // Fungsi untuk menghapus data
   Future<void> _deleteItem(id) async {
     final urlDel = '$url/api/izin/hapus-izin/$idUser/$id';
-    print(urlDel);
-  try {
-    final response = await http.get(Uri.parse(urlDel));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      String message = json.encode(data["message"]).replaceAll('"', '');
-      // ignore: use_build_context_synchronously
-      Alert.alertsuccess(context, message);
-      setState(() {
-        _refreshData();
-      });
-    } else {
-      // ignore: use_build_context_synchronously
-      Alert.alerterror(context, 'Gagal menghapus data, silahkan coba lagi!');
-
+    try {
+      final response = await http.get(Uri.parse(urlDel));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        SpUtil.putBool('is_PulangCepat', false);
+        String message = json.encode(data["message"]).replaceAll('"', '');
+        // ignore: use_build_context_synchronously
+        Alert.alertsuccess(context, message);
+        setState(() {
+          _refreshData();
+        });
+      } else {
+        // ignore: use_build_context_synchronously
+        Alert.alerterror(context, 'Gagal menghapus data, silahkan coba lagi!');
+      }
+    } catch (error) {
+      print('Error: $error');
     }
-  } catch (error) {
-    print('Error: $error');
-  }
   }
 
   void navigateToDetailPage(Map<String, dynamic> data, int id) {

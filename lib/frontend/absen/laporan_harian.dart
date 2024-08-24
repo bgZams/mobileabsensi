@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/services/alert.dart';
+import 'package:mobileabsensi/services/refresh.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
@@ -142,7 +143,7 @@ class _LaporanHarianState extends State<LaporanHarian>
 
         setState(() {
           _rows = dataList.map((data) => DataRow(cells: [
-            DataCell(Text(data['id'].toString() ?? 'N/A')),
+            DataCell(Text(data['id'].toString())),
             DataCell(Text(data['tgl'] ?? 'N/A')),
             DataCell(Text(data['jammulai'] ?? 'N/A')),
             DataCell(Text(data['jamselesai'] ?? 'N/A')),
@@ -198,12 +199,16 @@ Future<void> _deleteLaporan(id) async {
 
 
 Future<void> _refreshData() async {
-  await Future.delayed(const Duration(seconds: 2));
-  if (mounted) {
-    setState(() {
-      _fetchData(); // Memanggil _fetchData untuk mendapatkan data terbaru
-    });
-  }
+  if (SyncLimiter.canSync()) {
+    await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
+        setState(() {
+          _fetchData();
+        });
+      }
+    } else {
+      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    }
 }
 
 void navigateToEditLaporan(Map<String, dynamic> data) async {
@@ -225,170 +230,198 @@ void navigateToEditLaporan(Map<String, dynamic> data) async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Center(child: Padding(
-          padding: EdgeInsets.only(bottom: 12.0),
-          child: Text('Laporan Harian',style: TextStyle(color: Colors.white),textAlign: TextAlign.center,),
-        )),
-        elevation: 4,
-        flexibleSpace: const Image(
-          image: AssetImage('assets/images/bannernav.png'),
-          fit: BoxFit.cover,
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+          title: const Center(
+            child: Text(
+              'Laporan Harian',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          elevation: 4,
+          bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Container(
+            color: const Color.fromARGB(163, 65, 65, 65),
+            child: Column(
+              children: [
+                const SizedBox(height: 10.0), // Memberikan jarak antara AppBar dan TabBar
+                TabBar(
+                  controller: _controller,
+                  tabs: list,
+                  indicatorColor: Colors.green,
+                  dividerColor: Colors.blue,
+                  unselectedLabelColor: Colors.grey[500],
+                  labelColor: Colors.white,
+                ),
+              ],
+            ),
+          ),
+          ),
         ),
-        bottom: TabBar(
+
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: TabBarView(
           controller: _controller,
-          tabs: list,
+          children: [
+            _riwayatLaporan.isEmpty
+                ? const Center(child: Text('No data found'))
+                : Column(
+                  children: [
+                    Column(
+                      children: [
+                        const SizedBox(height: 5),
+                        Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  DropdownButton<String>(
+                                    value: selectedMonth,
+                                    hint: const Text('Pilih Bulan'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedMonth = newValue!;
+                                      });
+                                    },
+                                    items: [
+                                      'Januari',
+                                      'Februari',
+                                      'Maret',
+                                      'April',
+                                      'Mei',
+                                      'Juni',
+                                      'Juli',
+                                      'Agustus',
+                                      'September',
+                                      'Oktober',
+                                      'November',
+                                      'Desember'
+                                    ].map<DropdownMenuItem<String>>((String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Inputan Tahun
+                                  DropdownButton<String>(
+                                    value: selectedYear,
+                                    hint: const Text('Pilih Tahun'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedYear = newValue!;
+                                      });
+                                    },
+                                    items: _getYearItems(),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Tombol Cari
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      // _searchData(selectedMonth, selectedYear);
+                                    },
+                                    child: const Text('Cari'),
+                                  ),
+                                ],
+                              ),
+                        const SizedBox(height: 5),
+                      ],
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(onRefresh: () { return _refreshData(); },
+                      child: SingleChildScrollView (child: _buildCards())),
+                    ),
+                  ],
+                ),
+            _riwayatPengajuan.isEmpty
+                ? const Center(child: Text('No data found'))
+                : Column(
+                  children: [
+                    Column(
+                      children: [
+                        const SizedBox(height: 5),
+                        Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  DropdownButton<String>(
+                                    value: selectedMonth,
+                                    hint: const Text('Pilih Bulan'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedMonth = newValue!;
+                                      });
+                                    },
+                                    items: [
+                                      'Januari',
+                                      'Februari',
+                                      'Maret',
+                                      'April',
+                                      'Mei',
+                                      'Juni',
+                                      'Juli',
+                                      'Agustus',
+                                      'September',
+                                      'Oktober',
+                                      'November',
+                                      'Desember'
+                                    ].map<DropdownMenuItem<String>>((String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Inputan Tahun
+                                  DropdownButton<String>(
+                                    value: selectedYear,
+                                    hint: const Text('Pilih Tahun'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedYear = newValue!;
+                                      });
+                                    },
+                                    items: _getYearItems(),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Tombol Cari
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      // _searchData(selectedMonth, selectedYear);
+                                    },
+                                    child: const Text('Cari'),
+                                  ),
+                                ],
+                              ),
+                        const SizedBox(height: 5),
+                      ],
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(onRefresh: () { return _refreshData(); },
+                      child: SingleChildScrollView(child: _buildCards())),
+                    ),
+                  ],
+                )
+          ],
         ),
       ),
-      body: TabBarView(
-        controller: _controller,
-        children: [
-          _riwayatLaporan.isEmpty
-              ? const Center(child: Text('No data found'))
-              : Column(
-                children: [
-                  Column(
-                    children: [
-                      const SizedBox(height: 5),
-                      Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                DropdownButton<String>(
-                                  value: selectedMonth,
-                                  hint: const Text('Pilih Bulan'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedMonth = newValue!;
-                                    });
-                                  },
-                                  items: [
-                                    'Januari',
-                                    'Februari',
-                                    'Maret',
-                                    'April',
-                                    'Mei',
-                                    'Juni',
-                                    'Juli',
-                                    'Agustus',
-                                    'September',
-                                    'Oktober',
-                                    'November',
-                                    'Desember'
-                                  ].map<DropdownMenuItem<String>>((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
-                                ),
-                                const SizedBox(width: 16),
-                                // Inputan Tahun
-                                DropdownButton<String>(
-                                  value: selectedYear,
-                                  hint: const Text('Pilih Tahun'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedYear = newValue!;
-                                    });
-                                  },
-                                  items: _getYearItems(),
-                                ),
-                                const SizedBox(width: 16),
-                                // Tombol Cari
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // _searchData(selectedMonth, selectedYear);
-                                  },
-                                  child: const Text('Cari'),
-                                ),
-                              ],
-                            ),
-                      const SizedBox(height: 5),
-                    ],
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(onRefresh: () { return _refreshData(); },
-                    child: SingleChildScrollView (child: _buildCards())),
-                  ),
-                ],
-              ),
-          _riwayatPengajuan.isEmpty
-              ? const Center(child: Text('No data found'))
-              : Column(
-                children: [
-                  Column(
-                    children: [
-                      const SizedBox(height: 5),
-                      Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                DropdownButton<String>(
-                                  value: selectedMonth,
-                                  hint: const Text('Pilih Bulan'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedMonth = newValue!;
-                                    });
-                                  },
-                                  items: [
-                                    'Januari',
-                                    'Februari',
-                                    'Maret',
-                                    'April',
-                                    'Mei',
-                                    'Juni',
-                                    'Juli',
-                                    'Agustus',
-                                    'September',
-                                    'Oktober',
-                                    'November',
-                                    'Desember'
-                                  ].map<DropdownMenuItem<String>>((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
-                                ),
-                                const SizedBox(width: 16),
-                                // Inputan Tahun
-                                DropdownButton<String>(
-                                  value: selectedYear,
-                                  hint: const Text('Pilih Tahun'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedYear = newValue!;
-                                    });
-                                  },
-                                  items: _getYearItems(),
-                                ),
-                                const SizedBox(width: 16),
-                                // Tombol Cari
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // _searchData(selectedMonth, selectedYear);
-                                  },
-                                  child: const Text('Cari'),
-                                ),
-                              ],
-                            ),
-                      const SizedBox(height: 5),
-                    ],
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(onRefresh: () { return _refreshData(); },
-                    child: SingleChildScrollView(child: _buildCards())),
-                  ),
-                ],
-              )
-        ],
-      ),
-      floatingActionButton: isCodeMasuk ? FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/create-laporan');
+      floatingActionButton: isCodeMasuk ?  Transform.translate(
+  offset: const Offset(0, -20),
+  child: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.pushNamed(context, '/create-laporan');
+          if (result == true) {
+        setState(() {
+          _controller?.animateTo(1);
+              _fetchData();
+
+        });
+      }
         },
+        
         tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ) : null
+      ) ): null
     );
   }
 
@@ -461,6 +494,7 @@ void navigateToEditLaporan(Map<String, dynamic> data) async {
                     )
                   : Column(
                       children: [
+                        DateTime.now().toIso8601String().substring(0, 10) == tgl ?
                         InkWell(
                           onTap: () {
                             navigateToEditLaporan({
@@ -480,41 +514,42 @@ void navigateToEditLaporan(Map<String, dynamic> data) async {
                               size: 20,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 10,),
-                         
-
-                        InkWell(
-                          onTap: () async {
-                            bool? confirmDelete = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Hapus'),
-                              content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Hapus'),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirmDelete == true) {
-                            _deleteLaporan(id);
-                          }
-                          },
-                          child: CircleAvatar(
-                            backgroundColor: Colors.red,
-                            radius: 15,
-                            child: Icon(
-                              delIcon,
-                              color: Colors.white,
-                              size: 20,
+                        )
+                        : const SizedBox(height: 10,),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: InkWell(
+                            onTap: () async {
+                              bool? confirmDelete = await showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Konfirmasi Hapus'),
+                                content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text('Batal'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text('Hapus'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          
+                            if (confirmDelete == true) {
+                              _deleteLaporan(id);
+                            }
+                            },
+                            child: CircleAvatar(
+                              backgroundColor: Colors.red,
+                              radius: 15,
+                              child: Icon(
+                                delIcon,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ),

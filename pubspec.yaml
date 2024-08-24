@@ -77,6 +77,8 @@ dependencies:
   awesome_notifications: ^0.8.2
   timezone: ^0.9.3
   fl_chart: ^0.68.0
+  badges: ^3.1.2
+  device_info_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:
@@ -122,7 +124,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/sidikjari1new.png
-    - assets/images/sidikjari2new.png  
+    - assets/images/sidikjari2new.png
     - assets/images/imgheader.png
     - assets/images/profile.png
     - assets/images/profil.png
@@ -144,6 +146,15 @@ flutter:
     - assets/images/ui/header.png
     - assets/images/ui/web.png
     - assets/images/ui/help.png
+    - assets/images/admin/pegawai.png
+    - assets/images/admin/masuk.png
+    - assets/images/admin/berita.png
+    - assets/images/admin/tentang.png
+    - assets/images/admin/apel.png
+    - assets/images/admin/wifi.png
+    - assets/images/admin/pengumuman.png
+    - assets/images/admin/exit.png
+    - assets/images/admin/bg.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

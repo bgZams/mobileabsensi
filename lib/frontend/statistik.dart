@@ -85,10 +85,11 @@ class _StatistikState extends State<Statistik> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Statistik'),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Statistik',style: TextStyle(color: Colors.white),),
         elevation: 4,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back,color:Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -193,7 +194,7 @@ class _StatistikState extends State<Statistik> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Absen (Total: $totalAbsen)', style: Theme.of(context).textTheme.headline6),
+          Text('Absen (Total: $totalAbsen)'),
 
           const SizedBox(height: 20),
 
@@ -249,7 +250,7 @@ class _StatistikState extends State<Statistik> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Izin (Total: $totalIzin)', style: Theme.of(context).textTheme.headline6),
+          Text('Izin (Total: $totalIzin)'),
 
           const SizedBox(height: 20),
 
@@ -281,7 +282,7 @@ class _StatistikState extends State<Statistik> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Laporan (Total: ${data!['laporan']['tot_laphar']})', style: Theme.of(context).textTheme.headline6),
+          Text('Laporan (Total: ${data!['laporan']['tot_laphar']})'),
         ],
       ),
     );

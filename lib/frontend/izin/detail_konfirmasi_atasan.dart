@@ -158,7 +158,15 @@ class _DetailKonfirmasiIzinAtasanState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Konfirmasi Izin'),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Konfirmasi Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+        elevation: 4,
+         leading: IconButton(
+              icon: const Icon(Icons.arrow_back,color: Colors.white,),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: _riwayatIzin.isEmpty
           ? const Center(child: CircularProgressIndicator())

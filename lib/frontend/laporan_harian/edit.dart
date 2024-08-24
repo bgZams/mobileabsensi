@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:mobileabsensi/main.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'dart:convert';
 
@@ -22,6 +24,7 @@ class _EditLaporanState extends State<EditLaporan> {
   late TextEditingController jammulaiController;
   late TextEditingController jamselesaiController;
   late TextEditingController kegiatanController;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -44,28 +47,42 @@ class _EditLaporanState extends State<EditLaporan> {
   }
 
    Future<void> _saveChanges() async {
-    final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
-    final headers = {'Content-Type': 'application/json'};
-    final body = json.encode({
-      'id': widget.data['id'],
-      'tgl': tglController.text,
-      'jammulai': jammulaiController.text,
-      'jamselesai': jamselesaiController.text,
-      'kegiatan': kegiatanController.text,
-      'status': widget.data['status'],
-    });
+final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
+  final headers = {'Content-Type': 'application/json'};
+  // Parsing waktu dari controller text
+  var mulai = DateFormat('HH:mm').parse(jammulaiController.text);
+  var selesai = DateFormat('HH:mm').parse(jamselesaiController.text);
+  // Format kembali DateTime ke string dengan format yang sesuai
+  String formattedMulai = DateFormat('HH:mm').format(mulai);
+  String formattedSelesai = DateFormat('HH:mm').format(selesai);
+  // Mempersiapkan body request
+  final body = json.encode({
+    'id': widget.data['id'],
+    'tgl': tglController.text,
+    'id_user': idUser,
+    'jammulai': formattedMulai,
+    'jamselesai': formattedSelesai,
+    'rincian_kegiatan': kegiatanController.text,
+    'status': widget.data['status'],
+  });
 
     try {
       final response = await http.put(Uri.parse(sendUrl), headers: headers, body: body);
-
+      
+      var data = jsonDecode(response.body);
+      print(data);
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String message = json.encode(data["message"]).replaceAll('"', '');
+        if(data['status'] == 'success'){
         // ignore: use_build_context_synchronously
-        Alert.alertsuccess(context, message);
-        widget.onUpdate(); // Panggil callback untuk memberitahu bahwa data diperbarui
+        Alert.alertsuccess(context, data['message']);
+        widget.onUpdate();
         // ignore: use_build_context_synchronously
         Navigator.pop(context); // Kembali ke halaman sebelumnya
+        }else{
+        Alert.alertwarning(context, data['message']);
+
+        }
+        
       } else {
         throw Exception('Failed to update report');
       }
@@ -80,115 +97,169 @@ class _EditLaporanState extends State<EditLaporan> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Laporan'),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        title: const Text('Edit Laporan',style: TextStyle(color: Colors.white),),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back,color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
       ),
       body: SingleChildScrollView(
-        child: Form(
-          child: Column(
-            children: [
-              const SizedBox(height: 50),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          children: [
+            Form(
+              child: Column(
                 children: [
-                  SizedBox(
-                    width: 140,
-                    child: TextField(
-                      controller: jammulaiController,
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.timer),
-                        labelText: "Jam Mulai",
-                        border: OutlineInputBorder(),
-                        fillColor: Colors.white,
-                        filled: true,
+                  const SizedBox(height: 50),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 140,
+                        child: TextField(
+                          controller: jammulaiController,
+                          decoration: const InputDecoration(
+                            icon: Icon(Icons.timer),
+                            labelText: "Jam Mulai",
+                            border: OutlineInputBorder(),
+                            fillColor: Colors.white,
+                            filled: true,
+                          ),
+                          readOnly: true,
+                          onTap: () async {
+                            TimeOfDay? pickedTime = await showTimePicker(
+                              initialTime: TimeOfDay.now(),
+                              context: context,
+                            );
+            
+                            if (pickedTime != null) {
+                              String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+                              setState(() {
+                                jammulaiController.text = formattedTime;
+                              });
+                            }
+                          },
+                        ),
                       ),
-                      readOnly: true,
-                      onTap: () async {
-                        TimeOfDay? pickedTime = await showTimePicker(
-                          initialTime: TimeOfDay.now(),
-                          context: context,
-                        );
-
-                        if (pickedTime != null) {
-                          String formattedTime = "${pickedTime.hour}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                          setState(() {
-                            jammulaiController.text = formattedTime;
-                          });
-                        }
-                      },
+                      const SizedBox(width: 20),
+                      SizedBox(
+                        width: 140,
+                        child: TextField(
+                          controller: jamselesaiController,
+                          decoration: const InputDecoration(
+                            icon: Icon(Icons.timer),
+                            labelText: "Jam Selesai",
+                            border: OutlineInputBorder(),
+                            fillColor: Colors.white,
+                            filled: true,
+                          ),
+                          readOnly: true,
+                          onTap: () async {
+                            TimeOfDay? pickedTime = await showTimePicker(
+                              initialTime: TimeOfDay.now(),
+                              context: context,
+                            );
+            
+                            if (pickedTime != null) {
+                              String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+                              setState(() {
+                                jamselesaiController.text = formattedTime;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Container(
+                      color: Colors.black45,
+                      child: TextFormField(
+                        controller: kegiatanController,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Kegiatan tidak boleh kosong';
+                          }
+                          return null;
+                        },
+                        maxLines: 10,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          labelText: "Masukkan kegiatan",
+                          labelStyle: TextStyle(color: Colors.white),
+                          border: OutlineInputBorder(),
+                          fillColor: Colors.black45,
+                          filled: true,
+                          errorStyle: TextStyle(color: Colors.red),
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(height: 20),
                   SizedBox(
-                    width: 140,
-                    child: TextField(
-                      controller: jamselesaiController,
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.timer),
-                        labelText: "Jam Selesai",
-                        border: OutlineInputBorder(),
-                        fillColor: Colors.white,
-                        filled: true,
+                    width: MediaQuery.of(context).size.width,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ElevatedButton.icon(
+                        icon: _isLoading
+                            ? const CircularProgressIndicator()
+                            : const Icon(
+                                Icons.save_outlined,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                        label: Text(
+                          _isLoading ? 'Loading...' : 'Simpan',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                    blurRadius: 2,
+                                    color: Colors.black,
+                                    offset: Offset(1, 1))
+                              ]),
+                        ),
+                        onPressed: _isLoading ? null : _saveChanges,
+                        clipBehavior: Clip.hardEdge,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color.fromARGB(255, 17, 110, 160),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5))),
                       ),
-                      readOnly: true,
-                      onTap: () async {
-                        TimeOfDay? pickedTime = await showTimePicker(
-                          initialTime: TimeOfDay.now(),
-                          context: context,
-                        );
-
-                        if (pickedTime != null) {
-                          String formattedTime = "${pickedTime.hour}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                          setState(() {
-                            jamselesaiController.text = formattedTime;
-                          });
-                        }
-                      },
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
                 child: Container(
-                  color: Colors.black45,
-                  child: TextFormField(
-                    controller: kegiatanController,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Kegiatan tidak boleh kosong';
-                      }
-                      return null;
-                    },
-                    maxLines: 10,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: "Masukkan kegiatan",
-                      labelStyle: TextStyle(color: Colors.white),
-                      border: OutlineInputBorder(),
-                      fillColor: Colors.black45,
-                      filled: true,
-                      errorStyle: TextStyle(color: Colors.red),
-                    ),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    color: const Color.fromARGB(255, 255, 204, 51),
                   ),
+                  child: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Info',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
+                            Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
+                            Text('2. Jam mulai tidak lebih besar dari jam selesai'),
+                          ],
+                        ),
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Simpan', style: TextStyle(fontSize: 14)),
-                onPressed: _saveChanges,
-                style: ElevatedButton.styleFrom(fixedSize: const Size(140, 40)),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            )
+          ],
         ),
       ),
     );

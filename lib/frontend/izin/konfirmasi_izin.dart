@@ -59,8 +59,6 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
         selectedIndex = _controller!.index;
       });
       _fetchData();
-
-      print("Selected Index: ${_controller?.index}");
     });
     initializePreferences();
   }
@@ -153,7 +151,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     }
   }
 
-  Future<void> _sendAcception(int id) async {
+  Future<void> _sendAcception(id, idUser, status) async {
     try {
       var response = await http.put(
         Uri.parse('$url/api/lhk/terima/$id'),
@@ -161,6 +159,11 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           'Content-type': 'application/json',
           'Accept': 'application/json',
         },
+        body: {
+          'id_user':idUser,
+          'pesan':'Izin diterima',
+          'status': status,
+        }
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -193,17 +196,37 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Konfirmasi Izin'),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+          title: const Text(
+            'Notifikasi',
+            style: TextStyle(color: Colors.white),
+          ),
+          elevation: 4,
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () => Navigator.pushNamed(context, '/home-page'),
         ),
-        bottom: TabBar(
-          controller: _controller,
-          tabs: list,
-        ),
-      ),
+     
+          bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Container(
+            color: Color.fromARGB(163, 65, 65, 65),
+            child: Column(
+              children: [
+                const SizedBox(height: 10.0), // Memberikan jarak antara AppBar dan TabBar
+                TabBar(
+                  controller: _controller,
+                  tabs: list,
+                  indicatorColor: Colors.green,
+                  dividerColor: Colors.blue,
+                  unselectedLabelColor: Colors.grey[500],
+                  labelColor: Colors.white,
+                ),
+              ],
+            ),
+          ),
+          ),
+        ), 
       body: TabBarView(
         controller: _controller,
         children: [
@@ -303,7 +326,10 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
               children: [
                 InkWell(
                   onTap: () {
-                    _sendAcception(lhk['id']);
+                    var id = lhk['id'];
+                    var idUser = lhk['id_user'];
+                    var status = lhk['status'];
+                    _sendAcception(id, idUser, status);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
