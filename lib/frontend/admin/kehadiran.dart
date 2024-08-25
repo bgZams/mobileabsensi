@@ -81,7 +81,10 @@ class _KehadiranState extends State<Kehadiran> {
                       firstDay: DateTime.utc(2010, 10, 16),
                       lastDay: DateTime.utc(2030, 3, 14),
                       focusedDay: selectedDate,
-                      onDaySelected: (selectedDay) {
+                      selectedDayPredicate: (day) {
+                        return isSameDay(selectedDate, day);
+                      },
+                      onDaySelected: (selectedDay, focusedDay) {
                         setState(() {
                           selectedDate = selectedDay;
                         });
@@ -96,7 +99,9 @@ class _KehadiranState extends State<Kehadiran> {
                           return Card(
                             child: ListTile(
                               title: Text(user['nama_lengkap']),
-                              subtitle: Text('${user['timestamp_masuk']} - ${user['timestamp_pulang']}'),
+                              subtitle: Text(
+                                '${user['timestamp_masuk'] ?? 'N/A'} - ${user['timestamp_pulang'] ?? 'N/A'}',
+                              ),
                               trailing: IconButton(
                                 icon: const Icon(Icons.info_outline),
                                 onPressed: () {
