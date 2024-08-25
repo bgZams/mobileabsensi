@@ -361,11 +361,13 @@ class _AbsenState extends State<Absen> {
               child: Stack(
                 children: [
                   Container(
+                    width:MediaQuery.of(context).size.width,
                     height: size.height * .3,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
                         alignment: Alignment.topCenter,
                         image: AssetImage('assets/images/imgheader.png'),
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),

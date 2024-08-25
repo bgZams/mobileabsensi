@@ -91,7 +91,7 @@ class _LoginState extends State<Login> {
       final response = await post(
         Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/api/model_login2.php'),
         body: {'username': username, 'password': password},
-      ).timeout(const Duration(seconds: 20));
+      ).timeout(const Duration(seconds: 5));
 
       final simpel = json.decode(response.body);
 
@@ -115,14 +115,14 @@ class _LoginState extends State<Login> {
 
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
     final getDeviceResponse = await post(
-      Uri.parse('http://192.168.214.46:8000/api/getDevice'),
+      Uri.parse('http://192.168.255.46:8000/api/getDevice'),
       body: {
         'id_user': simpel['id_user'].toString(),
         'device_id': deviceId,
         'username': simpel['username'],
         'versiApp': systemVersion,
       },
-    );
+    ).timeout(const Duration(seconds: 5));
 
     final deviceData = json.decode(getDeviceResponse.body);
 
@@ -137,7 +137,7 @@ class _LoginState extends State<Login> {
 
   Future<void> _syncUserData(Map<String, dynamic> body) async {
     final dataWifiResponse = await get(
-      Uri.parse('http://192.168.214.46:8000/api/wifi/${body['username_admin']}'),
+      Uri.parse('http://192.168.255.46:8000/api/wifi/${body['username_admin']}'),
       headers: {
         'Content-type': 'application/json',
         'Accept': 'application/json',
@@ -186,7 +186,7 @@ class _LoginState extends State<Login> {
     SpUtil.putString('nama_atasan', userData['nama_atasan']?.toString() ?? '');
     SpUtil.putString('nip_atasan', userData['nip_atasan']?.toString() ?? '');
     SpUtil.putString('jabatan_atasan', userData['jabatan_atasan']?.toString() ?? '');
-    SpUtil.putString('url', 'http://192.168.214.46:8000');
+    SpUtil.putString('url', 'http://192.168.255.46:8000');
   }
 
   void _navigateToHome() {
@@ -200,7 +200,6 @@ class _LoginState extends State<Login> {
         );
       } else if (SpUtil.getString('id_groups') == "3") {
         SpUtil.putBool('isLogin', true);
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Home(title: 'Dashboard')),

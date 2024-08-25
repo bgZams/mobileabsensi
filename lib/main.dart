@@ -4,9 +4,15 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/firebase_options.dart';
 import 'package:mobileabsensi/frontend/absen/absen.dart';
+import 'package:mobileabsensi/frontend/admin/absen.dart';
+import 'package:mobileabsensi/frontend/admin/detail_pegawai.dart';
+import 'package:mobileabsensi/frontend/admin/home.dart';
+import 'package:mobileabsensi/frontend/admin/lhk.dart';
 import 'package:mobileabsensi/frontend/izin/detail_konfirmasi_atasan.dart';
 import 'package:mobileabsensi/frontend/izin/izin.dart';
 import 'package:mobileabsensi/frontend/absen/laporan_harian.dart';
@@ -40,18 +46,19 @@ import 'package:sp_util/sp_util.dart';
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 String? globalIdAtasan;
 Map<String, dynamic> globalUpdateData = {};
-String? idUser; // Inisialisasi idUser
-String? keyNotif; // Inisialisasi idUser
+String? idUser;
+String? keyNotif;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   await NotificationController.initializeLocalNotifications();
   await NotificationController.initializeIsolateReceivePort();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await SpUtil.getInstance();
-  idUser = SpUtil.getString('id_user');
+    idUser = SpUtil.getString('id_user');
   await readData();
   // _enablePlatformOverrideForDesktop();
   HttpOverrides.global = MyHttpOverrides();
@@ -203,8 +210,40 @@ class MyApp extends StatelessWidget {
         '/senam': (context) => const Senam(),
         '/pengumuman': (context) => const Pengumuman(),
         '/wifi/pending': (context) => const WifiPendding(),
+        '/admin': (context) => const Admin(),
+      //   '/admin/absen/:id_user': (context) => const PlaceholderPage(pageName: 'Absen'),
+      // '/admin/lhk/:id_user': (context) => const PlaceholderPage(pageName: 'LHK'),
 
       },
+onGenerateRoute: (settings) {
+  final uri = Uri.parse(settings.name!);
+
+  if (uri.pathSegments.length == 3 && uri.pathSegments[0] == 'admin') {
+    final idPegawai = uri.pathSegments[2];
+    final route = uri.pathSegments[1];
+
+    Widget page;
+
+    switch (route) {
+      case 'detail':
+        page = DetailPage(idPegawai: idPegawai);
+        break;
+      case 'lhk':
+        page = LhkPage(idPegawai: idPegawai);
+        break;
+      case 'absen':
+        page = AbsenPage(idPegawai: idPegawai);
+        break;
+      default:
+        return null;
+    }
+
+    return MaterialPageRoute(builder: (context) => page);
+  }
+
+  return null;
+},
+
       // theme: ThemeData(
       //   primarySwatch: Colors.blue,
       // ),

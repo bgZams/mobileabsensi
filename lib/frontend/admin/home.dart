@@ -6,7 +6,7 @@ import 'package:mobileabsensi/frontend/admin/pegawai.dart';
 import 'package:mobileabsensi/frontend/admin/apel.dart';
 import 'package:mobileabsensi/frontend/admin/pengumuman/list.dart';
 import 'package:mobileabsensi/frontend/admin/tentang.dart';
-import 'package:mobileabsensi/frontend/list_wifi.dart';
+import 'package:mobileabsensi/frontend/admin/wifi/list_wifi.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Admin extends StatefulWidget {
@@ -67,7 +67,7 @@ class _AdminState extends State<Admin> {
                                   ),
                                  InkWell(
                       onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ListWifi()));
+                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WifiOpd()));
                         
                       },
                       child: Column(
@@ -96,7 +96,6 @@ class _AdminState extends State<Admin> {
                                 InkWell(
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(builder: (context) => const Kehadiran()));
-                          
                       },
                       child: Column(
                         children: [
