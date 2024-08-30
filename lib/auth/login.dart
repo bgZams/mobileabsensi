@@ -115,7 +115,7 @@ class _LoginState extends State<Login> {
 
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
     final getDeviceResponse = await post(
-      Uri.parse('http://192.168.255.46:8000/api/getDevice'),
+      Uri.parse('http://172.25.88.10:8000/api/getDevice'),
       body: {
         'id_user': simpel['id_user'].toString(),
         'device_id': deviceId,
@@ -137,7 +137,7 @@ class _LoginState extends State<Login> {
 
   Future<void> _syncUserData(Map<String, dynamic> body) async {
     final dataWifiResponse = await get(
-      Uri.parse('http://192.168.255.46:8000/api/wifi/${body['username_admin']}'),
+      Uri.parse('http://172.25.88.10:8000/api/wifi/${body['username_admin']}'),
       headers: {
         'Content-type': 'application/json',
         'Accept': 'application/json',
@@ -186,7 +186,7 @@ class _LoginState extends State<Login> {
     SpUtil.putString('nama_atasan', userData['nama_atasan']?.toString() ?? '');
     SpUtil.putString('nip_atasan', userData['nip_atasan']?.toString() ?? '');
     SpUtil.putString('jabatan_atasan', userData['jabatan_atasan']?.toString() ?? '');
-    SpUtil.putString('url', 'http://192.168.255.46:8000');
+    SpUtil.putString('url', 'http://172.25.88.10:8000');
   }
 
   void _navigateToHome() {
@@ -236,7 +236,7 @@ class _LoginState extends State<Login> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mobile Absensi\nLogin',
+                      'Mobile Absensi\nLogin\nGunakan WIFI SISKEUDES',
                       style: heading2.copyWith(color: textBlack),
                     ),
                     const SizedBox(height: 10),
