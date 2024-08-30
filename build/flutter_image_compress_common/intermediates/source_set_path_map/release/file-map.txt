@@ -1,0 +1,12 @@
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-jetified-annotation-experimental-1.1.0-0 C:\Users\zamal\.gradle\caches\transforms-3\0ee9e38e81120acb405b16317f88005e\transformed\jetified-annotation-experimental-1.1.0\res
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-jetified-window-java-1.0.0-beta04-1 C:\Users\zamal\.gradle\caches\transforms-3\52327bdbb6080289c26b0e652865ef2f\transformed\jetified-window-java-1.0.0-beta04\res
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-jetified-window-1.0.0-beta04-2 C:\Users\zamal\.gradle\caches\transforms-3\78fbd64af62dbdf102ba7c817970421b\transformed\jetified-window-1.0.0-beta04\res
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-core-1.6.0-3 C:\Users\zamal\.gradle\caches\transforms-3\7c1d12144b2ebda7a6da3814a09658ad\transformed\core-1.6.0\res
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-main-4 C:\Users\zamal\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_image_compress_common-1.0.5\android\src\main\res
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-release-5 C:\Users\zamal\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_image_compress_common-1.0.5\android\src\release\res
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-pngs-6 C:\Users\zamal\Documents\mobileabsensi\build\flutter_image_compress_common\generated\res\pngs\release
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-resValues-7 C:\Users\zamal\Documents\mobileabsensi\build\flutter_image_compress_common\generated\res\resValues\release
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-rs-8 C:\Users\zamal\Documents\mobileabsensi\build\flutter_image_compress_common\generated\res\rs\release
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-mergeReleaseResources-9 C:\Users\zamal\Documents\mobileabsensi\build\flutter_image_compress_common\intermediates\incremental\release\mergeReleaseResources\merged.dir
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-mergeReleaseResources-10 C:\Users\zamal\Documents\mobileabsensi\build\flutter_image_compress_common\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+com.fluttercandies.flutter_image_compress.flutter_image_compress_common-merged_res-11 C:\Users\zamal\Documents\mobileabsensi\build\flutter_image_compress_common\intermediates\merged_res\release

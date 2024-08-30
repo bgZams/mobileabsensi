@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.kineapps.flutter_file_dialog-merged_res-10:/layout/notification_action.xml",
+        "source": "com.kineapps.flutter_file_dialog-core-1.6.0-3:/layout/notification_action.xml"
+    },
+    {
+        "merged": "com.kineapps.flutter_file_dialog-merged_res-10:/layout/notification_action_tombstone.xml",
+        "source": "com.kineapps.flutter_file_dialog-core-1.6.0-3:/layout/notification_action_tombstone.xml"
+    },
+    {
+        "merged": "com.kineapps.flutter_file_dialog-merged_res-10:/layout/custom_dialog.xml",
+        "source": "com.kineapps.flutter_file_dialog-core-1.6.0-3:/layout/custom_dialog.xml"
+    },
+    {
+        "merged": "com.kineapps.flutter_file_dialog-merged_res-10:/layout/notification_template_part_time.xml",
+        "source": "com.kineapps.flutter_file_dialog-core-1.6.0-3:/layout/notification_template_part_time.xml"
+    },
+    {
+        "merged": "com.kineapps.flutter_file_dialog-merged_res-10:/layout/notification_template_icon_group.xml",
+        "source": "com.kineapps.flutter_file_dialog-core-1.6.0-3:/layout/notification_template_icon_group.xml"
+    },
+    {
+        "merged": "com.kineapps.flutter_file_dialog-merged_res-10:/layout/notification_template_part_chronometer.xml",
+        "source": "com.kineapps.flutter_file_dialog-core-1.6.0-3:/layout/notification_template_part_chronometer.xml"
+    }
+]

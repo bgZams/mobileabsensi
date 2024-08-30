@@ -94,18 +94,23 @@ class _LoginState extends State<Login> {
       ).timeout(const Duration(seconds: 5));
 
       final simpel = json.decode(response.body);
-
-      if (response.statusCode == 200 && simpel["success"] == 1) {
-        await _handleSuccessfulLogin(simpel);
-      } else {
-        Alert.alertwarning(context, simpel["message"]);
-      }
+      if (response.statusCode == 200) {
+        if(simpel["success"] == 1){
+          if(simpel["id_groups"] == 2){
+            await _syncUserData(simpel);
+          }else{
+            await _handleSuccessfulLogin(simpel);
+          }
+        } else {
+          Alert.alertwarning(context, simpel["message"]);
+        }
+      } 
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          // Alert.alerterror(context, 'Pastikan perangkat terhubung ke Internet');
         });
-        Alert.alerterror(context, 'Pastikan perangkat terhubung ke Internet');
       }
       if (kDebugMode) {
         print(Exception(e));
@@ -114,6 +119,7 @@ class _LoginState extends State<Login> {
   }
 
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
+
     final getDeviceResponse = await post(
       Uri.parse('http://172.25.88.10:8000/api/getDevice'),
       body: {
@@ -125,6 +131,7 @@ class _LoginState extends State<Login> {
     ).timeout(const Duration(seconds: 5));
 
     final deviceData = json.decode(getDeviceResponse.body);
+          print(deviceData['status']);
 
     if (deviceData['status']) {
       await _syncUserData(simpel);

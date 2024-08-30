@@ -1,0 +1,12 @@
+com.kineapps.flutter_file_dialog-jetified-annotation-experimental-1.1.0-0 C:\Users\zamal\.gradle\caches\transforms-3\0ee9e38e81120acb405b16317f88005e\transformed\jetified-annotation-experimental-1.1.0\res
+com.kineapps.flutter_file_dialog-jetified-window-java-1.0.0-beta04-1 C:\Users\zamal\.gradle\caches\transforms-3\52327bdbb6080289c26b0e652865ef2f\transformed\jetified-window-java-1.0.0-beta04\res
+com.kineapps.flutter_file_dialog-jetified-window-1.0.0-beta04-2 C:\Users\zamal\.gradle\caches\transforms-3\78fbd64af62dbdf102ba7c817970421b\transformed\jetified-window-1.0.0-beta04\res
+com.kineapps.flutter_file_dialog-core-1.6.0-3 C:\Users\zamal\.gradle\caches\transforms-3\7c1d12144b2ebda7a6da3814a09658ad\transformed\core-1.6.0\res
+com.kineapps.flutter_file_dialog-main-4 C:\Users\zamal\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_file_dialog-3.0.2\android\src\main\res
+com.kineapps.flutter_file_dialog-release-5 C:\Users\zamal\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_file_dialog-3.0.2\android\src\release\res
+com.kineapps.flutter_file_dialog-pngs-6 C:\Users\zamal\Documents\mobileabsensi\build\flutter_file_dialog\generated\res\pngs\release
+com.kineapps.flutter_file_dialog-resValues-7 C:\Users\zamal\Documents\mobileabsensi\build\flutter_file_dialog\generated\res\resValues\release
+com.kineapps.flutter_file_dialog-rs-8 C:\Users\zamal\Documents\mobileabsensi\build\flutter_file_dialog\generated\res\rs\release
+com.kineapps.flutter_file_dialog-mergeReleaseResources-9 C:\Users\zamal\Documents\mobileabsensi\build\flutter_file_dialog\intermediates\incremental\release\mergeReleaseResources\merged.dir
+com.kineapps.flutter_file_dialog-mergeReleaseResources-10 C:\Users\zamal\Documents\mobileabsensi\build\flutter_file_dialog\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+com.kineapps.flutter_file_dialog-merged_res-11 C:\Users\zamal\Documents\mobileabsensi\build\flutter_file_dialog\intermediates\merged_res\release
