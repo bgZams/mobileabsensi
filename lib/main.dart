@@ -5,7 +5,6 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:intl/intl.dart';
 import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/firebase_options.dart';
 import 'package:mobileabsensi/frontend/absen/absen.dart';
@@ -137,7 +136,7 @@ void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
                 case 'izin':
                   NotificationController.createNewNotificationIzin(count, idAtasan, jenisIzin, idStatus, keyNotif);
                   databaseReference.child('izin').child(entry.key).update({'id_status': 2});
-                  break;
+                  break; 
                 case 'laporan':
                   NotificationController.createNewNotificationLaporan(count, idAtasan, jenisIzin, idStatus, keyNotif);
                   databaseReference.child('laporan').child(entry.key).update({'id_status': 2});
@@ -247,7 +246,7 @@ onGenerateRoute: (settings) {
       // theme: ThemeData(
       //   primarySwatch: Colors.blue,
       // ),
-      initialRoute: (SpUtil.getString('id_groups').toString() == "3" ? '/home-page' : (SpUtil.getString('id_groups').toString() == "2" ? '/admin' : '/login')),
+      initialRoute: (SpUtil.getString('id_groups').toString() == "3" || SpUtil.getString('id_groups').toString() == "5" ? '/home-page' : (SpUtil.getString('id_groups').toString() == "2" ? '/admin' : '/login')),
       home: Scaffold(
         body: PageView(
           controller: _pageController,

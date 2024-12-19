@@ -1,0 +1,2 @@
+echo "/build/" >> .gitignore
+echo "/.dart_tool/" >> .gitignore

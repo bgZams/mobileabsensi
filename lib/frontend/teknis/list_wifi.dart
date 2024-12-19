@@ -62,6 +62,8 @@ class _WifiOpdState extends State<WifiOpd> {
 
     if (dataAdmin.statusCode == 200) {
       List<dynamic> adminJson = json.decode(dataAdmin.body)['data'];
+        if (mounted) {
+
       setState(() {
         // Filter adminList untuk hanya menyertakan admin dengan id_server tidak null
         adminList = List<Map<String, dynamic>>.from(
@@ -72,6 +74,7 @@ class _WifiOpdState extends State<WifiOpd> {
           })
         );
       });
+        }
     } else {
       if (mounted) {
         Alert.alerterror(context, "Gagal mendapatkan data admin.");
@@ -105,9 +108,12 @@ class _WifiOpdState extends State<WifiOpd> {
 
       if (dataWifi.statusCode == 200) {
         List<dynamic> wifiDataJson = json.decode(dataWifi.body)['data'];
+        if (mounted) {
+
         setState(() {
           wifiData = List<Map<String, dynamic>>.from(wifiDataJson);
         });
+        }
       } else {
         if (mounted) {
           Alert.alerterror(context, "Gagal mencari data wifi.");
@@ -138,11 +144,12 @@ class _WifiOpdState extends State<WifiOpd> {
         },
       );
       if (dataWifi.statusCode == 200) {
+        if (mounted) {
+
         setState(() {
           wifiData.removeWhere((wifi) => wifi['id'] == id);
           searchData(opd, serverName);
         });
-        if (mounted) {
           Alert.alertsuccess(context, "Data berhasil di hapus.");
         }
       } else {
@@ -187,11 +194,14 @@ class _WifiOpdState extends State<WifiOpd> {
       );
     }).toList(),
     onChanged: (String? value) {
-      setState(() {
-        selectedAdmin = value;
-        selectedUsername = adminList.firstWhere((admin) => admin['username'] == value)['username'];
-        selectedIdServer = adminList.firstWhere((admin) => admin['username'] == value)['id_server'];
-      });
+        if (mounted) {
+
+          setState(() {
+            selectedAdmin = value;
+            selectedUsername = adminList.firstWhere((admin) => admin['username'] == value)['username'];
+            selectedIdServer = adminList.firstWhere((admin) => admin['username'] == value)['id_server'];
+          });
+        }
     },
     validator: (value) {
       if (value == null || value.isEmpty) {
@@ -305,15 +315,17 @@ class _WifiOpdState extends State<WifiOpd> {
       wifiGatewayIP = 'Failed to get Wifi gateway address';
     }
     var ssid = wifiName?.replaceAll('"', '');
-    setState(() {
-      _connectionStatus = 'Wifi Name: $ssid\n'
-          'Wifi BSSID: $wifiBSSID\n'
-          'Wifi IPv4: $wifiIPv4\n'
-          'Wifi IPv6: $wifiIPv6\n'
-          'Wifi Broadcast: $wifiBroadcast\n'
-          'Wifi Gateway: $wifiGatewayIP\n'
-          'Wifi Submask: $wifiSubmask\n';
-    });
+        if (mounted) {
+        setState(() {
+          _connectionStatus = 'Wifi Name: $ssid\n'
+              'Wifi BSSID: $wifiBSSID\n'
+              'Wifi IPv4: $wifiIPv4\n'
+              'Wifi IPv6: $wifiIPv6\n'
+              'Wifi Broadcast: $wifiBroadcast\n'
+              'Wifi Gateway: $wifiGatewayIP\n'
+              'Wifi Submask: $wifiSubmask\n';
+        });
+        }
   }
 
   Future<void> simpanWifi() async {
@@ -341,16 +353,16 @@ class _WifiOpdState extends State<WifiOpd> {
         var data = json.decode(dataWifi.body);
 
       if (dataWifi.statusCode == 200) {
-        setState(() {
-          wifiData.add({
-            'SSID': wifiName?.replaceAll('"', ''),
-            'BSSID': wifiBSSID,
-            'ip_address': wifiIPv4,
-            'admin': opd,
-          });
-        });
-
         if (mounted) {
+          setState(() {
+            wifiData.add({
+              'SSID': wifiName?.replaceAll('"', ''),
+              'BSSID': wifiBSSID,
+              'ip_address': wifiIPv4,
+              'admin': opd,
+            });
+          });
+
           Alert.alertsuccess(context, data['message']);
           setState(() {
             searchData(opd, server);
@@ -422,7 +434,6 @@ class _WifiOpdState extends State<WifiOpd> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(8.0),
                 children: [
                   Card(
                     child: Padding(

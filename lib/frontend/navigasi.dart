@@ -22,7 +22,6 @@ class _NavigasiState extends State<Navigasi> {
   Widget build(BuildContext context) {
       String namaLengkap = SpUtil.getString('nama_lengkap') ?? '';
       String namaInstansi = SpUtil.getString('nama_instansi') ?? '';
-      String idUser = SpUtil.getString('id_user') ?? '';
 
       if (namaLengkap.length > 30) {
         namaLengkap = '${namaLengkap.substring(0, 30)}...';
@@ -52,32 +51,34 @@ class _NavigasiState extends State<Navigasi> {
                       children: [
                         Image.asset('assets/images/profile.png',width: 50,),
                         Padding(
-                          padding: const EdgeInsets.only(left: 5),
-                           child: Column(
-                             crossAxisAlignment: CrossAxisAlignment.start,
-                             children: [
-                               Text(
-                                 namaLengkap,
-                                 style: const TextStyle(
-                                   fontSize: 18,
-                                   color: Color.fromARGB(255, 3, 53, 139),
-                                   fontWeight: FontWeight.bold,
+                          padding: const EdgeInsets.all(8.0),
+                          child: SizedBox(
+                            width: 210,
+                             child: Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 Text(
+                                   namaLengkap,
+                                   style: const TextStyle(
+                                     fontSize: 18,
+                                     color: Color.fromARGB(255, 3, 53, 139),
+                                     fontWeight: FontWeight.bold,
+                                   ),
+                                   overflow: TextOverflow.ellipsis,
                                  ),
-                                 overflow: TextOverflow.ellipsis,  // Menambahkan overflow untuk memotong teks yang terlalu panjang
-                                 maxLines: 1,  // Menentukan maksimal baris teks yang ditampilkan
-                               ),
-                               Text(
-                                 namaInstansi,
-                                 style: const TextStyle(
-                                   fontSize: 11,
-                                   color: Color.fromARGB(255, 3, 53, 139),
-                                   fontWeight: FontWeight.bold,
+                                 Text(
+                                   namaInstansi,
+                                   style: const TextStyle(
+                                     fontSize: 12,
+                                     color: Color.fromARGB(255, 3, 53, 139),
+                                     fontWeight: FontWeight.bold,
+                                   ),
+                                   overflow: TextOverflow.ellipsis,
+                                   maxLines: 3,
                                  ),
-                                 overflow: TextOverflow.ellipsis,  // Menambahkan overflow untuk memotong teks yang terlalu panjang
-                                 maxLines: 1,  // Menentukan maksimal baris teks yang ditampilkan
-                               ),
-                             ],
-                           ),
+                               ],
+                             ),
+                          ),
                         ),
                         const Spacer(),
                         const Icon(Icons.arrow_forward_ios_rounded,color: Color.fromARGB(255, 3, 53, 139),),
@@ -227,7 +228,7 @@ class _NavigasiState extends State<Navigasi> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.save_outlined,size: 10,),
+                      icon: const Icon(Icons.logout,size: 25,color: Colors.white,),
                       label: const Text('Keluar',
                         style: TextStyle(
                             fontSize: 16, color: Colors.white, shadows: [

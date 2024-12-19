@@ -31,14 +31,14 @@ class _ListWifiState extends State<ListWifi> {
     String wifiDataJson = SpUtil.getString("wifi_data") ?? '[]';
     if (refrFetchTime != null &&
         DateTime.now().difference(refrFetchTime!) <
-            const Duration(minutes: 1)) {
+            const Duration(seconds: 30)) {
       setState(() {
         _isLoading = false;
       });
       return QuickAlert.show(
         context: context,
         type: QuickAlertType.warning,
-        text: "Refresh minimal 1 menit sekali!",
+        text: "Refresh minimal 30 detik sekali!",
       );
     }
     if (wifiDataJson.isNotEmpty) {
@@ -119,9 +119,10 @@ class _ListWifiState extends State<ListWifi> {
                         itemCount: wifiData.length,
                         itemBuilder: (context, index) {
                           var wifi = wifiData[index];
+                          print(wifi);
                           return ListTile(
                             title: Text(wifi['SSID']),
-                            subtitle: Text(wifi['nama_opd']),
+                            subtitle: Text(''),
                           );
                         },
                       ),
@@ -177,8 +178,9 @@ class _ListWifiState extends State<ListWifi> {
           'Accept': 'application/json'
         },
       );
+      print('$url/api/wifi/$userAdmin');
       if (dataWifi.statusCode == 200) {
-        List<dynamic> wifiData = json.decode(dataWifi.body);
+        List<dynamic> wifiData = json.decode(dataWifi.body)['data'];
         SpUtil.putString('wifi_data', json.encode(wifiData));
         if(mounted){
           Alert.alertsuccess(context, "Syncron berhasil.");

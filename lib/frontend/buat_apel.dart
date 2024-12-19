@@ -65,11 +65,10 @@ class _BuatApelState extends State<BuatApel> {
       'Content-Type': 'multipart/form-data',
     };
     try {
-      // Kompresi gambar sebelum mengirim
       Uint8List? compressedImageBytes =
           await FlutterImageCompress.compressWithFile(
         imagePath,
-        quality: 70, // Ubah quality sesuai kebutuhan Anda
+        quality: 70
       );
       var data = {
         'id_admin': idadmininstansi,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:mobileabsensi/frontend/izin/detail_izin.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/widget/bulan.dart';
@@ -71,6 +72,8 @@ class _RiwayatPengajuanIzinState extends State<RiwayatPengajuanIzin> with Ticker
     await Future.delayed(const Duration(seconds: 2));
     searchByDate(selectedMonth, selectedYear);
   }
+
+var hariIni = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +228,7 @@ class _RiwayatPengajuanIzinState extends State<RiwayatPengajuanIzin> with Ticker
               default:
                 jenisStatus = const Text('Status : Belum Disetujui ',
                     style: TextStyle(color: Colors.black));
-            }
+            } 
 
             return Padding(
               padding:
@@ -319,8 +322,23 @@ class _RiwayatPengajuanIzinState extends State<RiwayatPengajuanIzin> with Ticker
                                   const SizedBox(
                                     height: 2,
                                   ),
-                                  if (data[index]['status_approval'] == 1)
+                                  if (data[index]['status_approval'] != 5)
                                     Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(4),
+                                        color: const Color.fromARGB(
+                                            255, 255, 168, 162),
+                                      ),
+                                      child: IconButton(
+                                        padding: EdgeInsets.zero,
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () => _confirmDelete(
+                                            data[index]['id_approval']),
+                                      ),
+                                    )
+                                  else if(data[index]['status_approval'] == 5 && hariIni == data[index]['tgl_group'] )
+                                  Container(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(4),
                                         color: const Color.fromARGB(

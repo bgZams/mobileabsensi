@@ -20,7 +20,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final DatabaseReference databaseReference =
-      FirebaseDatabase.instance.reference();
+      FirebaseDatabase.instance.ref();
       bool _showBottomNavBar = true;
   final _pageController = PageController();
   int _currentIndex = 0;

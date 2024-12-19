@@ -31,6 +31,7 @@ class _BuatIzinState extends State<BuatIzin> {
   final _formKey = GlobalKey<FormState>();
   bool? sptSementara = false;
   bool _isLoading = false;
+  final bool _isLoadingMedia = false;
   String? _valJenisIzin;
   String? valueIzin;
   String? valueJenisCuti;
@@ -206,11 +207,11 @@ class _BuatIzinState extends State<BuatIzin> {
                   ),
                 ),
                 ElevatedButton.icon(
-                      icon: _isLoading
+                      icon: _isLoadingMedia
                           ? const CircularProgressIndicator()
                           : const Icon(Icons.image_search_rounded,size: 20,color: Colors.white,),
                       label: Text(
-                        _isLoading ? 'Loading...' : 'Unggah Foto',
+                        _isLoadingMedia ? 'Loading...' : 'Unggah Foto',
                         style: const TextStyle(
                             fontSize: 14, color: Colors.white, shadows: [
                           Shadow(
@@ -219,7 +220,7 @@ class _BuatIzinState extends State<BuatIzin> {
                               offset: Offset(1, 1))
                         ]),
                       ),
-                      onPressed: _isLoading ? null : () {
+                      onPressed: _isLoadingMedia ? null : () {
                         myAlert();
                       },
                       clipBehavior: Clip.hardEdge,
@@ -346,7 +347,38 @@ class _BuatIzinState extends State<BuatIzin> {
                 const SizedBox(
                   height: 20,
                 ),
-                
+                if (_valJenisIzin == 'IDLK')
+                  Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: TextFormField(
+                      enabled: false,
+                      controller: tanggal,
+                      decoration: InputDecoration(
+                        icon: const Icon(Icons.calendar_today), // icon of text field
+                        labelText: tanggal.text.isNotEmpty ? tanggal.text : DateTime.now().toLocal().toString().split(' ')[0], // menampilkan tanggal yang dipilih
+                      ),
+                      onTap: () async {
+                        DateTimeRange? pickedDate = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+
+                        if (pickedDate != null) {
+                          setState(() {
+                            tanggal.text =
+                                '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
+                            durasi.text = (pickedDate.end.difference(pickedDate.start).inDays + 1).toString();
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                )
+                else
+
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: SizedBox(
@@ -382,6 +414,11 @@ class _BuatIzinState extends State<BuatIzin> {
                     ),
                   ),
                 ),
+                if (_valJenisIzin == 'IDLK')
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: SizedBox(height: 1))
+                else
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: SizedBox(
@@ -544,7 +581,6 @@ class _BuatIzinState extends State<BuatIzin> {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-
       if (response.statusCode == 200) {
         // Jika berhasil
         final DatabaseReference databaseReference =
@@ -554,8 +590,11 @@ class _BuatIzinState extends State<BuatIzin> {
         String message = data["message"];
         if (data['status'] == 'success') {
           if(mounted){
-            Alert.alertsuccess(context,message);
+
             Navigator.pop(context, true);
+            Alert.alertsuccess(context,message);
+            SpUtil.putInt('idlk', 1);
+
           }
         } else {
           if(mounted){

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -65,35 +67,37 @@ class _LoginState extends State<Login> {
   }
 
   Future<void> _getDeviceId() async {
-    final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-    try {
-      final androidInfo = await deviceInfoPlugin.androidInfo;
-      setState(() {
-        deviceId = androidInfo.device;
-        systemVersion = androidInfo.version.release;
-      });
-    } catch (e) {
-      setState(() {
-        deviceId = 'Gagal mendapatkan device id';
-        systemVersion = 'Gagal mendapatkan versi sistem';
-      });
-      if (kDebugMode) {
-        print("Error: $e");
-      }
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  try {
+    final AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
+    setState(() {
+      deviceId = androidInfo.id;
+      systemVersion = androidInfo.version.release;
+    });
+  } catch (e) {
+    setState(() {
+      deviceId = 'Failed to get device ID';
+      systemVersion = 'Failed to get system version';
+    });
+    if (kDebugMode) {
+      print("Error: $e");
     }
   }
+}
 
   Future<void> _login(String username, String password) async {
     setState(() {
       _isLoading = true;
     });
     try {
+
       final response = await post(
         Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/api/model_login2.php'),
         body: {'username': username, 'password': password},
       ).timeout(const Duration(seconds: 5));
 
       final simpel = json.decode(response.body);
+      print(simpel);
       if (response.statusCode == 200) {
         if(simpel["success"] == 1){
           if(simpel["id_groups"] == 2){
@@ -109,7 +113,7 @@ class _LoginState extends State<Login> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          // Alert.alerterror(context, 'Pastikan perangkat terhubung ke Internet');
+          Alert.alerterror(context, 'Pastikan perangkat terhubung ke Internet');
         });
       }
       if (kDebugMode) {
@@ -121,7 +125,7 @@ class _LoginState extends State<Login> {
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
 
     final getDeviceResponse = await post(
-      Uri.parse('http://172.25.88.10:8000/api/getDevice'),
+      Uri.parse('http://192.168.79.8:8000/api/getDevice'),
       body: {
         'id_user': simpel['id_user'].toString(),
         'device_id': deviceId,
@@ -131,7 +135,6 @@ class _LoginState extends State<Login> {
     ).timeout(const Duration(seconds: 5));
 
     final deviceData = json.decode(getDeviceResponse.body);
-          print(deviceData['status']);
 
     if (deviceData['status']) {
       await _syncUserData(simpel);
@@ -143,14 +146,14 @@ class _LoginState extends State<Login> {
   }
 
   Future<void> _syncUserData(Map<String, dynamic> body) async {
+
     final dataWifiResponse = await get(
-      Uri.parse('http://172.25.88.10:8000/api/wifi/${body['username_admin']}'),
+      Uri.parse('http://192.168.79.8:8000/api/wifi/${body['username_admin']}'),
       headers: {
         'Content-type': 'application/json',
         'Accept': 'application/json',
       },
     );
-
     final dataPegawaiResponse = await get(
       Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/getByIdUser.php?id_user=${body['id_user']}'),
       headers: {
@@ -179,6 +182,7 @@ class _LoginState extends State<Login> {
   }
 
   void _storeUserData(Map<String, dynamic> userData) {
+
     SpUtil.putString('id_server', userData['id_server'].toString());
     SpUtil.putString('id_user', userData['id_user'].toString());
     SpUtil.putString('id_instansi', userData['id_instansi'].toString());
@@ -193,31 +197,33 @@ class _LoginState extends State<Login> {
     SpUtil.putString('nama_atasan', userData['nama_atasan']?.toString() ?? '');
     SpUtil.putString('nip_atasan', userData['nip_atasan']?.toString() ?? '');
     SpUtil.putString('jabatan_atasan', userData['jabatan_atasan']?.toString() ?? '');
-    SpUtil.putString('url', 'http://172.25.88.10:8000');
+    SpUtil.putString('url', 'http://192.168.79.8:8000');
   }
 
   void _navigateToHome() {
-    if (mounted) {
+
       if (SpUtil.getString('id_groups') == "2") {
         SpUtil.putBool('isLogin', true);
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Admin()),
         );
-      } else if (SpUtil.getString('id_groups') == "3") {
+
+      } else if (SpUtil.getString('id_groups') == "5" || SpUtil.getString('id_groups') == "3") {
         SpUtil.putBool('isLogin', true);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Home(title: 'Dashboard')),
         );
+
       } else {
+                        SpUtil.clear();
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Login()),
         );
       }
-    }
   }
 
   @override
@@ -238,12 +244,12 @@ class _LoginState extends State<Login> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 200),
+                const SizedBox(height: 240),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mobile Absensi\nLogin\nGunakan WIFI SISKEUDES',
+                      'Mobile Absensi\nLogin',
                       style: heading2.copyWith(color: textBlack),
                     ),
                     const SizedBox(height: 10),

@@ -75,6 +75,9 @@ class _AbsenState extends State<Absen> {
     _fetchNotif();
     refreshData();
     _checkAndUpdatePreferences();
+    if(SpUtil.getInt('idlk') == 1){
+      _checkIdlk();
+    }
 
   }
 
@@ -150,22 +153,23 @@ class _AbsenState extends State<Absen> {
     String connectedBSSID = wifiBSSID ?? '';
     var listWifiString = SpUtil.getString("wifi_data");
 
-    // if (listWifiString != null) {
-    //   List<dynamic> listWifi = jsonDecode(listWifiString);
-    //   bool isWifiMatch = listWifi.any((wifi) =>
-    //       wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
+    if (listWifiString != null) {
+      List<dynamic> listWifi = jsonDecode(listWifiString);
+      bool isWifiMatch = listWifi.any((wifi) =>
+          wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
 
-    //   if (isWifiMatch) {
+      if (isWifiMatch) {
     if (SpUtil.getString("id_user") != null) {
       try {
         var datamasuk = {
           'id_user': idUser,
           'id_admin_instansi': idAdmin,
           'nama_lengkap': nama,
-          'ssid': ssID,
+          'ssid': connectedSSID,
           'bssid': connectedBSSID,
           'versi': '1.4'
         };
+        print(datamasuk);
         http.Response absenMasuk = await http.post(
           Uri.parse('$url/api/masuk'),
           body: datamasuk,
@@ -210,88 +214,172 @@ class _AbsenState extends State<Absen> {
         Alert.alerterror(context, 'Gagal mengambil absen!');
       }
     }
-    //   } else {
-    //     Alert.alertwarning(context, 'SSID ditemukan dalam daftar WiFi!');
-    //   }
-    // } else {
-    //   Alert.alerterror(context, 'Gagal mengambil absen!');
-    // }
+      } else {
+        Alert.alertwarning(context, 'SSID ditemukan dalam daftar WiFi!');
+      }
+    } else {
+      Alert.alerterror(context, 'Gagal mengambil absen!');
+    }
   }
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
-            if(isPulangCepat == true){
-          Alert.alertwarning(context, 'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
-          return;
+  if (isPulangCepat == true) {
+    Alert.alertwarning(
+        context,
+        'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
+    return;
+  }
+
+  // Jika status_idlk adalah 1, abaikan validasi WiFi
+  if (SpUtil.getInt('status_idlk') == 1) {
+    // Kirim request tanpa memeriksa WiFi
+    try {
+      var datapulang = {
+        'id_user': idUser,
+        'id_admin_instansi': idAdmin,
+        'ssid': 'IDLK', // Kosong karena tidak perlu WiFi
+        'bssid': 'IDLK', // Kosong karena tidak perlu WiFi
+        'versi': '1.4'
+      };
+      http.Response absenPulang = await http.put(
+        Uri.parse('$url/api/pulang/$idUser'),
+        body: jsonEncode(datapulang),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      );
+
+      if (absenPulang.statusCode == 200) {
+        if (mounted) {
+          final data = jsonDecode(absenPulang.body);
+          code = data['code']?.toString();
+          String message = json.encode(data["message"]).replaceAll('"', '');
+          if (data["code"] == "1") {
+            SpUtil.putString('code_pulang', code!);
+            String waktuJson = data['waktu'];
+            DateTime waktuText = DateTime.parse(waktuJson);
+            jamPulang = DateFormat('HH:mm').format(waktuText);
+            SpUtil.putString('pulang', '$jamPulang');
+            SpUtil.putInt('idlk', 0);
+            SpUtil.putInt('status_idlk', 0);
+            SpUtil.putBool('is_codePulang', true);
+            Alert.alertsuccess(context, message);
+            setState(() {
+              isCodePulang = true;
+              isPulangCepat = false;
+            });
+          } else {
+            Alert.alertwarning(context, message);
+          }
         }
-    String connectedSSID = wifiName ?? '';
-    String ssID = connectedSSID.replaceAll('"', '');
-    String connectedBSSID = wifiBSSID ?? '';
-    if (SpUtil.getString("id_user") != null) {
-      try {
-        var listWifiString = SpUtil.getString("wifi_data");
-        if (listWifiString != null) {
-          List<dynamic> listWifi = jsonDecode(listWifiString);
-          bool isWifiMatch = listWifi.any((wifi) =>
-              wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
+      } else {
+        if (mounted) {
+          Alert.alertwarning(context, 'Tidak dapat terhubung ke server');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Alert.alerterror(context, 'Gagal mengambil absen!');
+      }
+    }
+    return; // Selesai jika status_idlk == 1
+  }
 
-          if (isWifiMatch) {
-            var datapulang = {
-              'id_user': idUser,
-              'id_admin_instansi': idAdmin,
-              'ssid': ssID,
-              'bssid': connectedBSSID,
-              'versi': '1.4'
-            };
-            http.Response absenPulang = await http.put(
-              Uri.parse('$url/api/pulang/$idUser'),
-              body: jsonEncode(datapulang),
-              headers: <String, String>{
-                'Content-Type': 'application/json; charset=UTF-8',
-              },
-            );
+  // Jika status_idlk bukan 1, lanjutkan dengan validasi WiFi
+  String connectedSSID = wifiName ?? '';
+  String ssID = connectedSSID.replaceAll('"', '');
+  String connectedBSSID = wifiBSSID ?? '';
+  if (SpUtil.getString("id_user") != null) {
+    try {
+      var listWifiString = SpUtil.getString("wifi_data");
+      if (listWifiString != null) {
+        List<dynamic> listWifi = jsonDecode(listWifiString);
+        bool isWifiMatch = listWifi.any((wifi) =>
+            wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
 
-            if (absenPulang.statusCode == 200) {
-              if (mounted) {
-                final data = jsonDecode(absenPulang.body);
-                code = data['code']?.toString();
-                String message =
-                    json.encode(data["message"]).replaceAll('"', '');
-                if (data["code"] == "wifi" ||
-                    data["code"] == "versi_app" ||
-                    data["code"] == "unknown") {
-                  Alert.alertwarning(context, message);
-                } else if (data["code"] == "1") {
-                  SpUtil.putString('code_pulang', code!);
-                  String waktuJson = data['waktu'];
-                  DateTime waktuText = DateTime.parse(waktuJson);
-                  jamPulang = DateFormat('HH:mm').format(waktuText);
-                  SpUtil.putString('pulang', '$jamPulang');
-                  SpUtil.putBool('is_codePulang', true);
-                  Alert.alertsuccess(context, message);
-                  setState(() {
-                    isCodePulang = true;
-                    isPulangCepat = false;
-                  });
-                }
-              }
-            } else {
-              if (mounted) {
-                Alert.alertsuccess(context, 'Tidak dapat terhubung ke server');
+        if (isWifiMatch) {
+          var datapulang = {
+            'id_user': idUser,
+            'id_admin_instansi': idAdmin,
+            'ssid': ssID,
+            'bssid': connectedBSSID,
+            'versi': '1.4'
+          };
+          http.Response absenPulang = await http.put(
+            Uri.parse('$url/api/pulang/$idUser'),
+            body: jsonEncode(datapulang),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+          );
+
+          if (absenPulang.statusCode == 200) {
+            if (mounted) {
+              final data = jsonDecode(absenPulang.body);
+              code = data['code']?.toString();
+              String message =
+                  json.encode(data["message"]).replaceAll('"', '');
+              if (data["code"] == "1") {
+                SpUtil.putString('code_pulang', code!);
+                String waktuJson = data['waktu'];
+                DateTime waktuText = DateTime.parse(waktuJson);
+                jamPulang = DateFormat('HH:mm').format(waktuText);
+                SpUtil.putString('pulang', '$jamPulang');
+                SpUtil.putBool('is_codePulang', true);
+                Alert.alertsuccess(context, message);
+                setState(() {
+                  isCodePulang = true;
+                  isPulangCepat = false;
+                });
+              } else {
+                Alert.alertwarning(context, message);
               }
             }
           } else {
-            Alert.alertwarning(context, 'SSID ditemukan dalam daftar WiFi!');
+            if (mounted) {
+              Alert.alertwarning(context, 'Tidak dapat terhubung ke server');
+            }
           }
         } else {
-          Alert.alerterror(context, 'Gagal mengambil absen!');
+          Alert.alertwarning(context, 'SSID ditemukan dalam daftar WiFi!');
         }
-      } catch (e) {
-        if (mounted) {
-          Alert.alertsuccess(context, 'Gagal mengambil absen!');
-        }
+      } else {
+        Alert.alerterror(context, 'Gagal mengambil absen!');
+      }
+    } catch (e) {
+      if (mounted) {
+        Alert.alerterror(context, 'Gagal mengambil absen!');
       }
     }
   }
+}
+
+
+  Future<void> _checkIdlk() async {
+    try {
+      final idlk = await http.get(
+        Uri.parse('$url/api/notif/get-notif-count/$idUser'),
+        headers: {
+          'Content-type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (idlk.statusCode == 200) {
+        setState(() {
+          SpUtil.putInt('status_idlk', 1);
+          SpUtil.putInt('idlk',0);
+        });
+      } else {
+        throw Exception('Failed to load data');
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        print('Error: $error');
+      }
+    }
+  }
+
 
   Future<void> _fetchNotif() async {
     if (idUser!.isEmpty || url!.isEmpty) {
@@ -331,6 +419,7 @@ class _AbsenState extends State<Absen> {
           _getCurrentTime();
           _initNetworkInfo();
           _fetchNotif();
+          isPulangCepat;
           _isLoading = false;
         });
       }
@@ -764,58 +853,101 @@ class _AbsenState extends State<Absen> {
                                                                       );
                                                                     } else {
                                                                       await _initNetworkInfo();
-                                                                      if (wifiName != null &&
-                                                                          wifiBSSID !=
-                                                                              null &&
-                                                                          wifiName!
-                                                                              .isNotEmpty &&
-                                                                          wifiBSSID!
-                                                                              .isNotEmpty) {
-                                                                                showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Absen Pulang'),
-                  content: SizedBox(
-                    height: 50,
-                    width: MediaQuery.of(context).size.width,
-                    child: const Text('Yakin ingin absen pulang'),
-                  ),
-                  actions: <Widget>[
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        textStyle: Theme.of(context).textTheme.labelLarge,
-                        backgroundColor: Colors.green,
-                      ),
-                      
-                      child: const Text('Pulang',style: TextStyle(color: Colors.white),),
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        absenPulang(
-                                                                            wifiName,
-                                                                            wifiBSSID);
-                      },
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        textStyle: Theme.of(context).textTheme.labelLarge,
-                        backgroundColor: Colors.red
-                      ),
-                      child: const Text('Batal',style: TextStyle(color: Colors.white),),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
-                );
-              },
-            );
-                                                                        
-                                                                      } else {
-// ignore: use_build_context_synchronously
-Alert.alertwarning(context,'Silahkan sambungkan ke Wifi!');
-                                                                      }
+                                                                        if (SpUtil.getInt('status_idlk') == 1) {
+  // Tidak perlu WiFi jika status_idlk adalah 1
+                                                                          showDialog(
+                                                                            context: context,
+                                                                            builder: (BuildContext context) {
+                                                                              return AlertDialog(
+                                                                                title: const Text('Absen Pulang'),
+                                                                                content: SizedBox(
+                                                                                  height: 50,
+                                                                                  width: MediaQuery.of(context).size.width,
+                                                                                  child: const Text('Yakin ingin absen pulang'),
+                                                                                ),
+                                                                                actions: <Widget>[
+                                                                                  TextButton(
+                                                                                    style: TextButton.styleFrom(
+                                                                                      textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                      backgroundColor: Colors.green,
+                                                                                    ),
+                                                                                    child: const Text(
+                                                                                      'Pulang',
+                                                                                      style: TextStyle(color: Colors.white),
+                                                                                    ),
+                                                                                    onPressed: () async {
+                                                                                      Navigator.of(context).pop();
+                                                                                      absenPulang('IDLK', 'IDLK'); // Tidak perlu WiFi
+                                                                                    },
+                                                                                  ),
+                                                                                  TextButton(
+                                                                                    style: TextButton.styleFrom(
+                                                                                        textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                        backgroundColor: Colors.red),
+                                                                                    child: const Text(
+                                                                                      'Batal',
+                                                                                      style: TextStyle(color: Colors.white),
+                                                                                    ),
+                                                                                    onPressed: () {
+                                                                                      Navigator.of(context).pop();
+                                                                                    },
+                                                                                  ),
+                                                                                ],
+                                                                              );
+                                                                            },
+                                                                          );
+                                                                        } else if (wifiName != null &&
+                                                                            wifiBSSID != null &&
+                                                                            wifiName!.isNotEmpty &&
+                                                                            wifiBSSID!.isNotEmpty) {
+                                                                          // Jika WiFi tersedia, gunakan WiFi untuk absen
+                                                                          showDialog(
+                                                                            context: context,
+                                                                            builder: (BuildContext context) {
+                                                                              return AlertDialog(
+                                                                                title: const Text('Absen Pulang'),
+                                                                                content: SizedBox(
+                                                                                  height: 50,
+                                                                                  width: MediaQuery.of(context).size.width,
+                                                                                  child: const Text('Yakin ingin absen pulang'),
+                                                                                ),
+                                                                                actions: <Widget>[
+                                                                                  TextButton(
+                                                                                    style: TextButton.styleFrom(
+                                                                                      textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                      backgroundColor: Colors.green,
+                                                                                    ),
+                                                                                    child: const Text(
+                                                                                      'Pulang',
+                                                                                      style: TextStyle(color: Colors.white),
+                                                                                    ),
+                                                                                    onPressed: () async {
+                                                                                      Navigator.of(context).pop();
+                                                                                      absenPulang(wifiName, wifiBSSID); // Menggunakan WiFi
+                                                                                    },
+                                                                                  ),
+                                                                                  TextButton(
+                                                                                    style: TextButton.styleFrom(
+                                                                                        textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                        backgroundColor: Colors.red),
+                                                                                    child: const Text(
+                                                                                      'Batal',
+                                                                                      style: TextStyle(color: Colors.white),
+                                                                                    ),
+                                                                                    onPressed: () {
+                                                                                      Navigator.of(context).pop();
+                                                                                    },
+                                                                                  ),
+                                                                                ],
+                                                                              );
+                                                                            },
+                                                                          );
+                                                                        } else {
+                                                                          // Jika tidak memenuhi kondisi, tampilkan peringatan
+                                                                          Alert.alertwarning(context, 'Silahkan sambungkan ke Wifi!');
+                                                                        }
                                                                     }
+
 
                                                                     setState(
                                                                         () {
@@ -838,6 +970,12 @@ Alert.alertwarning(context,'Silahkan sambungkan ke Wifi!');
                                                                             child:
                                                                                 Image.asset('assets/images/sidikjari2new.png'),
                                                                           ),
+                                                                          if(SpUtil.getInt('status_idlk') == 1)
+                                                                          const Text(
+                                                                            "IDLK",
+                                                                            style:
+                                                                                TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                                                          ) else
                                                                           const Text(
                                                                             "Pulang",
                                                                             style:
