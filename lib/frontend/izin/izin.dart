@@ -50,9 +50,9 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
     final idUser = SpUtil.getString("id_user") ?? '';
     String? link;
     if (selectedIndex == 0) {
-      link = '$url/api/izin/riwayat-izin/$idUser/$monthNumber/$year';
-    } else {
       link = '$url/api/izin/riwayat-izin/pengajuan/$idUser/$monthNumber/$year';
+    } else {
+      link = '$url/api/izin/riwayat-izin/$idUser/$monthNumber/$year';
     }
 
     final response = await http.get(Uri.parse(link));
@@ -101,19 +101,6 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FaIcon(
-            FontAwesomeIcons.envelope,
-            color: Colors.blue,
-          ),
-          SizedBox(width: 8),
-          Text("Riwayat Izin"),
-        ],
-      ),
-    ),
-    const Tab(
-      icon: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FaIcon(
             FontAwesomeIcons.listCheck,
             color: Colors.yellow,
           ),
@@ -122,6 +109,20 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
         ],
       ),
     ),
+    const Tab(
+      icon: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FaIcon(
+            FontAwesomeIcons.envelope,
+            color: Colors.blue,
+          ),
+          SizedBox(width: 8),
+          Text("Riwayat Izin"),
+        ],
+      ),
+    ),
+    
   ];
 
   @override
@@ -160,9 +161,10 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
       body: TabBarView(
         controller: _controller,
         children: [
-          buildTabContentWidget(_riwayatIzin, 'Tidak ada data Riwayat Izin'),
           buildTabContentWidget(
               _riwayatPengajuan, 'Tidak ada data Pengajuan Izin'),
+          buildTabContentWidget(_riwayatIzin, 'Tidak ada data Riwayat Izin'),
+          
         ],
       ),
       floatingActionButton: Transform.translate(

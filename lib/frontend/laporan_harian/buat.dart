@@ -101,7 +101,7 @@ setState(() {
                       SizedBox(
                         width: 140,
                         child: TextField(
-                          enabled: laporanPertama,
+                          // enabled: laporanPertama,
                           controller: jamMulai,
                           decoration: const InputDecoration(
                             icon: Icon(Icons.timer),
@@ -309,6 +309,20 @@ setState(() {
       return;
     }
 
+    DateTime jamMulaiTime = DateFormat("HH:mm").parse(jamMulai.text);
+    DateTime jamSelesaiTime = DateFormat("HH:mm").parse(jamSelesai.text);
+    DateTime jamMasukTime = DateFormat("HH:mm").parse(SpUtil.getString('masuk').toString());
+    DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
+
+    if (jamMulaiTime.isBefore(jamMasukTime)) {
+      Alert.alerterror(context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
+      return;
+    }
+    if (jamSelesaiTime.isAfter(jamPulangTime)) {
+      Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
+      return;
+    }
+
     try {
       http.Response kirimLaporanHarian = await http.post(
         Uri.parse('$url/api/simpan-lhk'),
@@ -347,7 +361,6 @@ setState(() {
     var message = responseData["message"].toString();
     if (responseData['status'] == 'success') {
       // bersihkanForm();
-      SpUtil.putBool('laporanKedua', true);
       SpUtil.putString('mulai',jamSelesai.text);
       Navigator.pop(context, true);
       Alert.alertsuccess(context, message);

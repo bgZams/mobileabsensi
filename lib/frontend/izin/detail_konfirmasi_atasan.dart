@@ -133,9 +133,10 @@ class _DetailKonfirmasiIzinAtasanState
           'Accept': 'application/json',
         },
       );
-
+final data = jsonDecode(response.body);
+        print(response.body);
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        
         // ignore: use_build_context_synchronously
         Navigator.pushNamed(context, '/konfirmasi-izin');
 

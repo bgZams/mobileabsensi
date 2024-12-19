@@ -432,7 +432,6 @@ class _PulangCepatState extends State<PulangCepat> {
       if(mounted){
             Alert.alerterror(context,'Terjadi kesalahan silahkan coba kembali');
           }
-      
     }
   }
 }

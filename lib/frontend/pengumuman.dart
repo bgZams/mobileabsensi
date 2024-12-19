@@ -27,13 +27,15 @@ class _PengumumanState extends State<Pengumuman> {
 
   Future<void> refreshData() async {
     if (SyncLimiter.canSync()) {
-
-    setState(() {
-      // _isLoading = true;
-      postsFuture = getPosts();
-    });
-        } else {
-      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+      if (mounted) {
+        setState(() {
+          postsFuture = getPosts();
+        });
+      }
+    } else {
+      if (mounted) {
+        Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+      }
     }
   }
 
@@ -48,7 +50,6 @@ class _PengumumanState extends State<Pengumuman> {
 
     if (response.statusCode == 200) {
       final List<dynamic> body = json.decode(response.body);
-
       return body.map((e) => ModelPengumuman.fromJson(e)).toList();
     } else {
       throw Exception('Failed to load data');
@@ -60,10 +61,10 @@ class _PengumumanState extends State<Pengumuman> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Pengumuman',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+        title: const Text('Pengumuman', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
         elevation: 4,
-         leading: IconButton(
-              icon: const Icon(Icons.arrow_back,color: Colors.white,),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -75,14 +76,14 @@ class _PengumumanState extends State<Pengumuman> {
           future: postsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
+              return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasData) {
               final posts = snapshot.data!;
               return buildPosts(posts);
             } else if (snapshot.hasError) {
-              return Text("${snapshot.error}");
+              return Center(child: Text("${snapshot.error}"));
             } else {
-              return const Text("No data available");
+              return const Center(child: Text("No data available"));
             }
           },
         ),
@@ -111,76 +112,81 @@ class _PengumumanState extends State<Pengumuman> {
             );
           },
           child: Container(
-  color: Colors.grey.shade300,
-  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-  padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-  child: Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        flex: 1,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(top:15),
-            child: Image.network(
-              post.thumbnail ?? "assets/images/logo.png",
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        flex: 3,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(
-              height: 5,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(2.0),
-              child: Text(
-                post.title ?? "",
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(2.0),
-              child: Row(
-                children: [
-                  const Icon(
-                  Icons.calendar_month_sharp,
-                  color: Colors.red,
-                  size: 20,
-                ),
-                  Text(
-                    post.date_tgl ?? "",
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Row(
-              children: [
-                const Icon(
-                  Icons.remove_red_eye,
-                  color: Colors.blue,
-                  size: 20,
-                ),
-                Text(
-                  "Di lihat: ${post.dilihat.toString()}",
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
                 ),
               ],
-            )
-          ],
-        ),
-      ),
-    ],
-  ),
-),
-
-
+            ),
+            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: Image.network(
+                    post.thumbnail ?? "assets/images/logo.png",
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.title ?? "",
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_month_sharp,
+                            color: Colors.red,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            post.date_tgl ?? "",
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.remove_red_eye,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            "Dilihat: ${post.dilihat.toString()}",
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );

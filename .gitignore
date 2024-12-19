@@ -1,2 +1,4 @@
-echo "/build/" >> .gitignore
-echo "/.dart_tool/" >> .gitignore
+echo "build/" >> .gitignore
+echo ".dart_tool/" >> .gitignore
+echo "**/*.apk" >> .gitignore
+echo "**/*.dill" >> .gitignore

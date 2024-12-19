@@ -58,7 +58,7 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
          leading: IconButton(
               icon: const Icon(Icons.arrow_back,color: Colors.white,),
           onPressed: () {
-            Navigator.pushNamed(context, '/pengumuman');
+            Navigator.pop(context);
           },
         ),
       ),

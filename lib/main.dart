@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/firebase_options.dart';
 import 'package:mobileabsensi/frontend/absen/absen.dart';
@@ -36,12 +37,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
 import 'package:sp_util/sp_util.dart';
 
-// void _enablePlatformOverrideForDesktop() {
-//   if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
-//     debugDefaultTargetPlatformOverride = TargetPlatform.fuchsia;
-//   }
-// }
-
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 String? globalIdAtasan;
 Map<String, dynamic> globalUpdateData = {};
@@ -53,20 +48,22 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
   await NotificationController.initializeLocalNotifications();
   await NotificationController.initializeIsolateReceivePort();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Error initializing Firebase: $e');
+  }
   await SpUtil.getInstance();
-    idUser = SpUtil.getString('id_user');
+  idUser = SpUtil.getString('id_user');
   await readData();
-  // _enablePlatformOverrideForDesktop();
   HttpOverrides.global = MyHttpOverrides();
   runApp(MyApp());
 }
 
 Future<void> readData() async {
   final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
-
   databaseReference.child('izin').onValue.listen((event) {
     processSnapshot(event.snapshot, 'izin');
   }, onError: (error) {
@@ -78,39 +75,21 @@ Future<void> readData() async {
   }, onError: (error) {
     debugPrint('Terjadi kesalahan pada child laporan: $error');
   });
-
-  // databaseReference.child('apel').onValue.listen((event) {
-  //   processSnapshot(event.snapshot, 'apel');
-  // }, onError: (error) {
-  //   debugPrint('Terjadi kesalahan pada child apel: $error');
-  // });
-
-  // databaseReference.child('senam').onValue.listen((event) {
-  //   processSnapshot(event.snapshot, 'senam');
-  // }, onError: (error) {
-  //   debugPrint('Terjadi kesalahan pada child senam: $error');
-  // });
 }
 
 void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
   if (snapshot != null && snapshot.value != null) {
-
     final Map<dynamic, dynamic>? data = snapshot.value as Map<dynamic, dynamic>?;
-
     if (data != null && data.isNotEmpty) {
       int count = 1;
-
       for (final MapEntry<dynamic, dynamic> entry in data.entries) {
         final Map<dynamic, dynamic>? documentData = entry.value as Map<dynamic, dynamic>?;
-
         if (documentData != null) {
           final idAtasan = documentData['id_atasan'];
           final idStatus = documentData['id_status'];
           final parsedIdAtasan = int.tryParse(idAtasan);
-
           final user = SpUtil.getString('id_user');
           final userId = int.tryParse(user ?? '');
-
           if (userId == parsedIdAtasan) {
             if (idStatus == 2) {
               count++;
@@ -121,7 +100,6 @@ void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
 
       for (final MapEntry<dynamic, dynamic> entry in data.entries) {
         final Map<dynamic, dynamic>? documentData = entry.value as Map<dynamic, dynamic>?;
-
         if (documentData != null) {
           final idAtasan = documentData['id_atasan'];
           final idStatus = documentData['id_status'];
@@ -136,19 +114,11 @@ void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
                 case 'izin':
                   NotificationController.createNewNotificationIzin(count, idAtasan, jenisIzin, idStatus, keyNotif);
                   databaseReference.child('izin').child(entry.key).update({'id_status': 2});
-                  break; 
+                  break;
                 case 'laporan':
                   NotificationController.createNewNotificationLaporan(count, idAtasan, jenisIzin, idStatus, keyNotif);
                   databaseReference.child('laporan').child(entry.key).update({'id_status': 2});
                   break;
-                // case 'apel':
-                //   NotificationController.createNewNotificationApel(count, idAtasan, jenisIzin, idStatus, keyNotif);
-                //   databaseReference.child('apel').child(entry.key).update({'id_status': 2});
-                //   break;
-                // case 'senam':
-                //   NotificationController.createNewNotificationSenam(count, idAtasan, jenisIzin, idStatus, keyNotif);
-                //   databaseReference.child('senam').child(entry.key).update({'id_status': 2});
-                //   break;
               }
             } catch (e) {
               if (kDebugMode) {
@@ -166,18 +136,32 @@ void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
   }
 }
 
-
-
-// ignore: must_be_immutable
 class MyApp extends StatelessWidget {
   MyApp({Key? key}) : super(key: key);
 
-  static final GlobalKey<NavigatorState> navigatorKey =
-      GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   final int _currentIndex = 0;
   final _pageController = PageController();
+  void initState() {
+    _checkAndUpdatePreferences();
+  }
 
-  
+  void _checkAndUpdatePreferences() {
+    DateTime now = DateTime.now();
+    String todayString = DateFormat('yyyy-MM-dd').format(now);
+    String? savedDate = SpUtil.getString('saved_date');
+    if (savedDate != todayString) {
+      SpUtil.remove('masuk');
+      SpUtil.remove('is_codeMasuk');
+      SpUtil.remove('pulang');
+      SpUtil.remove('is_codePulang');
+      SpUtil.remove('saved_date');
+      SpUtil.putBool('is_codeMasuk', false);
+      SpUtil.putBool('is_codePulang', false);
+      SpUtil.putBool('is_PulangCepat', false);
+      SpUtil.putBool('_isMasuk', false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,50 +186,37 @@ class MyApp extends StatelessWidget {
         '/riwayat-izin': (context) => const RiwayatIzin(),
         '/status-izin': (context) => const StatusIzin(),
         '/konfirmasi-izin': (context) => const KonfirmasiIzin(),
-        '/detail-konfirmasi-izin': (context) =>
-            const DetailKonfirmasiIzinAtasan(),
+        '/detail-konfirmasi-izin': (context) => const DetailKonfirmasiIzinAtasan(),
         '/konfirmasi-laporan': (context) => const KonfirmasiLaporanHarian(),
         '/apel': (context) => const Apel(),
         '/senam': (context) => const Senam(),
         '/pengumuman': (context) => const Pengumuman(),
         '/wifi/pending': (context) => const WifiPendding(),
         '/admin': (context) => const Admin(),
-      //   '/admin/absen/:id_user': (context) => const PlaceholderPage(pageName: 'Absen'),
-      // '/admin/lhk/:id_user': (context) => const PlaceholderPage(pageName: 'LHK'),
-
       },
-onGenerateRoute: (settings) {
-  final uri = Uri.parse(settings.name!);
-
-  if (uri.pathSegments.length == 3 && uri.pathSegments[0] == 'admin') {
-    final idPegawai = uri.pathSegments[2];
-    final route = uri.pathSegments[1];
-
-    Widget page;
-
-    switch (route) {
-      case 'detail':
-        page = DetailPage(idPegawai: idPegawai);
-        break;
-      case 'lhk':
-        page = LhkPage(idPegawai: idPegawai);
-        break;
-      case 'absen':
-        page = AbsenPage(idPegawai: idPegawai);
-        break;
-      default:
+      onGenerateRoute: (settings) {
+        final uri = Uri.parse(settings.name!);
+        if (uri.pathSegments.length == 3 && uri.pathSegments[0] == 'admin') {
+          final idPegawai = uri.pathSegments[2];
+          final route = uri.pathSegments[1];
+          Widget page;
+          switch (route) {
+            case 'detail':
+              page = DetailPage(idPegawai: idPegawai);
+              break;
+            case 'lhk':
+              page = LhkPage(idPegawai: idPegawai);
+              break;
+            case 'absen':
+              page = AbsenPage(idPegawai: idPegawai);
+              break;
+            default:
+              return null;
+          }
+          return MaterialPageRoute(builder: (context) => page);
+        }
         return null;
-    }
-
-    return MaterialPageRoute(builder: (context) => page);
-  }
-
-  return null;
-},
-
-      // theme: ThemeData(
-      //   primarySwatch: Colors.blue,
-      // ),
+      },
       initialRoute: (SpUtil.getString('id_groups').toString() == "3" || SpUtil.getString('id_groups').toString() == "5" ? '/home-page' : (SpUtil.getString('id_groups').toString() == "2" ? '/admin' : '/login')),
       home: Scaffold(
         body: PageView(
@@ -258,11 +229,9 @@ onGenerateRoute: (settings) {
           ],
         ),
         bottomNavigationBar: CurvedNavigationBar(
-          // backgroundColor:  const Color.fromARGB(255, 238, 238, 238),
-          // buttonBackgroundColor: Colors.white,
           color: const Color.fromARGB(255, 14, 60, 129),
           height: 65,
-          index: _currentIndex, // Tentukan indeks aktif
+          index: _currentIndex,
           items: <Widget>[
             _buildIcon(Icons.home, 0),
             _buildIcon(Icons.timer, 1),
@@ -286,14 +255,8 @@ onGenerateRoute: (settings) {
       shaderCallback: (Rect bounds) {
         return LinearGradient(
           colors: _currentIndex == index
-              ? [
-                  const Color.fromARGB(255, 235, 120, 255),
-                  const Color.fromARGB(255, 159, 124, 255)
-                ] // Warna ungu gradian untuk ikon aktif
-              : [
-                  Colors.white,
-                  Colors.white
-                ], // Warna abu-abu untuk ikon non-aktif
+              ? [const Color.fromARGB(255, 235, 120, 255), const Color.fromARGB(255, 159, 124, 255)]
+              : [Colors.white, Colors.white],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ).createShader(bounds);
@@ -301,7 +264,7 @@ onGenerateRoute: (settings) {
       child: Icon(
         icon,
         size: 35,
-        color: Colors.white, // Warna ikon putih, akan di-mask dengan gradian
+        color: Colors.white,
       ),
     );
   }
@@ -311,7 +274,9 @@ class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) {
+        // Implement proper certificate validation here.
+        return false;
+      };
   }
 }

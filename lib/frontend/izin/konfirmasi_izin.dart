@@ -96,12 +96,12 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
       if (responseIzin.statusCode == 200) {
         _processDataIzin(responseIzin);
       } else {
-        throw Exception('Failed to load data Izin');
+        throw Exception('Tidak ada data LHK ditemukan');
       }
       if (responseLhk.statusCode == 200) {
         _processDataLhk(responseLhk);
       } else {
-        throw Exception('Failed to load data LHK');
+        throw Exception('Tidak ada data LHK ditemukan');
       }
     } catch (error) {
       debugPrint('Error: $error');
@@ -231,14 +231,14 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
         controller: _controller,
         children: [
           _riwayatIzin.isEmpty
-              ? const Center(child: Text('No data found'))
+              ? const Center(child: Text('Tidak ada data'))
               : ListView.builder(
                   itemCount: _riwayatIzin.length,
                   itemBuilder: (context, index) =>
                       _buildIzinItem(context, _riwayatIzin[index]),
                 ),
           _riwayatLhk.isEmpty
-              ? const Center(child: Text('No data found'))
+              ? const Center(child: Text('Tidak ada data'))
               : ListView.builder(
                   itemCount: _riwayatLhk.length,
                   itemBuilder: (context, index) =>

@@ -11,7 +11,8 @@ class EditLaporan extends StatefulWidget {
   final Map<String, dynamic> data;
   final VoidCallback onUpdate; // Callback function
 
-  const EditLaporan({Key? key, required this.data, required this.onUpdate}) : super(key: key);
+  const EditLaporan({Key? key, required this.data, required this.onUpdate})
+      : super(key: key);
 
   @override
   _EditLaporanState createState() => _EditLaporanState();
@@ -31,8 +32,8 @@ class _EditLaporanState extends State<EditLaporan> {
     super.initState();
     idController = TextEditingController(text: widget.data['id']);
     tglController = TextEditingController(text: widget.data['tgl']);
-    jammulaiController = TextEditingController(text: widget.data['jammulai']);
-    jamselesaiController = TextEditingController(text: widget.data['jamselesai']);
+    jammulaiController = TextEditingController(text: DateFormat('HH:mm').format(DateFormat('HH:mm').parse(widget.data['jammulai'].toString())));
+    jamselesaiController = TextEditingController(text: DateFormat('HH:mm').format(DateFormat('HH:mm').parse(widget.data['jamselesai'].toString())));
     kegiatanController = TextEditingController(text: widget.data['kegiatan']);
   }
 
@@ -46,43 +47,56 @@ class _EditLaporanState extends State<EditLaporan> {
     super.dispose();
   }
 
-   Future<void> _saveChanges() async {
-final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
-  final headers = {'Content-Type': 'application/json'};
-  // Parsing waktu dari controller text
-  var mulai = DateFormat('HH:mm').parse(jammulaiController.text);
-  var selesai = DateFormat('HH:mm').parse(jamselesaiController.text);
-  // Format kembali DateTime ke string dengan format yang sesuai
-  String formattedMulai = DateFormat('HH:mm').format(mulai);
-  String formattedSelesai = DateFormat('HH:mm').format(selesai);
-  // Mempersiapkan body request
-  final body = json.encode({
-    'id': widget.data['id'],
-    'tgl': tglController.text,
-    'id_user': idUser,
-    'jammulai': formattedMulai,
-    'jamselesai': formattedSelesai,
-    'rincian_kegiatan': kegiatanController.text,
-    'status': widget.data['status'],
-  });
+  Future<void> _saveChanges() async {
+    final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
+    final headers = {'Content-Type': 'application/json'};
+    // Parsing waktu dari controller text
+    var mulai = DateFormat('HH:mm').parse(jammulaiController.text);
+    var selesai = DateFormat('HH:mm').parse(jamselesaiController.text);
+    // Format kembali DateTime ke string dengan format yang sesuai
+    String formattedMulai = DateFormat('HH:mm').format(mulai);
+    String formattedSelesai = DateFormat('HH:mm').format(selesai);
+    // Mempersiapkan body request
+    final body = json.encode({
+      'id': widget.data['id'],
+      'tgl': tglController.text,
+      'id_user': idUser,
+      'jammulai': formattedMulai,
+      'jamselesai': formattedSelesai,
+      'rincian_kegiatan': kegiatanController.text,
+      'status': widget.data['status'],
+    });
+
+    DateTime jamMulaiTime = DateFormat("HH:mm").parse(formattedMulai);
+    DateTime jamSelesaiTime = DateFormat("HH:mm").parse(formattedSelesai);
+    DateTime jamMasukTime = DateFormat("HH:mm").parse(SpUtil.getString('masuk').toString());
+    DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
+
+    if (jamMulaiTime.isBefore(jamMasukTime)) {
+      Alert.alerterror(context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
+      return;
+    }
+    if (jamSelesaiTime.isAfter(jamPulangTime)) {
+      Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
+      return;
+    }
 
     try {
-      final response = await http.put(Uri.parse(sendUrl), headers: headers, body: body);
-      
+      final response =
+          await http.put(Uri.parse(sendUrl), headers: headers, body: body);
+
       var data = jsonDecode(response.body);
       print(data);
       if (response.statusCode == 200) {
-        if(data['status'] == 'success'){
-        // ignore: use_build_context_synchronously
-        Alert.alertsuccess(context, data['message']);
-        widget.onUpdate();
-        // ignore: use_build_context_synchronously
-        Navigator.pop(context); // Kembali ke halaman sebelumnya
-        }else{
-        Alert.alertwarning(context, data['message']);
-
+        if (data['status'] == 'success') {
+          // ignore: use_build_context_synchronously
+          Alert.alertsuccess(context, data['message']);
+          widget.onUpdate();
+          // ignore: use_build_context_synchronously
+          Navigator.pop(context); // Kembali ke halaman sebelumnya
+        } else {
+          Alert.alertwarning(context, data['message']);
         }
-        
       } else {
         throw Exception('Failed to update report');
       }
@@ -91,16 +105,17 @@ final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
     }
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Edit Laporan',style: TextStyle(color: Colors.white),),
+        title: const Text(
+          'Edit Laporan',
+          style: TextStyle(color: Colors.white),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -133,9 +148,10 @@ final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
                               initialTime: TimeOfDay.now(),
                               context: context,
                             );
-            
+
                             if (pickedTime != null) {
-                              String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+                              String formattedTime =
+                                  "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
                               setState(() {
                                 jammulaiController.text = formattedTime;
                               });
@@ -161,9 +177,10 @@ final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
                               initialTime: TimeOfDay.now(),
                               context: context,
                             );
-            
+
                             if (pickedTime != null) {
-                              String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+                              String formattedTime =
+                                  "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
                               setState(() {
                                 jamselesaiController.text = formattedTime;
                               });
@@ -249,13 +266,17 @@ final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
                     color: const Color.fromARGB(255, 255, 204, 51),
                   ),
                   child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Info',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-                            Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
-                            Text('2. Jam mulai tidak lebih besar dari jam selesai'),
-                          ],
-                        ),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Info',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
+                      Text('2. Jam mulai tidak lebih besar dari jam selesai'),
+                    ],
+                  ),
                 ),
               ),
             )
