@@ -97,7 +97,6 @@ class _LoginState extends State<Login> {
       ).timeout(const Duration(seconds: 5));
 
       final simpel = json.decode(response.body);
-      print(simpel);
       if (response.statusCode == 200) {
         if(simpel["success"] == 1){
           if(simpel["id_groups"] == 2){
@@ -182,7 +181,6 @@ class _LoginState extends State<Login> {
   }
 
   void _storeUserData(Map<String, dynamic> userData) {
-
     SpUtil.putString('id_server', userData['id_server'].toString());
     SpUtil.putString('id_user', userData['id_user'].toString());
     SpUtil.putString('id_instansi', userData['id_instansi'].toString());
@@ -201,7 +199,6 @@ class _LoginState extends State<Login> {
   }
 
   void _navigateToHome() {
-
       if (SpUtil.getString('id_groups') == "2") {
         SpUtil.putBool('isLogin', true);
         Navigator.pushReplacement(
@@ -217,8 +214,7 @@ class _LoginState extends State<Login> {
         );
 
       } else {
-                        SpUtil.clear();
-
+        SpUtil.clear();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Login()),

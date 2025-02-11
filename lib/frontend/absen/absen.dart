@@ -69,12 +69,13 @@ class _AbsenState extends State<Absen> {
       isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
       isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
     });
-
     _jlhIzinController.add(SpUtil.getInt("jlh_izin").toString());
     _simulateDataUpdate();
     _fetchNotif();
     refreshData();
-    if (SpUtil.getInt('idlk') == 1) {
+    print(SpUtil.getInt('status_idlk'));
+    print(SpUtil.getBool('is_PulangCepat'));
+    if (SpUtil.getBool('is_PulangCepat') == true) {
       _checkIdlk();
     }
   }
@@ -207,13 +208,14 @@ class _AbsenState extends State<Absen> {
   }
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
-    if (isPulangCepat == true) {
-      Alert.alertwarning(context,
+   
+
+    if (SpUtil.getBool('is_PulangCepat') == true && SpUtil.getInt('status_idlk')  == 0) {
+          Alert.alertwarning(context,
           'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
       return;
     }
-
-    if (SpUtil.getInt('status_idlk') == 1) {
+    if (SpUtil.getBool('is_PulangCepat') == true && SpUtil.getInt('status_idlk')  == 1) {
       try {
         var datapulang = {
           'id_user': idUser,
@@ -222,6 +224,7 @@ class _AbsenState extends State<Absen> {
           'bssid': 'IDLK',
           'versi': '1.4'
         };
+
         http.Response absenPulang = await http.put(
           Uri.parse('$url/api/pulang/$idUser'),
           body: jsonEncode(datapulang),
@@ -229,10 +232,10 @@ class _AbsenState extends State<Absen> {
             'Content-Type': 'application/json; charset=UTF-8',
           },
         );
+            final data = jsonDecode(absenPulang.body);
 
         if (absenPulang.statusCode == 200) {
           if (mounted) {
-            final data = jsonDecode(absenPulang.body);
             code = data['code']?.toString();
             String message = json.encode(data["message"]).replaceAll('"', '');
             if (data["code"] == "1") {
@@ -243,7 +246,6 @@ class _AbsenState extends State<Absen> {
               SpUtil.putString('pulang', '$jamPulang');
               SpUtil.putInt('idlk', 0);
               SpUtil.putInt('status_idlk', 0);
-              SpUtil.putString('pulang', '$jamMasuk');
               SpUtil.putBool('is_codePulang', true);
               Alert.alertsuccess(context, message);
               setState(() {
@@ -267,70 +269,73 @@ class _AbsenState extends State<Absen> {
       return;
     }
 
-    String connectedSSID = wifiName ?? '';
-    String ssID = connectedSSID.replaceAll('"', '');
-    String connectedBSSID = wifiBSSID ?? '';
-    if (SpUtil.getString("id_user") != null) {
-      try {
-        var listWifiString = SpUtil.getString("wifi_data");
-        if (listWifiString != null) {
-          List<dynamic> listWifi = jsonDecode(listWifiString);
-          bool isWifiMatch = listWifi.any((wifi) =>
-              wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
+    if (SpUtil.getBool('is_PulangCepat') == false) {
+      String connectedSSID = wifiName ?? '';
+      String ssID = connectedSSID.replaceAll('"', '');
+      String connectedBSSID = wifiBSSID ?? '';
+      if (SpUtil.getString("id_user") != null) {
+        try {
+          var listWifiString = SpUtil.getString("wifi_data");
+          if (listWifiString != null) {
+            List<dynamic> listWifi = jsonDecode(listWifiString);
+            bool isWifiMatch = listWifi.any((wifi) =>
+                wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
 
-          if (isWifiMatch) {
-            var datapulang = {
-              'id_user': idUser,
-              'id_admin_instansi': idAdmin,
-              'ssid': ssID,
-              'bssid': connectedBSSID,
-              'versi': '1.4'
-            };
-            http.Response absenPulang = await http.put(
-              Uri.parse('$url/api/pulang/$idUser'),
-              body: jsonEncode(datapulang),
-              headers: <String, String>{
-                'Content-Type': 'application/json; charset=UTF-8',
-              },
-            );
+            if (isWifiMatch) {
+              var datapulang = {
+                'id_user': idUser,
+                'id_admin_instansi': idAdmin,
+                'ssid': ssID,
+                'bssid': connectedBSSID,
+                'versi': '1.4'
+              };
 
-            if (absenPulang.statusCode == 200) {
-              if (mounted) {
-                final data = jsonDecode(absenPulang.body);
-                code = data['code']?.toString();
-                String message =
-                    json.encode(data["message"]).replaceAll('"', '');
-                if (data["code"] == "1") {
-                  SpUtil.putString('code_pulang', code!);
-                  String waktuJson = data['waktu'];
-                  DateTime waktuText = DateTime.parse(waktuJson);
-                  jamPulang = DateFormat('HH:mm').format(waktuText);
-                  SpUtil.putString('pulang', '$jamPulang');
-                  SpUtil.putBool('is_codePulang', true);
-                  Alert.alertsuccess(context, message);
-                  setState(() {
-                    isCodePulang = true;
-                    isPulangCepat = false;
-                  });
-                } else {
-                  Alert.alertwarning(context, message);
+              http.Response absenPulang = await http.put(
+                Uri.parse('$url/api/pulang/$idUser'),
+                body: jsonEncode(datapulang),
+                headers: <String, String>{
+                  'Content-Type': 'application/json; charset=UTF-8',
+                },
+              );
+
+              if (absenPulang.statusCode == 200) {
+                if (mounted) {
+                  final data = jsonDecode(absenPulang.body);
+                  code = data['code']?.toString();
+                  String message =
+                      json.encode(data["message"]).replaceAll('"', '');
+                  if (data["code"] == "1") {
+                    SpUtil.putString('code_pulang', code!);
+                    String waktuJson = data['waktu'];
+                    DateTime waktuText = DateTime.parse(waktuJson);
+                    jamPulang = DateFormat('HH:mm').format(waktuText);
+                    SpUtil.putString('pulang', '$jamPulang');
+                    SpUtil.putBool('is_codePulang', true);
+                    Alert.alertsuccess(context, message);
+                    setState(() {
+                      isCodePulang = true;
+                      isPulangCepat = false;
+                    });
+                  } else {
+                    Alert.alertwarning(context, message);
+                  }
+                }
+              } else {
+                if (mounted) {
+                  Alert.alertwarning(context, 'Tidak dapat terhubung ke server');
                 }
               }
             } else {
-              if (mounted) {
-                Alert.alertwarning(context, 'Tidak dapat terhubung ke server');
-              }
+              Alert.alertwarning(
+                  context, 'SSID tidak ditemukan dalam daftar WiFi!');
             }
           } else {
-            Alert.alertwarning(
-                context, 'SSID tidak ditemukan dalam daftar WiFi!');
+            Alert.alerterror(context, 'Gagal mengambil absen!');
           }
-        } else {
-          Alert.alerterror(context, 'Gagal mengambil absen!');
-        }
-      } catch (e) {
-        if (mounted) {
-          Alert.alerterror(context, 'Gagal mengambil absen!');
+        } catch (e) {
+          if (mounted) {
+            Alert.alerterror(context, 'Gagal mengambil absen!');
+          }
         }
       }
     }
@@ -338,20 +343,21 @@ class _AbsenState extends State<Absen> {
 
   Future<void> _checkIdlk() async {
     try {
-      final idlk = await http.get(
-        Uri.parse('$url/api/notif/get-notif-count/$idUser'),
+      final response = await http.get(
+        Uri.parse('$url/api/cek-pulang-cepat/$idUser'),
         headers: {
           'Content-type': 'application/json',
           'Accept': 'application/json',
         },
       );
 
-      if (idlk.statusCode == 200) {
-        if (mounted) {
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'success') {
           setState(() {
             SpUtil.putInt('status_idlk', 1);
-            SpUtil.putInt('idlk', 0);
           });
+
         }
       } else {
         throw Exception('Failed to load data');
@@ -832,7 +838,6 @@ class _AbsenState extends State<Absen> {
                                                                   if (SpUtil.getInt(
                                                                           'status_idlk') ==
                                                                       1) {
-                                                                    // Tidak perlu WiFi jika status_idlk adalah 1
                                                                     showDialog(
                                                                       context:
                                                                           context,
@@ -840,7 +845,7 @@ class _AbsenState extends State<Absen> {
                                                                           (BuildContext
                                                                               context) {
                                                                         return AlertDialog(
-                                                                          title: const Text('Yakin ingin absen pulang?',style: TextStyle(fontSize: 15),),
+                                                                          title: const Text('Yakin ingin absen pulang Cepat?',style: TextStyle(fontSize: 15),),
 
                                                                           // content:
                                                                           //     SizedBox(
@@ -864,7 +869,7 @@ class _AbsenState extends State<Absen> {
                                                                               ),
                                                                               onPressed: () async {
                                                                                 Navigator.of(context).pop();
-                                                                                await absenPulang('IDLK', 'IDLK'); // Tidak perlu WiFi
+                                                                                await absenPulang('IDLK', 'IDLK');
                                                                               },
                                                                             ),
                                                                             TextButton(

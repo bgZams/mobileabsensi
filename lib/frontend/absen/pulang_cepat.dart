@@ -404,7 +404,6 @@ class _PulangCepatState extends State<PulangCepat> {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-
       if (response.statusCode == 200) {
         setState(() {
           SpUtil.putBool('is_PulangCepat', true);
