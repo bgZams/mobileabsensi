@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class ApelFoto extends StatelessWidget {
 
-  const ApelFoto({Key? key, required idApel}) : super(key: key);
+  const ApelFoto({super.key, required idApel});
 
   @override
   Widget build(BuildContext context) {

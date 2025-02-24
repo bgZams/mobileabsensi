@@ -11,7 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:sp_util/sp_util.dart';
 
 class PulangCepat extends StatefulWidget {
-  const PulangCepat({Key? key}) : super(key: key);
+  const PulangCepat({super.key});
 
   @override
   State<PulangCepat> createState() => _PulangCepatState();
@@ -147,21 +147,21 @@ class _PulangCepatState extends State<PulangCepat> {
     "Sakit",
   ];
 
-  void _validateAndSubmitForm() {
-    if (image == null) {
-      Alert.alertwarning(context,'Gambar tidak boleh kosong.');
-      return;
-    }
-    if (_valJenisIzin == null || _valJenisIzin!.isEmpty) {
-      Alert.alertwarning(context,'Jenis izin belum di pilih.');
-      return;
-    }
-    if (keterangan.text.isEmpty) {
-      Alert.alertwarning(context,'Keterangan belum diisi.');
+  // void _validateAndSubmitForm() {
+  //   if (image == null) {
+  //     Alert.alertwarning(context,'Gambar tidak boleh kosong.');
+  //     return;
+  //   }
+  //   if (_valJenisIzin == null || _valJenisIzin!.isEmpty) {
+  //     Alert.alertwarning(context,'Jenis izin belum di pilih.');
+  //     return;
+  //   }
+  //   if (keterangan.text.isEmpty) {
+  //     Alert.alertwarning(context,'Keterangan belum diisi.');
 
-      return;
-    }
-  }
+  //     return;
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

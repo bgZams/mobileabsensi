@@ -7,7 +7,7 @@ import 'dart:convert';
 class DetailPengumuman extends StatefulWidget {
   final int postId;
 
-  const DetailPengumuman({Key? key, required this.postId}) : super(key: key);
+  const DetailPengumuman({super.key, required this.postId});
 
   @override
   State<DetailPengumuman> createState() => _DetailPengumumanState();
@@ -35,7 +35,6 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
 
 
       if (response.statusCode == 200) {
-      // print(response.body);
 
         return json.decode(response.body);
       } else {

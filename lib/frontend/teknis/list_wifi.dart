@@ -12,7 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:sp_util/sp_util.dart';
 
 class WifiOpd extends StatefulWidget {
-  const WifiOpd({Key? key}) : super(key: key);
+  const WifiOpd({super.key});
 
   @override
   State<WifiOpd> createState() => _WifiOpdState();
@@ -348,10 +348,12 @@ class _WifiOpdState extends State<WifiOpd> {
           'BSSID': wifiBSSID,
           'ip_address': wifiIPv4,
           'admin': opd,
+          'id_admin_instansi': SpUtil.getString('id_admin_instansi'),
+          'nama_instansi': SpUtil.getString('nama_instansi'),
         }),
       );
         var data = json.decode(dataWifi.body);
-
+print(data);
       if (dataWifi.statusCode == 200) {
         if (mounted) {
           setState(() {

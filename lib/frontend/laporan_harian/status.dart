@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class StatusLaporan extends StatefulWidget {
-  const StatusLaporan({Key? key}) : super(key: key);
+  const StatusLaporan({super.key});
 
   @override
   State<StatusLaporan> createState() => _StatusLaporanState();

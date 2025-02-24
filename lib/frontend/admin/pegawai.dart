@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert'; // for JSON decoding
 import 'package:http/http.dart' as http;
-import 'package:mobileabsensi/frontend/admin/detail_pegawai.dart'; // for API call
 
 class Pegawai extends StatefulWidget {
-  const Pegawai({Key? key}) : super(key: key);
+  const Pegawai({super.key});
 
   @override
   State<Pegawai> createState() => _PegawaiState();

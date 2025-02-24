@@ -10,13 +10,13 @@ import 'package:sp_util/sp_util.dart';
 class AbsenPage extends StatefulWidget {
   final String idPegawai;
 
-  const AbsenPage({Key? key, required this.idPegawai}) : super(key: key);
+  const AbsenPage({super.key, required this.idPegawai});
 
   @override
-  _AbsenPageState createState() => _AbsenPageState();
+  AbsenPageState createState() => AbsenPageState();
 }
 
-class _AbsenPageState extends State<AbsenPage> {
+class AbsenPageState extends State<AbsenPage> {
   var url = SpUtil.getString("url");
   List<DataRow> _rows = [];
   bool _isLoading = true;

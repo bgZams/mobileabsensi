@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class BeritaAdmin extends StatefulWidget {
-  const BeritaAdmin({Key? key}) : super(key: key);
+  const BeritaAdmin({super.key});
 
   @override
   State<BeritaAdmin> createState() => _BeritaAdminState();

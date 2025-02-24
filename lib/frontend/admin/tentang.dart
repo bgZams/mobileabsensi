@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class TentangAdmin extends StatefulWidget {
-  const TentangAdmin({Key? key}) : super(key: key);
+  const TentangAdmin({super.key});
 
   @override
   State<TentangAdmin> createState() => _TentangAdminState();

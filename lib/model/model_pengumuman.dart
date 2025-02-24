@@ -3,19 +3,19 @@ import 'dart:convert';
 class ModelPengumuman {
   int? id;
   String? title;
-  String? date_tgl;
+  String? dateTgl;
   String? content;
   String? thumbnail;
-  String? created_by;
+  String? createdBy;
   int? dilihat;
 
   ModelPengumuman({
     this.id,
     this.title,
-    this.date_tgl,
+    this.dateTgl,
     this.content,
     this.thumbnail,
-    this.created_by,
+    this.createdBy,
     this.dilihat,
   });
 
@@ -23,10 +23,10 @@ class ModelPengumuman {
     return ModelPengumuman(
       id: json['id'],
       title: json['title'],
-      date_tgl: json['date_tgl'],
+      dateTgl: json['dateTgl'],
       content: json['content'],
       thumbnail: json['thumbnail'],
-      created_by: json['created_by'],
+      createdBy: json['createdBy'],
       dilihat: json['dilihat'],
     );
   }

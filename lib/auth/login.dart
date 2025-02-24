@@ -11,13 +11,13 @@ import 'package:mobileabsensi/services/alert.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Login extends StatefulWidget {
-  const Login({Key? key}) : super(key: key);
+  const Login({super.key});
 
   @override
-  _LoginState createState() => _LoginState();
+  LoginState createState() => LoginState();
 }
 
-class _LoginState extends State<Login> {
+class LoginState extends State<Login> {
   bool passwordVisible = false;
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
@@ -38,9 +38,9 @@ class _LoginState extends State<Login> {
     });
   }
 
-  void _showMsg(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
+  // void _showMsg(String msg) {
+  //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  // }
 
   void _startLoading() async {
     setState(() {
@@ -97,6 +97,7 @@ class _LoginState extends State<Login> {
       ).timeout(const Duration(seconds: 5));
 
       final simpel = json.decode(response.body);
+      // print(simpel);
       if (response.statusCode == 200) {
         if(simpel["success"] == 1){
           if(simpel["id_groups"] == 2){
@@ -105,7 +106,9 @@ class _LoginState extends State<Login> {
             await _handleSuccessfulLogin(simpel);
           }
         } else {
+          if (mounted) {
           Alert.alertwarning(context, simpel["message"]);
+          }
         }
       } 
     } catch (e) {
@@ -124,18 +127,20 @@ class _LoginState extends State<Login> {
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
 
     final getDeviceResponse = await post(
-      Uri.parse('http://192.168.79.8:8000/api/getDevice'),
-      body: {
+      Uri.parse('http://mobileabsensi1.pasamanbaratkab.go.id/api_android_v2/api/getDevice'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
         'id_user': simpel['id_user'].toString(),
         'device_id': deviceId,
         'username': simpel['username'],
         'versiApp': systemVersion,
-      },
-    ).timeout(const Duration(seconds: 5));
+      }),
+    ).timeout(const Duration(seconds: 15));
 
     final deviceData = json.decode(getDeviceResponse.body);
-
-    if (deviceData['status']) {
+    if (deviceData['status'] == true) {
       await _syncUserData(simpel);
     } else {
       if (mounted) {
@@ -147,7 +152,7 @@ class _LoginState extends State<Login> {
   Future<void> _syncUserData(Map<String, dynamic> body) async {
 
     final dataWifiResponse = await get(
-      Uri.parse('http://192.168.79.8:8000/api/wifi/${body['username_admin']}'),
+      Uri.parse('http://mobileabsensi1.pasamanbaratkab.go.id/api_android_v2/api/wifi/${body['username_admin']}'),
       headers: {
         'Content-type': 'application/json',
         'Accept': 'application/json',
@@ -195,7 +200,7 @@ class _LoginState extends State<Login> {
     SpUtil.putString('nama_atasan', userData['nama_atasan']?.toString() ?? '');
     SpUtil.putString('nip_atasan', userData['nip_atasan']?.toString() ?? '');
     SpUtil.putString('jabatan_atasan', userData['jabatan_atasan']?.toString() ?? '');
-    SpUtil.putString('url', 'http://192.168.79.8:8000');
+    SpUtil.putString('url', 'http://mobileabsensi1.pasamanbaratkab.go.id/api_android_v2');
   }
 
   void _navigateToHome() {

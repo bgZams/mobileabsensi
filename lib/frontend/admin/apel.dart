@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ApelAdmin extends StatefulWidget {
-  const ApelAdmin({Key? key}) : super(key: key);
+  const ApelAdmin({super.key});
 
   @override
   State<ApelAdmin> createState() => _ApelAdminState();

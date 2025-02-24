@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class Kendala extends StatefulWidget {
-  const Kendala({Key? key}) : super(key: key);
+  const Kendala({super.key});
 
   @override
   State<Kendala> createState() => _KendalaState();

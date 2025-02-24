@@ -2,13 +2,13 @@ import 'package:mobileabsensi/theme.dart';
 import 'package:flutter/material.dart';
 
 class CustomCheckbox extends StatefulWidget {
-  const CustomCheckbox({Key? key}) : super(key: key);
+  const CustomCheckbox({super.key});
 
   @override
-  _CustomCheckboxState createState() => _CustomCheckboxState();
+  CustomCheckboxState createState() => CustomCheckboxState();
 }
 
-class _CustomCheckboxState extends State<CustomCheckbox> {
+class CustomCheckboxState extends State<CustomCheckbox> {
   bool isChecked = false;
 
   @override

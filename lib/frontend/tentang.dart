@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:sp_util/sp_util.dart';
 
 class Tentang extends StatefulWidget {
-  const Tentang({Key? key}) : super(key: key);
+  const Tentang({super.key});
 
   @override
   State<Tentang> createState() => _TentangState();

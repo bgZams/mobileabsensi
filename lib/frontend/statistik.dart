@@ -7,13 +7,13 @@ import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Statistik extends StatefulWidget {
-  const Statistik({Key? key}) : super(key: key);
+  const Statistik({super.key});
 
   @override
-  _StatistikState createState() => _StatistikState();
+  StatistikState createState() => StatistikState();
 }
 
-class _StatistikState extends State<Statistik> {
+class StatistikState extends State<Statistik> {
   var url = SpUtil.getString("url") ?? '';
   var idUser = SpUtil.getString("id_user") ?? '';
   late String selectedMonth;

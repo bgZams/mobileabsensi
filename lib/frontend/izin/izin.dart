@@ -8,7 +8,7 @@ import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Izin extends StatefulWidget {
-  const Izin({Key? key}) : super(key: key);
+  const Izin({super.key});
 
   @override
   State<Izin> createState() => _IzinState();
@@ -78,7 +78,7 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
           isLoading = false;
         });
       }
-      throw Exception('Failed to load data');
+      throw Exception('Gagal memuat data izin');
     }
   }
 
@@ -375,7 +375,7 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                                       Row(
                                         children: [
                                           jenisStatus,
-                                          if(data[index]['id_keterangan'] != null)
+                                          if (data[index]['id_keterangan'] != null && data[index]['tgl_absen'] == DateTime.now().toString())
                                           const Chip(
                                             padding: EdgeInsets.all(0),
                                             backgroundColor: Colors.red,
@@ -495,7 +495,7 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
         Alert.alerterror(context, 'Gagal menghapus data, silahkan coba lagi!');
       }
     } catch (error) {
-      print('Error: $error');
+      // print('Error: $error');
     }
   }
 

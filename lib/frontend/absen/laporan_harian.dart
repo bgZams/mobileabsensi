@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
 class LaporanHarian extends StatefulWidget {
-  const LaporanHarian({Key? key}) : super(key: key);
+  const LaporanHarian({super.key});
 
   @override
   State<LaporanHarian> createState() => _LaporanHarianState();
@@ -188,28 +188,93 @@ class _LaporanHarianState extends State<LaporanHarian>
           isLoading = false;
         });
       }
-      print("Error fetching data: $e");
+      // print("Error fetching data: $e");
+    }
+  }
+  Future<void> _searchData(selectedMonth, selectedYear) async {
+    final idUser = SpUtil.getString("id_user");
+    String selectedMonthNumber = _getMonthNumber(selectedMonth);
+    try {
+      String subUrl = '';
+      if (selectedIndex == 0) {
+        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser';
+      } else {
+        subUrl = '$url/api/riwayat-lhk/$idUser/$selectedMonthNumber/$selectedYear';
+      }
+      final response = await http.get(
+        Uri.parse(subUrl),
+        headers: {
+          'Content-type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+
+        setState(() {
+          if (selectedIndex == 0) {
+            _riwayatLaporan = jsonData['data'];
+          } else {
+            _riwayatPengajuan = jsonData['data'];
+          }
+        });
+
+        if (jsonData.containsKey('data')) {
+          final dataList = jsonData['data'] as List<dynamic>;
+
+          setState(() {
+            _rows = dataList.map((data) => DataRow(cells: [
+                  DataCell(Text(data['id'].toString())),
+                  DataCell(Text(data['tgl'] ?? 'N/A')),
+                  DataCell(Text(data['jammulai'] ?? 'N/A')),
+                  DataCell(Text(data['jamselesai'] ?? 'N/A')),
+                  DataCell(Text(data['rincian_kegiatan'] ?? 'N/A')),
+                  DataCell(Text(data['status'] ?? 'N/A')),
+                ])).toList();
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+          throw Exception('Failed to load data');
+        }
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        throw Exception('HTTP Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      // print("Error fetching data: $e");
     }
   }
 
-  Future<void> _deleteLaporan(id) async {
+  Future<void> _deleteLaporan(String id) async {
     final urlDel = '$url/api/delete-lhk/$id';
 
     try {
       final response = await http.delete(Uri.parse(urlDel));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String message = json.encode(data["message"]).replaceAll('"', '');
-        // ignore: use_build_context_synchronously
-        Alert.alertsuccess(context, message);
-        setState(() {
+        String message = data["message"] ?? 'Laporan berhasil dihapus';
+        if (mounted) {
+          Alert.alertsuccess(context, message);
           _refreshData();
-        });
+        }
       } else {
         throw Exception('Failed to delete report');
       }
     } catch (error) {
-      print('Error: $error');
+      if (mounted) {
+        Alert.alerterror(context, 'Error: $error');
+      }
     }
   }
 
@@ -329,7 +394,7 @@ class _LaporanHarianState extends State<LaporanHarian>
                               // Tombol Cari
                               ElevatedButton(
                                 onPressed: () {
-                                  // _searchData(selectedMonth, selectedYear);
+                                  _searchData(selectedMonth, selectedYear);
                                 },
                                 child: const Text('Cari'),
                               ),
@@ -348,79 +413,79 @@ class _LaporanHarianState extends State<LaporanHarian>
                       ),
                     ],
                   ),
-            _riwayatPengajuan.isEmpty
-                ? const Center(child: Text('No data found'))
-                : Column(
-                    children: [
-                      Column(
-                        children: [
-                          const SizedBox(height: 5),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              DropdownButton<String>(
-                                value: selectedMonth,
-                                hint: const Text('Pilih Bulan'),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    selectedMonth = newValue!;
-                                  });
-                                },
-                                items: [
-                                  'Januari',
-                                  'Februari',
-                                  'Maret',
-                                  'April',
-                                  'Mei',
-                                  'Juni',
-                                  'Juli',
-                                  'Agustus',
-                                  'September',
-                                  'Oktober',
-                                  'November',
-                                  'Desember'
-                                ].map<DropdownMenuItem<String>>((String value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(value),
-                                  );
-                                }).toList(),
-                              ),
-                              const SizedBox(width: 16),
-                              // Inputan Tahun
-                              DropdownButton<String>(
-                                value: selectedYear,
-                                hint: const Text('Pilih Tahun'),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    selectedYear = newValue!;
-                                  });
-                                },
-                                items: _getYearItems(),
-                              ),
-                              const SizedBox(width: 16),
-                              // Tombol Cari
-                              ElevatedButton(
-                                onPressed: () {
-                                  // _searchData(selectedMonth, selectedYear);
-                                },
-                                child: const Text('Cari'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 5),
-                        ],
-                      ),
-                      Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: () {
-                            return _refreshData();
-                          },
-                          child: SingleChildScrollView(child: _buildCards()),
-                        ),
-                      ),
-                    ],
-                  )
+            Column(
+              children: [
+              Column(
+                children: [
+                const SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                  DropdownButton<String>(
+                    value: selectedMonth,
+                    hint: const Text('Pilih Bulan'),
+                    onChanged: (newValue) {
+                    setState(() {
+                      selectedMonth = newValue!;
+                    });
+                    },
+                    items: [
+                    'Januari',
+                    'Februari',
+                    'Maret',
+                    'April',
+                    'Mei',
+                    'Juni',
+                    'Juli',
+                    'Agustus',
+                    'September',
+                    'Oktober',
+                    'November',
+                    'Desember'
+                    ].map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                    }).toList(),
+                  ),
+                  const SizedBox(width: 16),
+                  // Inputan Tahun
+                  DropdownButton<String>(
+                    value: selectedYear,
+                    hint: const Text('Pilih Tahun'),
+                    onChanged: (newValue) {
+                    setState(() {
+                      selectedYear = newValue!;
+                    });
+                    },
+                    items: _getYearItems(),
+                  ),
+                  const SizedBox(width: 16),
+                  // Tombol Cari
+                  ElevatedButton(
+                    onPressed: () {
+                    _searchData(selectedMonth, selectedYear);
+                    },
+                    child: const Text('Cari'),
+                  ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                ],
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                onRefresh: () {
+                  return _refreshData();
+                },
+                child: _riwayatPengajuan.isEmpty
+                  ? const Center(child: Text('No data found'))
+                  : SingleChildScrollView(child: _buildCards()),
+                ),
+              ),
+              ],
+            )
           ],
         ),
       ),

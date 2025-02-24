@@ -8,13 +8,13 @@ import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:sp_util/sp_util.dart';
 
 class RiwayatAbsen extends StatefulWidget {
-  const RiwayatAbsen({Key? key}) : super(key: key);
+  const RiwayatAbsen({super.key});
 
   @override
-  _RiwayatAbsenState createState() => _RiwayatAbsenState();
+  RiwayatAbsenState createState() => RiwayatAbsenState();
 }
 
-class _RiwayatAbsenState extends State<RiwayatAbsen> {
+class RiwayatAbsenState extends State<RiwayatAbsen> {
   var url = SpUtil.getString("url");
   List<DataRow> _rows = [];
   bool _isLoading = true;
@@ -110,6 +110,7 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
 
       if (riwayatAbsen.statusCode == 200) {
         final jsonData = jsonDecode(riwayatAbsen.body) as Map<String, dynamic>;
+
         if (jsonData.containsKey('data')) {
           final dataList = jsonData['data'] as List<dynamic>;
           setState(() {
@@ -375,7 +376,7 @@ class _RiwayatAbsenState extends State<RiwayatAbsen> {
                               ),
                             ],
                           ),
-                        ))
+                        ),)
                   ],
                 )
               else

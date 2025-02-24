@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class DetailPage extends StatefulWidget {
   final String idPegawai;
 
-  const DetailPage({Key? key, required this.idPegawai}) : super(key: key);
+  const DetailPage({super.key, required this.idPegawai});
 
   @override
   State<DetailPage> createState() => _DetailPageState();

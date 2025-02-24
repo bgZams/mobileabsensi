@@ -7,7 +7,7 @@ import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
 class ListWifi extends StatefulWidget {
-  const ListWifi({Key? key}) : super(key: key);
+  const ListWifi({super.key});
 
   @override
   State<ListWifi> createState() => _ListWifiState();
@@ -58,7 +58,6 @@ class _ListWifiState extends State<ListWifi> {
         _isLoading = true;
       });
     }
-
     try {
       await ambildata();
     } catch (error) {
@@ -177,6 +176,8 @@ class _ListWifiState extends State<ListWifi> {
   }
 
   Future<void> ambildata() async {
+  
+
     if (lastFetchTime != null &&
         DateTime.now().difference(lastFetchTime!) < const Duration(minutes: 1)) {
       if (mounted) {
@@ -188,6 +189,8 @@ class _ListWifiState extends State<ListWifi> {
       return;
     }
 
+
+
     try {
       http.Response dataWifi = await http.get(
         Uri.parse('$url/api/wifi/$userAdmin'),
@@ -196,11 +199,18 @@ class _ListWifiState extends State<ListWifi> {
           'Accept': 'application/json'
         },
       );
-      print('$url/api/wifi/$userAdmin');
+
+
       if (dataWifi.statusCode == 200) {
-        List<dynamic> wifiData = json.decode(dataWifi.body)['data'];
-        SpUtil.putString('wifi_data', json.encode(wifiData));
+        List<dynamic> newWifiData = json.decode(dataWifi.body)['data'];
+        // Simpan ke SharedPreferences
+        SpUtil.putString('wifi_data', json.encode(newWifiData));
+        
+        // Update state dengan data baru
         if (mounted) {
+          setState(() {
+            wifiData = List<Map<String, dynamic>>.from(newWifiData);
+          });
           Alert.alertsuccess(context, "Syncron berhasil.");
         }
       } else {

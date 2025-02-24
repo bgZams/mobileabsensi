@@ -9,7 +9,7 @@ import 'package:mobileabsensi/frontend/pengumuman.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class Home extends StatefulWidget {
-  const Home({Key? key, required this.title}) : super(key: key);
+  const Home({super.key, required this.title});
   final String title;
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();

@@ -3,7 +3,7 @@ import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:flutter/material.dart';
 
 class NotifikasiLaporanHarian extends StatefulWidget {
-  const NotifikasiLaporanHarian({Key? key}) : super(key: key);
+  const NotifikasiLaporanHarian({super.key});
 
   @override
   State<NotifikasiLaporanHarian> createState() =>
@@ -14,9 +14,9 @@ class _NotifikasiLaporanHarianState extends State<NotifikasiLaporanHarian> {
   TextEditingController idUser = TextEditingController();
   TextEditingController idPimpinan = TextEditingController();
   final firebaseLaporan = FirebaseDatabase.instance;
-  var l;
-  var g;
-  var k;
+  late List<String> l;
+  late String g;
+  late String k;
   @override
   Widget build(BuildContext context) {
     final datalaporan = firebaseLaporan.ref().child('laporan_harian');
@@ -44,7 +44,7 @@ class _NotifikasiLaporanHarianState extends State<NotifikasiLaporanHarian> {
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        k = snapshot.key;
+                        k = snapshot.key!;
                         showDialog(
                           context: context,
                           builder: (ctx) => AlertDialog(
@@ -82,9 +82,12 @@ class _NotifikasiLaporanHarianState extends State<NotifikasiLaporanHarian> {
                                 ),
                               ),
                               MaterialButton(
-                                onPressed: () async {
-                                  await upd();
-                                  Navigator.of(ctx).pop();
+                                onPressed: () {
+                                  upd().then((_) {
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                    }
+                                  });
                                 },
                                 color: const Color.fromARGB(255, 0, 22, 145),
                                 child: const Text(

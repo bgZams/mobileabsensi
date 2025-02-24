@@ -10,7 +10,7 @@ import 'package:mobileabsensi/frontend/admin/wifi/list_wifi.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Admin extends StatefulWidget {
-  const Admin({Key? key}) : super(key: key);
+  const Admin({super.key});
 
   @override
   State<Admin> createState() => _AdminState();

@@ -2,11 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
 class KonfirmasiIzin extends StatefulWidget {
-  const KonfirmasiIzin({Key? key}) : super(key: key);
+  const KonfirmasiIzin({super.key});
 
   @override
   State<KonfirmasiIzin> createState() => _KonfirmasiIzinState();
@@ -136,9 +137,11 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           selectedIndex = 1; // Set index to LHK tab
           _controller?.animateTo(1); // Move to LHK tab
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Izin berhasil ditolak')),
-        );
+        if(mounted){
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Izin berhasil ditolak')),
+          );
+        }
 
         _refreshData();
       } else {
@@ -171,9 +174,11 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           selectedIndex = 1; // Set index to LHK tab
           _controller?.animateTo(1); // Move to LHK tab
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["message"])),
-        );
+        if(mounted){
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data["message"])),
+          );
+        }
         _fetchData();
       } else {
         throw Exception('Gagal menyetujui izin');
@@ -251,7 +256,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
 
   Widget _buildIzinItem(BuildContext context, dynamic izin) {
     String jenisStatus = _getStatus(izin['status'].toString());
-
+  
     return Card(
       margin: const EdgeInsets.all(8),
       elevation: 4,
@@ -261,7 +266,8 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Status: $jenisStatus'),
-            Text('Tanggal Pengajuan: \n ${izin['timestamp_masuk']}'),
+            Text('Tanggal Pengajuan: \n${DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+                                .format(DateTime.parse(izin['timestamp']))}'),
             Text('Durasi: ${izin['durasi']} Hari'),
           ],
         ),

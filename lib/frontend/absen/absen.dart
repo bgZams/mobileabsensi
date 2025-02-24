@@ -19,7 +19,7 @@ import 'package:sp_util/sp_util.dart';
 import '../../services/alert.dart';
 
 class Absen extends StatefulWidget {
-  const Absen({Key? key}) : super(key: key);
+  const Absen({super.key});
 
   @override
   State<Absen> createState() => _AbsenState();
@@ -73,8 +73,8 @@ class _AbsenState extends State<Absen> {
     _simulateDataUpdate();
     _fetchNotif();
     refreshData();
-    print(SpUtil.getInt('status_idlk'));
-    print(SpUtil.getBool('is_PulangCepat'));
+    // print(SpUtil.getInt('status_idlk'));
+    // print(SpUtil.getBool('is_PulangCepat'));
     if (SpUtil.getBool('is_PulangCepat') == true) {
       _checkIdlk();
     }
@@ -150,6 +150,8 @@ class _AbsenState extends State<Absen> {
               'id_user': idUser,
               'id_admin_instansi': idAdmin,
               'nama_lengkap': nama,
+              'username': SpUtil.getString('username'),
+              'instansi': SpUtil.getString('id_instansi'),
               'ssid': connectedSSID,
               'bssid': connectedBSSID,
               'versi': '1.4'
@@ -196,7 +198,8 @@ class _AbsenState extends State<Absen> {
               }
             }
           } catch (e) {
-            Alert.alerterror(context, 'Gagal mengambil absen!');
+            if(mounted)
+            {Alert.alerterror(context, 'Gagal mengambil absen!');}
           }
         }
       } else {
@@ -947,8 +950,7 @@ class _AbsenState extends State<Absen> {
                                                                         );
                                                                       },
                                                                     );
-                                                                  } else {
-                                                                    // Jika tidak memenuhi kondisi, tampilkan peringatan
+                                                                  } else { 
                                                                     Alert.alertwarning(
                                                                         context,
                                                                         'Silahkan sambungkan ke Wifi!');

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class LihatSpt extends StatelessWidget {
   final String imageUrl;
 
-  const LihatSpt({required this.imageUrl, Key? key}) : super(key: key);
+  const LihatSpt({required this.imageUrl, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,12 @@ class LihatSpt extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: Image.network(decodedUrl),
+        child: Image.network(
+          decodedUrl,
+          errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+            return const Text('GAMBAR TIDAK DITEMUKAN!');
+          },
+        ),
       ),
     );
   }

@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class Panduan extends StatefulWidget {
-  const Panduan({Key? key}) : super(key: key);
+  const Panduan({super.key});
 
   @override
   State<Panduan> createState() => _PanduanState();

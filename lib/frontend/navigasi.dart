@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/frontend/list_wifi.dart';
@@ -10,7 +9,7 @@ import 'package:mobileabsensi/frontend/tentang.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Navigasi extends StatefulWidget {
-  const Navigasi({Key? key}) : super(key: key);
+  const Navigasi({super.key});
 
   @override
   State<Navigasi> createState() => _NavigasiState();

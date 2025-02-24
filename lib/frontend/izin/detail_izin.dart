@@ -1,34 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:sp_util/sp_util.dart';
+import 'package:http/http.dart' as http;
 
 class DetailPengajuanIzin extends StatefulWidget {
   final Map<String, dynamic> data;
-  final int noUrut; // Perubahan pada tipe data parameter noUrut
+  final int noUrut;
 
-  const DetailPengajuanIzin(
-      {Key? key, required this.data, required this.noUrut})
-      : super(key: key);
+  const DetailPengajuanIzin({
+    super.key, 
+    required this.data, 
+    required this.noUrut
+  });
 
   @override
-  _DetailPengajuanIzinState createState() => _DetailPengajuanIzinState();
+  DetailPengajuanIzinState createState() => DetailPengajuanIzinState();
 }
 
-class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
+class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
   late String baseUrl;
+  String? imageUrl;
 
   @override
   void initState() {
     super.initState();
-    baseUrl = SpUtil.getString("url") ?? ""; // Ambil URL dasar dari SpUtil
+    baseUrl = SpUtil.getString("url") ?? "";
+    _initializeImageUrl();
+  }
+
+  Future<bool> checkUrl(String url) async {
+    try {
+      final response = await http.head(Uri.parse(url));
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> _initializeImageUrl() async {
+    if (widget.data['file'] != null && widget.data['file'].isNotEmpty) {
+      String url1 = 'http://mobileabsensi1.pasamanbaratkab.go.id/api_android_v2/public/${widget.data['file']}';
+      String url2 = 'https://mobileabsensi.pasamanbaratkab.go.id/foto/${widget.data['file']}';
+ 
+      if (await checkUrl(url1)) {
+        setState(() {
+          imageUrl = url1;
+        });
+      } else if (await checkUrl(url2)) {
+        setState(() {
+          imageUrl = url2;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Gabungkan URL dasar dengan jalur file
-    String imageUrl =
-        widget.data['file'] != null && widget.data['file'].isNotEmpty
-            ? '$baseUrl/${widget.data['file']}'
-            : '';
     String jenisStatus;
     String statusApproval;
     Color iconColor;
@@ -50,6 +76,7 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
         statusApproval = 'Diajukan';
         iconColor = Colors.black;
     }
+
     switch (widget.data['jenis_approval'].toString()) {
       case '2':
         jenisStatus = 'Dinas Luar';
@@ -69,17 +96,21 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
       default:
         jenisStatus = 'Belum Disetujui';
     }
+
     var jamMasuk = widget.data['timestamp_masuk'].toString();
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Detail Pengajuan Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+        title: const Text(
+          'Detail Pengajuan Izin',
+          style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))
+        ),
         elevation: 4,
-         leading: IconButton(
-              icon: const Icon(Icons.arrow_back,color: Colors.white,),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
-            
           },
         ),
       ),
@@ -97,9 +128,7 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
                 children: [
                   _buildTableRow(
                     'Tgl Pengajuan',
-                    ': $jamMasuk' != ''
-                        ? ': $jamMasuk'
-                        : '',
+                    ': $jamMasuk' != '' ? ': $jamMasuk' : '',
                   ),
                   _buildTableRow(
                     'Tgl Izin',
@@ -111,15 +140,54 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
                   ),
                   _buildTableRow('Jenis Izin', ': $jenisStatus'),
                   _buildTableRow(
-                      'Keterangan', ': ${widget.data['keterangan']}'),
+                    'Keterangan', 
+                    ': ${widget.data['keterangan']}'
+                  ),
                   _buildStatusApprovalRow(statusApproval, iconColor),
                 ],
               ),
-              imageUrl.isNotEmpty ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.contain,
-                        width: MediaQuery.of(context).size.width,
-                      ) : const Text('Tidak ada file tersedia'),
+              const SizedBox(height: 16),
+              if (imageUrl != null)
+                Image.network(
+                  imageUrl!,
+                  fit: BoxFit.contain,
+                  width: MediaQuery.of(context).size.width,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text(
+                          'Gagal memuat gambar',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    );
+                  },
+                )
+              else
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'Tidak ada file tersedia',
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -165,7 +233,7 @@ class _DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
               // Kode yang akan dijalankan saat tombol ditekan
             },
             style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all<Color>(iconColor),
+              backgroundColor: WidgetStateProperty.all<Color>(iconColor),
             ),
             child: Text(
               statusApproval,

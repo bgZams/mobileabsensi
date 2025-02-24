@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 
 class TolakIzin extends StatefulWidget {
-  const TolakIzin({Key? key}) : super(key: key);
+  const TolakIzin({super.key});
 
   @override
   State<TolakIzin> createState() => _TolakIzinState();

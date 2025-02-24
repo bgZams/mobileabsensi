@@ -8,7 +8,7 @@ import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
 class BuatLaporan extends StatefulWidget {
-  const BuatLaporan({Key? key}) : super(key: key);
+  const BuatLaporan({super.key});
 
   @override
   State<BuatLaporan> createState() => _BuatLaporanState();
@@ -21,7 +21,6 @@ class _BuatLaporanState extends State<BuatLaporan> {
   TextEditingController keterangan = TextEditingController();
   bool laporanPertama = false;
   bool laporanKedua = true;
-
 
   final _formKey = GlobalKey<FormState>();
 
@@ -39,12 +38,11 @@ class _BuatLaporanState extends State<BuatLaporan> {
           print("Error: $error");
         }
       } finally {
-        if(mounted){
-setState(() {
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
         }
-        
       }
     } else {
       setState(() {
@@ -59,7 +57,8 @@ setState(() {
     jamSelesai.dispose();
     super.dispose();
   }
- @override
+
+  @override
   void initState() {
     super.initState();
     setState(() {
@@ -68,18 +67,22 @@ setState(() {
     });
     if (laporanPertama == false && laporanKedua == false) {
       jamMulai.text = SpUtil.getString('masuk').toString();
-    }else{
+    } else {
       jamMulai.text = SpUtil.getString('mulai').toString();
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Buat Laporan',style: TextStyle(color: Colors.white),),
+        title: const Text(
+          'Buat Laporan',
+          style: TextStyle(color: Colors.white),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -113,25 +116,25 @@ setState(() {
                           readOnly: true,
                           onTap: () async {
                             if (SpUtil.getString('masuk')!.isEmpty) {
+                              setState(() {
+                                jamMulai.text =
+                                    SpUtil.getString('masuk').toString();
+                              });
+                            } else {
+                              TimeOfDay? pickedTime = await showTimePicker(
+                                initialTime: TimeOfDay.now(),
+                                context: context,
+                              );
+                              if (pickedTime != null) {
+                                String formattedTime =
+                                    "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
                                 setState(() {
-                                  jamMulai.text = SpUtil.getString('masuk').toString();
+                                  jamMulai.text = formattedTime;
                                 });
                               } else {
-                                TimeOfDay? pickedTime = await showTimePicker(
-                                  initialTime: TimeOfDay.now(),
-                                  context: context,
-                                );
-                                if (pickedTime != null) {
-                                  String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                                  setState(() {
-                                    jamMulai.text = formattedTime;
-                                  });
-                                } else {
-                                  // Time is not selected
-                                }
+                                // Time is not selected
                               }
-                              
-                            
+                            }
                           },
                         ),
                       ),
@@ -155,7 +158,7 @@ setState(() {
                               initialTime: TimeOfDay.now(),
                               context: context,
                             );
-            
+
                             if (pickedTime != null) {
                               String formattedTime =
                                   "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
@@ -175,6 +178,11 @@ setState(() {
                   const SizedBox(
                     height: 20,
                   ),
+                  Text(
+                    'Masukkan kegiatan',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Container(
@@ -183,14 +191,15 @@ setState(() {
                         controller: keterangan,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Kegiatan tidak boleh kosong';
+                            Alert.alerterror(
+                                context, 'Keterangan tidak boleh kosong');
                           }
                           return null;
                         },
                         maxLines: 10,
                         style: const TextStyle(color: Colors.white),
                         decoration: const InputDecoration(
-                          labelText: "Masukkan kegiatan",
+                          labelText: "",
                           labelStyle: TextStyle(color: Colors.white),
                           border: OutlineInputBorder(),
                           fillColor: Colors.black45,
@@ -254,13 +263,17 @@ setState(() {
                     color: const Color.fromARGB(255, 255, 204, 51),
                   ),
                   child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Info',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),
-                            Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
-                            Text('2. Jam mulai tidak lebih besar dari jam selesai'),
-                          ],
-                        ),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Info',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
+                      Text('2. Jam mulai tidak lebih besar dari jam selesai'),
+                    ],
+                  ),
                 ),
               ),
             )
@@ -279,7 +292,7 @@ setState(() {
     String? idPimpinan = SpUtil.getString('id_user_pimpinan');
     String? idAdmin = SpUtil.getString('id_admin_instansi');
     String namalengkap = SpUtil.getString("nama_lengkap").toString();
-    var now = DateFormat('yyyy-mm-dd').format(DateTime.now());
+    var now = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     Map<String, dynamic> data = {
       'id_user': idUser,
@@ -289,6 +302,8 @@ setState(() {
       'rincian_kegiatan': kegiatan,
       'id_status': 0,
     };
+
+
     Map<String, dynamic> storeFirebase = {
       'tanggal': now,
       'id_user': idUser,
@@ -309,20 +324,27 @@ setState(() {
       return;
     }
 
-    DateTime jamMulaiTime = DateFormat("HH:mm").parse(jamMulai.text);
-    DateTime jamSelesaiTime = DateFormat("HH:mm").parse(jamSelesai.text);
+
+    if (mulai.isEmpty || selesai.isEmpty || SpUtil.getString('masuk')!.isEmpty) {
+      Alert.alerterror(context, 'Jam tidak boleh kosong');
+      return;
+    }
+
+    DateTime jamMulaiTime = DateFormat("HH:mm").parse(mulai);
+    // DateTime jamSelesaiTime = DateFormat("HH:mm").parse(selesai);
     DateTime jamMasukTime = DateFormat("HH:mm").parse(SpUtil.getString('masuk').toString());
-    DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
+    // DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
 
     if (jamMulaiTime.isBefore(jamMasukTime)) {
-      Alert.alerterror(context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
+      Alert.alerterror(
+          context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
       return;
     }
-    if (jamSelesaiTime.isAfter(jamPulangTime)) {
-      Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
-      return;
-    }
-
+    // if (jamSelesaiTime.isAfter(jamPulangTime)) {
+    //   Alert.alerterror(
+    //       context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
+    //   return;
+    // }
     try {
       http.Response kirimLaporanHarian = await http.post(
         Uri.parse('$url/api/simpan-lhk'),
@@ -333,9 +355,10 @@ setState(() {
         },
       );
       if (kirimLaporanHarian.statusCode == 200) {
-          final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
-          databaseReference.child("laporan").push().set(storeFirebase);
-          prosesResponSukses(kirimLaporanHarian.body);
+        final DatabaseReference databaseReference =
+            FirebaseDatabase.instance.ref();
+        databaseReference.child("laporan").push().set(storeFirebase);
+        prosesResponSukses(kirimLaporanHarian.body);
       } else {
         Map<String, dynamic> errorResponse =
             jsonDecode(kirimLaporanHarian.body);
@@ -358,14 +381,14 @@ setState(() {
 
   void prosesResponSukses(String responseBody) {
     final responseData = jsonDecode(responseBody);
-    var message = responseData["message"].toString();
+
     if (responseData['status'] == 'success') {
       // bersihkanForm();
-      SpUtil.putString('mulai',jamSelesai.text);
+      SpUtil.putString('mulai', jamSelesai.text);
       Navigator.pop(context, true);
-      Alert.alertsuccess(context, message);
+      Alert.alertsuccess(context, 'Laporan harian berhasil disimpan');
     } else {
-      Alert.alerterror(context, message);
+      Alert.alerterror(context, 'Gagal membuat laporan harian');
     }
   }
 

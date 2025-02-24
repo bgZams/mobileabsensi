@@ -5,7 +5,7 @@ import 'package:mobileabsensi/services/alert.dart';
 import 'package:sp_util/sp_util.dart';
 
 class WifiPenddingAdmin extends StatefulWidget {
-  const WifiPenddingAdmin({Key? key}) : super(key: key);
+  const WifiPenddingAdmin({super.key});
 
   @override
   State<WifiPenddingAdmin> createState() => _WifiPenddingAdminState();

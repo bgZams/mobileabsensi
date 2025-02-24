@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 
 import 'package:sp_util/sp_util.dart';
 
 class DetailKonfirmasiIzinAtasan extends StatefulWidget {
-  const DetailKonfirmasiIzinAtasan({Key? key}) : super(key: key);
+  const DetailKonfirmasiIzinAtasan({super.key});
 
   @override
   State<DetailKonfirmasiIzinAtasan> createState() =>
@@ -23,6 +24,7 @@ class _DetailKonfirmasiIzinAtasanState
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, () {
+      if (!mounted) return;
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args != null) {
         setState(() {
@@ -32,6 +34,8 @@ class _DetailKonfirmasiIzinAtasanState
       }
     });
   }
+
+
 
   Future<void> _fetchData() async {
     try {
@@ -58,7 +62,7 @@ class _DetailKonfirmasiIzinAtasanState
   }
 
   void _showRejectDialog(int idApproval) {
-    TextEditingController _controller = TextEditingController();
+    TextEditingController controller = TextEditingController();
 
     showDialog(
       context: context,
@@ -66,7 +70,7 @@ class _DetailKonfirmasiIzinAtasanState
         return AlertDialog(
           title: const Text('Alasan Penolakan'),
           content: TextField(
-            controller: _controller,
+            controller: controller,
             decoration: const InputDecoration(hintText: "Masukkan alasan"),
           ),
           actions: <Widget>[
@@ -79,7 +83,7 @@ class _DetailKonfirmasiIzinAtasanState
             TextButton(
               child: const Text('Kirim'),
               onPressed: () {
-                String alasan = _controller.text;
+                String alasan = controller.text;
                 if (alasan.isNotEmpty) {
                   _sendRejection(idApproval, alasan);
                   Navigator.of(context).pop();
@@ -108,8 +112,10 @@ class _DetailKonfirmasiIzinAtasanState
       );
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         Navigator.pushNamed(context, '/konfirmasi-izin');
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Izin berhasil ditolak')),
         );
@@ -134,7 +140,7 @@ class _DetailKonfirmasiIzinAtasanState
         },
       );
 final data = jsonDecode(response.body);
-        print(response.body);
+        // print(response.body);
       if (response.statusCode == 200) {
         
         // ignore: use_build_context_synchronously
@@ -260,8 +266,8 @@ final data = jsonDecode(response.body);
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Status: $jenisStatus'),
-                            Text(
-                                'Tanggal Pengajuan: \n ${izin['timestamp_masuk']}'),
+                            Text('Tanggal Pengajuan: \n${DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+                                .format(DateTime.parse(izin['timestamp_masuk']))}'),
                             Text('Durasi: ${izin['durasi']} Hari'),
                           ],
                         ),

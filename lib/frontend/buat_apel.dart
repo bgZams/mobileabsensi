@@ -14,7 +14,7 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
 class BuatApel extends StatefulWidget {
-  const BuatApel({Key? key}) : super(key: key);
+  const BuatApel({super.key});
 
   @override
   State<BuatApel> createState() => _BuatApelState();
@@ -70,14 +70,14 @@ class _BuatApelState extends State<BuatApel> {
         imagePath,
         quality: 70
       );
-      var data = {
-        'id_admin': idadmininstansi,
-        'id_atasan': idAtasan,
-        'id_user': idUser,
-        'keterangan': keteranganValue,
-        'file': imagePath,
-      };
-      print(data);
+      // var data = {
+      //   'id_admin': idadmininstansi,
+      //   'id_atasan': idAtasan,
+      //   'id_user': idUser,
+      //   'keterangan': keteranganValue,
+      //   'file': imagePath,
+      // };
+      // print(data);
       var request = http.MultipartRequest('POST', Uri.parse(addimageUrl))
         ..fields.addAll({
           'id_admin': idadmininstansi,
@@ -98,38 +98,37 @@ class _BuatApelState extends State<BuatApel> {
         final data = jsonDecode(response.body);
         String message = data["message"];
         if (data['status'] == 'success') {
-          // ignore: use_build_context_synchronously
-          QuickAlert.show(
+          if(mounted)
+          {QuickAlert.show(
             context: context,
             type: QuickAlertType.success,
             text: message,
-          );
-          // ignore: use_build_context_synchronously
+          ); 
           Navigator.of(context)
-              .push(MaterialPageRoute(builder: (context) => const Apel()));
+              .push(MaterialPageRoute(builder: (context) => const Apel()));}
         } else if (data['status'] == false) {
-          // ignore: use_build_context_synchronously
-          QuickAlert.show(
+          if(mounted)
+          {QuickAlert.show(
             context: context,
             type: QuickAlertType.warning,
             text: message,
-          );
+          );}
         }
       } else {
-        // ignore: use_build_context_synchronously
-        QuickAlert.show(
+         if(mounted)
+        {QuickAlert.show(
           context: context,
           type: QuickAlertType.error,
           text: 'Terjadi kesalahan coba kembali',
-        );
+        );}
       }
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      QuickAlert.show(
+       if(mounted)
+      {QuickAlert.show(
         context: context,
         type: QuickAlertType.error,
         text: 'Terjadi kesalahan silahkan coba kembali',
-      );
+      );}
     }
   }
 

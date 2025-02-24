@@ -137,7 +137,7 @@ void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({Key? key}) : super(key: key);
+  MyApp({super.key});
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   final int _currentIndex = 0;

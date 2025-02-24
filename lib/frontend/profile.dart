@@ -7,7 +7,7 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Profile extends StatefulWidget {
-  const Profile({Key? key}) : super(key: key);
+  const Profile({super.key});
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -271,12 +271,12 @@ class _ProfileState extends State<Profile> {
 
       lastFetchTime = DateTime.now();
 
-      // ignore: use_build_context_synchronously
-      QuickAlert.show(
+      if(mounted)
+      {QuickAlert.show(
         context: context,
         type: QuickAlertType.success,
         text: "Data berhasil diperbarui!!",
-      );
+      );}
 
       // Tampilkan dialog sukses
     } catch (e) {

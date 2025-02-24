@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class Homeku extends StatefulWidget {
-  const Homeku({Key? key}) : super(key: key);
+  const Homeku({super.key});
 
   @override
   State<Homeku> createState() => _HomekuState();

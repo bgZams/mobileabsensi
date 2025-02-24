@@ -6,7 +6,7 @@ import 'package:sp_util/sp_util.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Kehadiran extends StatefulWidget {
-  const Kehadiran({Key? key}) : super(key: key);
+  const Kehadiran({super.key});
 
   @override
   State<Kehadiran> createState() => _KehadiranState();

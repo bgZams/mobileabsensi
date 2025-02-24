@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 
 class EditIzin extends StatefulWidget {
-  const EditIzin({Key? key}) : super(key: key);
+  const EditIzin({super.key});
 
   @override
   State<EditIzin> createState() => _EditIzinState();

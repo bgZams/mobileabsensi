@@ -11,21 +11,20 @@ class EditLaporan extends StatefulWidget {
   final Map<String, dynamic> data;
   final VoidCallback onUpdate; // Callback function
 
-  const EditLaporan({Key? key, required this.data, required this.onUpdate})
-      : super(key: key);
+  const EditLaporan({super.key, required this.data, required this.onUpdate});
 
   @override
-  _EditLaporanState createState() => _EditLaporanState();
+  EditLaporanState createState() => EditLaporanState();
 }
 
-class _EditLaporanState extends State<EditLaporan> {
+class EditLaporanState extends State<EditLaporan> {
   var url = SpUtil.getString("url") ?? '';
   late TextEditingController idController;
   late TextEditingController tglController;
   late TextEditingController jammulaiController;
   late TextEditingController jamselesaiController;
   late TextEditingController kegiatanController;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   @override
   void initState() {
@@ -51,8 +50,15 @@ class _EditLaporanState extends State<EditLaporan> {
     final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
     final headers = {'Content-Type': 'application/json'};
     // Parsing waktu dari controller text
-    var mulai = DateFormat('HH:mm').parse(jammulaiController.text);
-    var selesai = DateFormat('HH:mm').parse(jamselesaiController.text);
+    DateTime? mulai;
+    DateTime? selesai;
+    try {
+      mulai = DateFormat('HH:mm').parse(jammulaiController.text);
+      selesai = DateFormat('HH:mm').parse(jamselesaiController.text);
+    } catch (e) {
+      Alert.alerterror(context, 'Format waktu tidak valid');
+      return;
+    }
     // Format kembali DateTime ke string dengan format yang sesuai
     String formattedMulai = DateFormat('HH:mm').format(mulai);
     String formattedSelesai = DateFormat('HH:mm').format(selesai);
@@ -68,25 +74,25 @@ class _EditLaporanState extends State<EditLaporan> {
     });
 
     DateTime jamMulaiTime = DateFormat("HH:mm").parse(formattedMulai);
-    DateTime jamSelesaiTime = DateFormat("HH:mm").parse(formattedSelesai);
+    // DateTime jamSelesaiTime = DateFormat("HH:mm").parse(formattedSelesai);
     DateTime jamMasukTime = DateFormat("HH:mm").parse(SpUtil.getString('masuk').toString());
-    DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
+    // DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
 
     if (jamMulaiTime.isBefore(jamMasukTime)) {
       Alert.alerterror(context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
       return;
     }
-    if (jamSelesaiTime.isAfter(jamPulangTime)) {
-      Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
-      return;
-    }
+    // if (jamSelesaiTime.isAfter(jamPulangTime)) {
+    //   Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
+    //   return;
+    // }
 
     try {
       final response =
           await http.put(Uri.parse(sendUrl), headers: headers, body: body);
 
       var data = jsonDecode(response.body);
-      print(data);
+      // print(data);
       if (response.statusCode == 200) {
         if (data['status'] == 'success') {
           // ignore: use_build_context_synchronously
@@ -95,13 +101,14 @@ class _EditLaporanState extends State<EditLaporan> {
           // ignore: use_build_context_synchronously
           Navigator.pop(context); // Kembali ke halaman sebelumnya
         } else {
-          Alert.alertwarning(context, data['message']);
+          if(mounted)
+          {Alert.alertwarning(context, data['message']);}
         }
       } else {
         throw Exception('Failed to update report');
       }
     } catch (error) {
-      print('Error: $error');
+      // print('Error: $error');
     }
   }
 

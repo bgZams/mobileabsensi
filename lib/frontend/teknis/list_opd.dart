@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ListOPD extends StatefulWidget {
-  const ListOPD({Key? key}) : super(key: key);
+  const ListOPD({super.key});
 
   @override
   State<ListOPD> createState() => _ListOPDState();

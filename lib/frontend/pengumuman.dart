@@ -8,7 +8,7 @@ import 'package:mobileabsensi/services/refresh.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Pengumuman extends StatefulWidget {
-  const Pengumuman({Key? key}) : super(key: key);
+  const Pengumuman({super.key});
 
   @override
   State<Pengumuman> createState() => _PengumumanState();
@@ -132,10 +132,18 @@ class _PengumumanState extends State<Pengumuman> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: Image.network(
-                    post.thumbnail ?? "assets/images/logo.png",
+                  post.thumbnail ?? "",
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset(
+                    "assets/images/logo.png",
                     width: 80,
                     height: 80,
                     fit: BoxFit.cover,
+                    );
+                  },
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -162,7 +170,7 @@ class _PengumumanState extends State<Pengumuman> {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            post.date_tgl ?? "",
+                            post.dateTgl ?? "",
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],

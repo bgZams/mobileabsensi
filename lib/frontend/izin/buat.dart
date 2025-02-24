@@ -12,7 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:sp_util/sp_util.dart';
 
 class BuatIzin extends StatefulWidget {
-  const BuatIzin({Key? key}) : super(key: key);
+  const BuatIzin({super.key});
 
   @override
   State<BuatIzin> createState() => _BuatIzinState();
@@ -211,7 +211,7 @@ class _BuatIzinState extends State<BuatIzin> {
                           ? const CircularProgressIndicator()
                           : const Icon(Icons.image_search_rounded,size: 20,color: Colors.white,),
                       label: Text(
-                        _isLoadingMedia ? 'Loading...' : 'Unggah Foto',
+                        _isLoadingMedia ? 'Loading...' : 'Unggah Foto Izin',
                         style: const TextStyle(
                             fontSize: 14, color: Colors.white, shadows: [
                           Shadow(
@@ -576,11 +576,12 @@ class _BuatIzinState extends State<BuatIzin> {
       'jenis_izin': _valJenisIzin,
       'key_notif': 'izin'
     };
-    
+     
     try {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
+      print(jsonDecode(response.body));
       if (response.statusCode == 200) {
         // Jika berhasil
         final DatabaseReference databaseReference =

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 
 class StatusIzin extends StatefulWidget {
-  const StatusIzin({Key? key}) : super(key: key);
+  const StatusIzin({super.key});
 
   @override
   State<StatusIzin> createState() => _StatusIzinState();

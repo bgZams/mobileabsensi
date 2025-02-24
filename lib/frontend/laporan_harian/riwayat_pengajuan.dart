@@ -1,12 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:mobileabsensi/core.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
 class RiwayatPengajuanLhk extends StatefulWidget {
-  const RiwayatPengajuanLhk({Key? key}) : super(key: key);
+  const RiwayatPengajuanLhk({super.key});
 
   @override
   State<RiwayatPengajuanLhk> createState() => _RiwayatPengajuanLhkState();

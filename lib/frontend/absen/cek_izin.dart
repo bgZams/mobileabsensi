@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart'; 
 
 class CekIzin extends StatefulWidget {
-  const CekIzin({Key? key}) : super(key: key);
+  const CekIzin({super.key});
 
   @override
   State<CekIzin> createState() => _CekIzinState();

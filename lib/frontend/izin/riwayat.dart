@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart'; 
 
 class RiwayatIzin extends StatefulWidget {
-  const RiwayatIzin({Key? key}) : super(key: key);
+  const RiwayatIzin({super.key});
 
   @override
   State<RiwayatIzin> createState() => _RiwayatIzinState();

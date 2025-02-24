@@ -4,7 +4,7 @@ import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
 import '../absen/laporan_harian.dart';
 
 class Laporan extends StatefulWidget {
-  const Laporan({Key? key}) : super(key: key);
+  const Laporan({super.key});
 
   @override
   State<Laporan> createState() => _LaporanState();

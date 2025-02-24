@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobileabsensi/frontend/apel/riwayat_apel_bawahan.dart';
 import 'package:mobileabsensi/frontend/buat_apel.dart';
 import 'package:path_provider/path_provider.dart';
 // import 'package:path/path.dart' as path;
 import 'package:sp_util/sp_util.dart';
 
 class Apel extends StatefulWidget {
-  const Apel({Key? key}) : super(key: key);
+  const Apel({super.key});
 
   @override
   State<Apel> createState() => _ApelState();
@@ -71,12 +72,12 @@ class _ApelState extends State<Apel> {
     return monthNames[monthName] ?? '01';
   }
 
-  Future<List<Map<String, dynamic>>> fetchData(String selectedMonth, String selectedYear) async {
+  Future<List<Map<String, dynamic>>> fetchData(
+      String selectedMonth, String selectedYear) async {
     try {
-
       String selectedMonthNumber = _getMonthNumber(selectedMonth);
       final idUser = SpUtil.getString("id_user");
-      print('$url/api/riwayat-apel/$idUser/$selectedMonthNumber/$selectedYear');
+      // print('$url/api/riwayat-apel/$idUser/$selectedMonthNumber/$selectedYear');
 
       final response = await http.get(Uri.parse(
           '$url/api/riwayat-apel/$idUser/$selectedMonthNumber/$selectedYear'));
@@ -152,12 +153,15 @@ class _ApelState extends State<Apel> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Riwayat Apel',style: TextStyle(color: Colors.white),),
+        title: const Text(
+          'Riwayat Apel',
+          style: TextStyle(color: Colors.white),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           color: Colors.white,
           onPressed: () {
-            Navigator.pushNamed(context, '/home-page');
+            Navigator.pop(context);
           },
         ),
       ),
@@ -176,29 +180,57 @@ class _ApelState extends State<Apel> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         //tambah data
-                        Container(
-                                clipBehavior: Clip.hardEdge,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.white, width: 2),
-                                  color: const Color.fromARGB(255, 14, 60, 129),
-                                  borderRadius: const BorderRadius.all(
-                                    Radius.circular(10),
-                                  ),
-                                ),
-                                child: IconButton(
-                                  icon: const FaIcon(
-                                    FontAwesomeIcons.plus,
-                                    color: Colors.white,
-                                  ),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => const BuatApel()),
-                                    );
-                                  },
+                        Row(
+                          children: [
+                            Container(
+                              clipBehavior: Clip.hardEdge,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.white, width: 2),
+                                color: const Color.fromARGB(255, 14, 60, 129),
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(10),
                                 ),
                               ),
+                              child: IconButton(
+                                icon: const FaIcon(
+                                  FontAwesomeIcons.plus,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => const BuatApel()),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Container(
+                              clipBehavior: Clip.hardEdge,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.white, width: 2),
+                                color: const Color.fromARGB(255, 14, 60, 129),
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(10),
+                                ),
+                              ),
+                              child: IconButton(
+                                icon: const FaIcon(
+                                  FontAwesomeIcons.userGroup,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => const ApelBawahan()),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -303,7 +335,7 @@ class _ApelState extends State<Apel> {
                                                                   () async {
                                                                 String foto =
                                                                     '${data['foto']}';
-                                                                print(foto);
+                                                                // print(foto);
 
                                                                 _saveImage(
                                                                     context,

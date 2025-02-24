@@ -5,12 +5,12 @@ import '../primary_button.dart';
 import '../theme.dart';
 
 class Register extends StatefulWidget {
-  const Register({Key? key}) : super(key: key);
+  const Register({super.key});
   @override
-  _RegisterState createState() => _RegisterState();
+  RegisterState createState() => RegisterState();
 }
 
-class _RegisterState extends State<Register> {
+class RegisterState extends State<Register> {
   bool passwordVisible = false;
   bool passwordConfirmVisible = false;
   void togglePassword() {

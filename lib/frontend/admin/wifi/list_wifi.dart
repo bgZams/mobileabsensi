@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/frontend/admin/wifi/pending_wifi.dart';
-import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
 import 'dart:developer' as developer;
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:network_info_plus/network_info_plus.dart';
@@ -13,7 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:sp_util/sp_util.dart';
 
 class WifiOpd extends StatefulWidget {
-  const WifiOpd({Key? key}) : super(key: key);
+  const WifiOpd({super.key});
 
   @override
   State<WifiOpd> createState() => _WifiOpdState();

@@ -7,7 +7,7 @@ import 'package:mobileabsensi/widget/bulan.dart';
 class LhkPage extends StatefulWidget {
   final String idPegawai;
 
-  const LhkPage({Key? key, required this.idPegawai}) : super(key: key);
+  const LhkPage({super.key, required this.idPegawai});
 
   @override
   State<LhkPage> createState() => _LhkPageState();
@@ -221,7 +221,7 @@ class _LhkPageState extends State<LhkPage> {
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                           ),
                         ),

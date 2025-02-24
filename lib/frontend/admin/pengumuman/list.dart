@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ListPengumuman extends StatefulWidget {
-  const ListPengumuman({Key? key}) : super(key: key);
+  const ListPengumuman({super.key});
 
   @override
   State<ListPengumuman> createState() => _ListPengumumanState();

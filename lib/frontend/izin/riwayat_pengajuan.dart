@@ -8,7 +8,7 @@ import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:sp_util/sp_util.dart';
 
 class RiwayatPengajuanIzin extends StatefulWidget {
-  const RiwayatPengajuanIzin({Key? key}) : super(key: key);
+  const RiwayatPengajuanIzin({super.key});
 
   @override
   State<RiwayatPengajuanIzin> createState() => _RiwayatPengajuanIzinState();
@@ -423,7 +423,7 @@ var hariIni = DateFormat('yyyy-MM-dd').format(DateTime.now());
         Alert.alerterror(context, 'Gagal menghapus data, silahkan coba lagi!');
       }
     } catch (error) {
-      print('Error: $error');
+      // print('Error: $error');
     }
   }
 

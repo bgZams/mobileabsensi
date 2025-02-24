@@ -7,11 +7,11 @@ class Footer extends StatelessWidget {
   final Function(int) onTap;
 
   const Footer({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.pageController,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   Widget _buildIcon(IconData icon, int index) {
     return Icon(
