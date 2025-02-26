@@ -574,14 +574,15 @@ class _BuatIzinState extends State<BuatIzin> {
       'id_status': 0,
       'nama_lengkap': namalengkap,
       'jenis_izin': _valJenisIzin,
-      'key_notif': 'izin'
+      'key_notif': 'izin',
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      // 'timestamp': DateFormat('dd-MM-yyyy HH:mm:ss').format(DateTime.now()),
     };
      
     try {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      print(jsonDecode(response.body));
       if (response.statusCode == 200) {
         // Jika berhasil
         final DatabaseReference databaseReference =

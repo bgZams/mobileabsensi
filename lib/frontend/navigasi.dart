@@ -194,7 +194,7 @@ class _NavigasiState extends State<Navigasi> {
                         ],
                       ),
                     ),
-                    if (['9025', '4934', '7745']
+                    if (['9025', '4934', '7745','9024','9026','4937']
                   .contains(SpUtil.getString('id_user')))
 
                     Column(

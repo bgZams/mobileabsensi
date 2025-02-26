@@ -21,6 +21,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   String? idUser;
   TabController? _controller;
   int selectedIndex = 0;
+  bool showFullText = false;
 
   List<Widget> list = [
     const Tab(
@@ -297,6 +298,8 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   }
 
   Widget _buildLhkItem(BuildContext context, dynamic lhk) { 
+          Map<String, bool> expandedItems = {};
+
     return Card(
       margin: const EdgeInsets.all(8),
       elevation: 4,
@@ -310,20 +313,82 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment
-                      .start, // Ubah alignment menjadi sebelah kiri
-                  children: [
-                    Text('Jam Mulai: ${lhk['jammulai'].toString()}'),
-                    Text('Jam Selesai: ${lhk['jamselesai'].toString()}'),
-                    Text('Kegiatan: ${lhk['rincian_kegiatan']}'),
-                  ],
-                ),
-              ],
+  mainAxisAlignment: MainAxisAlignment.start,
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Jam Mulai: ${lhk['jammulai'].toString()}',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: TextStyle(fontSize: 14),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Jam Selesai: ${lhk['jamselesai'].toString()}',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: TextStyle(fontSize: 14),
+          ),
+          SizedBox(height: 4),
+
+// Kemudian gunakan implementasi berikut
+Theme(
+  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+  child: Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Kegiatan: ',
+        style: TextStyle(fontSize: 14),
+      ),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              onTap: () {
+                // Gunakan ID unik untuk setiap item (misalnya id dari lhk atau indeks dalam loop)
+                String itemId = lhk['id'].toString(); // atau gunakan indeks jika dalam loop
+                
+                setState(() {
+                  // Toggle status hanya untuk item spesifik ini
+                  expandedItems[itemId] = !(expandedItems[itemId] ?? false);
+                });
+              },
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      lhk['rincian_kegiatan'].toString(),
+                      style: TextStyle(fontSize: 14),
+                      maxLines: (expandedItems[lhk['id'].toString()] ?? false) ? null : 1,
+                      overflow: (expandedItems[lhk['id'].toString()] ?? false) ? TextOverflow.visible : TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (lhk['rincian_kegiatan'].toString().length > 50)
+                    Icon(
+                      (expandedItems[lhk['id'].toString()] ?? false) ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      size: 18,
+                    ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    ],
+  ),
+),
+        ],
+      ),
+    ),
+  ],
+),
             const SizedBox(
               height: 10,
             ),

@@ -81,58 +81,86 @@ void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
   if (snapshot != null && snapshot.value != null) {
     final Map<dynamic, dynamic>? data = snapshot.value as Map<dynamic, dynamic>?;
     if (data != null && data.isNotEmpty) {
-      int count = 1;
-      for (final MapEntry<dynamic, dynamic> entry in data.entries) {
-        final Map<dynamic, dynamic>? documentData = entry.value as Map<dynamic, dynamic>?;
-        if (documentData != null) {
-          final idAtasan = documentData['id_atasan'];
-          final idStatus = documentData['id_status'];
-          final parsedIdAtasan = int.tryParse(idAtasan);
-          final user = SpUtil.getString('id_user');
-          final userId = int.tryParse(user ?? '');
-          if (userId == parsedIdAtasan) {
-            if (idStatus == 2) {
-              count++;
-            }
-          }
+      final now = DateTime.now().millisecondsSinceEpoch;
+      
+      // Simpan ID yang sudah diproses
+      final String processedKey = 'processed_${keyNotif}_ids';
+      final Set<String> processedIds = Set<String>.from(
+        SpUtil.getStringList(processedKey) ?? []
+      );
+      
+      // Filter entri yang belum diproses dan timestamp-nya valid
+      final validEntries = data.entries.where((entry) {
+        // Periksa apakah entri sudah diproses sebelumnya
+        if (processedIds.contains(entry.key)) {
+          return false;
         }
+        
+        final documentData = entry.value as Map<dynamic, dynamic>?;
+        final timestamp = documentData?['timestamp'] as int?;
+        final idStatus = documentData?['id_status'];
+        
+        // Hanya ambil entri dengan status 0 dan timestamp yang valid
+        // Gunakan "now - 300000" (5 menit yang lalu) untuk menghindari entri lama
+        return timestamp != null && 
+               timestamp > (now - 300000) && 
+               timestamp <= now && 
+               idStatus == 0;
+      }).toList();
+      
+      if (validEntries.isEmpty) {
+        debugPrint('Tidak ada data $keyNotif baru yang perlu diproses');
+        return;
       }
-
-      for (final MapEntry<dynamic, dynamic> entry in data.entries) {
-        final Map<dynamic, dynamic>? documentData = entry.value as Map<dynamic, dynamic>?;
-        if (documentData != null) {
-          final idAtasan = documentData['id_atasan'];
-          final idStatus = documentData['id_status'];
-          final jenisIzin = documentData['jenis_izin'];
-          final parsedIdAtasan = int.tryParse(idAtasan);
-          final user = SpUtil.getString('id_user');
-          final userId = int.tryParse(user ?? '');
+      
+      // Urutkan berdasarkan timestamp terbaru
+      validEntries.sort((a, b) {
+        final aTimestamp = (a.value as Map<dynamic, dynamic>)['timestamp'] as int;
+        final bTimestamp = (b.value as Map<dynamic, dynamic>)['timestamp'] as int;
+        return bTimestamp.compareTo(aTimestamp); // Urutkan dari terbaru
+      });
+      
+      // Ambil entri terbaru
+      final latestEntry = validEntries.first;
+      final documentData = latestEntry.value as Map<dynamic, dynamic>;
+      
+      final idAtasan = documentData['id_atasan'];
+      final idStatus = documentData['id_status'];
+      final jenisIzin = documentData['jenis_izin'];
+      final parsedIdAtasan = int.tryParse(idAtasan.toString());
+      final user = SpUtil.getString('id_user');
+      final userId = int.tryParse(user ?? '');
+      
+      if (userId == parsedIdAtasan) {
+        try {
           final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
-          if (idStatus == 0 && userId == parsedIdAtasan) {
-            try {
-              switch (keyNotif) {
-                case 'izin':
-                  NotificationController.createNewNotificationIzin(count, idAtasan, jenisIzin, idStatus, keyNotif);
-                  databaseReference.child('izin').child(entry.key).update({'id_status': 2});
-                  break;
-                case 'laporan':
-                  NotificationController.createNewNotificationLaporan(count, idAtasan, jenisIzin, idStatus, keyNotif);
-                  databaseReference.child('laporan').child(entry.key).update({'id_status': 2});
-                  break;
-              }
-            } catch (e) {
-              if (kDebugMode) {
-                print('Error sending $keyNotif notification: $e');
-              }
-            }
+          switch (keyNotif) {
+            case 'izin':
+              NotificationController.createNewNotificationIzin(1, idAtasan, jenisIzin, idStatus, keyNotif);
+              databaseReference.child('izin').child(latestEntry.key).update({'id_status': 2});
+              break;
+            case 'laporan':
+              NotificationController.createNewNotificationLaporan(1, idAtasan, jenisIzin, idStatus, keyNotif);
+              databaseReference.child('laporan').child(latestEntry.key).update({'id_status': 2});
+              break;
+          }
+          
+          // Simpan ID yang sudah diproses
+          processedIds.add(latestEntry.key);
+          SpUtil.putStringList(processedKey, processedIds.toList());
+          
+          debugPrint('Berhasil memproses notifikasi $keyNotif dengan ID: ${latestEntry.key}');
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error sending $keyNotif notification: $e');
           }
         }
+      } else {
+        debugPrint('ID atasan tidak cocok dengan user saat ini');
       }
     } else {
-      debugPrint('Dokumen $keyNotif kosong.');
+      debugPrint('Data $keyNotif tidak ditemukan');
     }
-  } else {
-    debugPrint('Data $keyNotif tidak ditemukan');
   }
 }
 

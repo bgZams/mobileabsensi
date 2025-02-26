@@ -389,43 +389,44 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-                              Column(
+                                Column(
                                 children: [
                                   Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(4),
-                                      color: const Color.fromARGB(
-                                          255, 162, 190, 255),
-                                    ),
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: const Icon(Icons.remove_red_eye,
-                                          color:
-                                              Color.fromARGB(255, 0, 26, 140)),
-                                      onPressed: () => navigateToDetailPage(
-                                          data[index], data[index]['no_urut']),
-                                    ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(4),
+                                    color: const Color.fromARGB(
+                                      255, 162, 190, 255),
+                                  ),
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.remove_red_eye,
+                                      color:
+                                        Color.fromARGB(255, 0, 26, 140)),
+                                    onPressed: () => navigateToDetailPage(
+                                      data[index], data[index]['no_urut']),
+                                  ),
                                   ),
                                   const SizedBox(
-                                    height: 2,
+                                  height: 2,
                                   ),
-                                  if (data[index]['status_approval'] == 1)
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(4),
-                                        color: const Color.fromARGB(
-                                            255, 255, 168, 162),
-                                      ),
-                                      child: IconButton(
-                                        padding: EdgeInsets.zero,
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () => _confirmDelete(
-                                            data[index]['id_approval']),
-                                      ),
+                                  if (data[index]['status_approval'] == 1 &&
+                                    DateTime.parse(data[index]['timestamp']).isAfter(DateTime.now().subtract(const Duration(days: 1))))
+                                  Container(
+                                    decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(4),
+                                    color: const Color.fromARGB(
+                                      255, 255, 168, 162),
                                     ),
+                                    child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                    onPressed: () => _confirmDelete(
+                                      data[index]['id_approval']),
+                                    ),
+                                  ),
                                 ],
-                              ),
+                                ),
                               const SizedBox(
                                 width: 8,
                               ),
