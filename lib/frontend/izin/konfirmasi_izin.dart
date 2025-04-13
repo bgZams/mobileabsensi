@@ -219,7 +219,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
             color: Color.fromARGB(163, 65, 65, 65),
             child: Column(
               children: [
-                const SizedBox(height: 10.0), // Memberikan jarak antara AppBar dan TabBar
+                const SizedBox(height: 10.0),
                 TabBar(
                   controller: _controller,
                   tabs: list,
@@ -233,23 +233,41 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           ),
           ),
         ), 
-      body: TabBarView(
-        controller: _controller,
+      body: Column(
         children: [
-          _riwayatIzin.isEmpty
-              ? const Center(child: Text('Tidak ada data'))
-              : ListView.builder(
-                  itemCount: _riwayatIzin.length,
-                  itemBuilder: (context, index) =>
-                      _buildIzinItem(context, _riwayatIzin[index]),
-                ),
-          _riwayatLhk.isEmpty
-              ? const Center(child: Text('Tidak ada data'))
-              : ListView.builder(
-                  itemCount: _riwayatLhk.length,
-                  itemBuilder: (context, index) =>
-                      _buildLhkItem(context, _riwayatLhk[index]),
-                ),
+          if(SpUtil.getString('role') == '1')
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: const Color.fromARGB(255, 14, 60, 129),
+            child: const Text(
+              'Konfirmasi Izin dan LHK',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          )
+          else
+          TabBarView(
+            controller: _controller,
+            children: [
+              _riwayatIzin.isEmpty
+                  ? const Center(child: Text('Tidak ada data'))
+                  : ListView.builder(
+                      itemCount: _riwayatIzin.length,
+                      itemBuilder: (context, index) =>
+                          _buildIzinItem(context, _riwayatIzin[index]),
+                    ),
+              _riwayatLhk.isEmpty
+                  ? const Center(child: Text('Tidak ada data'))
+                  : ListView.builder(
+                      itemCount: _riwayatLhk.length,
+                      itemBuilder: (context, index) =>
+                          _buildLhkItem(context, _riwayatLhk[index]),
+                    ),
+            ],
+          ),
         ],
       ),
     );

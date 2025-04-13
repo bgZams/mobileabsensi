@@ -12,7 +12,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Absen extends StatefulWidget {
-  const Absen({Key? key}) : super(key: key);
+  const Absen({super.key});
 
   @override
   _AbsenState createState() => _AbsenState();

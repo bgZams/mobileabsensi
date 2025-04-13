@@ -19,7 +19,7 @@ import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Absen extends StatefulWidget {
-  const Absen({Key? key}) : super(key: key);
+  const Absen({super.key});
 
   @override
   // ignore: library_private_types_in_public_api

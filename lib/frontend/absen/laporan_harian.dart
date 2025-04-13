@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
+import 'package:mobileabsensi/widget/widget_header.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
@@ -17,12 +18,12 @@ class LaporanHarian extends StatefulWidget {
 
 class _LaporanHarianState extends State<LaporanHarian>
     with TickerProviderStateMixin {
+  bool _isLoading = true;
+
   List<dynamic> _riwayatLaporan = [];
   List<dynamic> _riwayatPengajuan = [];
   String? url = SpUtil.getString("url");
   String? idUser;
-  TabController? _controller;
-  int selectedIndex = 0;
   late String selectedYear;
   late String selectedMonth;
   bool isLoading = true;
@@ -42,13 +43,7 @@ class _LaporanHarianState extends State<LaporanHarian>
     final now = DateTime.now();
     selectedYear = now.year.toString();
     selectedMonth = _getMonthName(now.month);
-    _controller = TabController(length: list.length, vsync: this);
-    _controller?.addListener(() {
-      setState(() {
-        selectedIndex = _controller!.index;
-      });
-      _fetchData();
-    });
+    _fetchData();
     _refreshData();
     initializePreferences();
   }
@@ -132,11 +127,7 @@ class _LaporanHarianState extends State<LaporanHarian>
     String selectedMonthNumber = _getMonthNumber(selectedMonth);
     try {
       String subUrl = '';
-      if (selectedIndex == 0) {
-        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser';
-      } else {
         subUrl = '$url/api/riwayat-lhk/$idUser/$selectedMonthNumber/$selectedYear';
-      }
       final response = await http.get(
         Uri.parse(subUrl),
         headers: {
@@ -149,11 +140,7 @@ class _LaporanHarianState extends State<LaporanHarian>
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
 
         setState(() {
-          if (selectedIndex == 0) {
             _riwayatLaporan = jsonData['data'];
-          } else {
-            _riwayatPengajuan = jsonData['data'];
-          }
         });
 
         if (jsonData.containsKey('data')) {
@@ -191,16 +178,12 @@ class _LaporanHarianState extends State<LaporanHarian>
       // print("Error fetching data: $e");
     }
   }
-  Future<void> _searchData(selectedMonth, selectedYear) async {
+  Future<void> searchData(selectedMonth, selectedYear) async {
     final idUser = SpUtil.getString("id_user");
     String selectedMonthNumber = _getMonthNumber(selectedMonth);
     try {
       String subUrl = '';
-      if (selectedIndex == 0) {
-        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser';
-      } else {
         subUrl = '$url/api/riwayat-lhk/$idUser/$selectedMonthNumber/$selectedYear';
-      }
       final response = await http.get(
         Uri.parse(subUrl),
         headers: {
@@ -211,13 +194,9 @@ class _LaporanHarianState extends State<LaporanHarian>
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-
+print(response.body);
         setState(() {
-          if (selectedIndex == 0) {
             _riwayatLaporan = jsonData['data'];
-          } else {
-            _riwayatPengajuan = jsonData['data'];
-          }
         });
 
         if (jsonData.containsKey('data')) {
@@ -305,209 +284,181 @@ class _LaporanHarianState extends State<LaporanHarian>
 
   @override
   Widget build(BuildContext context) {
+        Size size = MediaQuery.of(context).size;
+    double deviceHeight = MediaQuery.of(context).size.height;
+    double deviceWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Center(
-          child: Text(
-            'Laporan Harian',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-        elevation: 4,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50.0),
-          child: Container(
-            color: const Color.fromARGB(163, 65, 65, 65),
-            child: Column(
-              children: [
-                const SizedBox(height: 10.0), // Memberikan jarak antara AppBar dan TabBar
-                TabBar(
-                  controller: _controller,
-                  tabs: list,
-                  indicatorColor: Colors.green,
-                  dividerColor: Colors.blue,
-                  unselectedLabelColor: Colors.grey[500],
-                  labelColor: Colors.white,
+  body: Stack(
+    children: [
+      // Background header that extends beyond what's visible
+      Header().header(context),
+      
+      // Scrollable content area taking most of the screen
+      Column(
+        children: [
+          // Spacer to push content down to create overlap
+          SizedBox(height: size.height * 0.15),
+          
+          // Content area
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshData,
-        child: TabBarView(
-          controller: _controller,
-          children: [
-            _riwayatLaporan.isEmpty
-                ? const Center(child: Text('No data found'))
-                : Column(
-                    children: [
-                      Column(
-                        children: [
-                          const SizedBox(height: 5),
-                          Row(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: ListView(
+                padding: EdgeInsets.all(16),
+                children: [
+                  const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            'Riwayat Laporan Harian',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 50, 50, 50),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              DropdownButton<String>(
-                                value: selectedMonth,
-                                hint: const Text('Pilih Bulan'),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    selectedMonth = newValue!;
-                                  });
-                                },
-                                items: [
-                                  'Januari',
-                                  'Februari',
-                                  'Maret',
-                                  'April',
-                                  'Mei',
-                                  'Juni',
-                                  'Juli',
-                                  'Agustus',
-                                  'September',
-                                  'Oktober',
-                                  'November',
-                                  'Desember'
-                                ].map<DropdownMenuItem<String>>((String value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(value),
-                                  );
-                                }).toList(),
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF0F4FD),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(5)),
+                                ),
+                                child: DropdownButton<String>(
+                                  value: selectedMonth,
+                                  hint: const Text('Pilih Bulan'),
+                                  onChanged: (newValue) {
+                                    setState(() {
+                                      selectedMonth = newValue!;
+                                    });
+                                  },
+                                  items: [
+                                    'Januari',
+                                    'Februari',
+                                    'Maret',
+                                    'April',
+                                    'Mei',
+                                    'Juni',
+                                    'Juli',
+                                    'Agustus',
+                                    'September',
+                                    'Oktober',
+                                    'November',
+                                    'Desember',
+                                  ].map<DropdownMenuItem<String>>(
+                                      (String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  }).toList(),
+                                ),
                               ),
                               const SizedBox(width: 16),
-                              // Inputan Tahun
-                              DropdownButton<String>(
-                                value: selectedYear,
-                                hint: const Text('Pilih Tahun'),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    selectedYear = newValue!;
-                                  });
-                                },
-                                items: _getYearItems(),
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF0F4FD),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(5)),
+                                ),
+                                child: DropdownButton<String>(
+                                  value: selectedYear,
+                                  hint: const Text('Pilih Tahun'),
+                                  onChanged: (newValue) {
+                                    setState(() {
+                                      selectedYear = newValue!;
+                                    });
+                                  },
+                                  items: _getYearItems(),
+                                ),
                               ),
                               const SizedBox(width: 16),
-                              // Tombol Cari
                               ElevatedButton(
-                                onPressed: () {
-                                  _searchData(selectedMonth, selectedYear);
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 67, 60, 130),
+                                ),
+                                onPressed: () async {
+
+                                  if (!isLoading) {
+
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+                                    await Future.delayed(const Duration(seconds: 3));
+                                  searchData(selectedMonth, selectedYear);
+                                  }
                                 },
-                                child: const Text('Cari'),
+                                child: const Text('Cari',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    )),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 5),
-                        ],
-                      ),
-                      Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: () {
-                            return _refreshData();
-                          },
-                          child: SingleChildScrollView(child: _buildCards()),
-                        ),
-                      ),
-                    ],
-                  ),
-            Column(
-              children: [
-              Column(
-                children: [
-                const SizedBox(height: 5),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                  DropdownButton<String>(
-                    value: selectedMonth,
-                    hint: const Text('Pilih Bulan'),
-                    onChanged: (newValue) {
-                    setState(() {
-                      selectedMonth = newValue!;
-                    });
-                    },
-                    items: [
-                    'Januari',
-                    'Februari',
-                    'Maret',
-                    'April',
-                    'Mei',
-                    'Juni',
-                    'Juli',
-                    'Agustus',
-                    'September',
-                    'Oktober',
-                    'November',
-                    'Desember'
-                    ].map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                    }).toList(),
-                  ),
-                  const SizedBox(width: 16),
-                  // Inputan Tahun
-                  DropdownButton<String>(
-                    value: selectedYear,
-                    hint: const Text('Pilih Tahun'),
-                    onChanged: (newValue) {
-                    setState(() {
-                      selectedYear = newValue!;
-                    });
-                    },
-                    items: _getYearItems(),
-                  ),
-                  const SizedBox(width: 16),
-                  // Tombol Cari
-                  ElevatedButton(
-                    onPressed: () {
-                    _searchData(selectedMonth, selectedYear);
-                    },
-                    child: const Text('Cari'),
-                  ),
-                  ],
-                ),
-                const SizedBox(height: 5),
+          _buildCards()
+
                 ],
               ),
-              Expanded(
-                child: RefreshIndicator(
-                onRefresh: () {
-                  return _refreshData();
-                },
-                child: _riwayatPengajuan.isEmpty
-                  ? const Center(child: Text('No data found'))
-                  : SingleChildScrollView(child: _buildCards()),
-                ),
-              ),
-              ],
-            )
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: isCodeMasuk
-          ? Transform.translate(
-              offset: const Offset(0, -20),
-              child: FloatingActionButton(
-                onPressed: () async {
-                  final result = await Navigator.pushNamed(context, '/create-laporan');
-                  if (result == true) {
-                    setState(() {
-                      _controller?.animateTo(0);
-                      _fetchData();
-                    });
-                  }
-                },
-                tooltip: 'Increment',
-                child: const Icon(Icons.add),
-              ),
-            )
-          : null,
+    ],
+  ),
+      floatingActionButton:Transform.translate(
+                  offset: const Offset(0, -20),
+                  child: FloatingActionButton(
+                    onPressed: () async {
+                      final result = await Navigator.pushNamed(context, '/create-laporan');
+                      if (result == true) {
+                        setState(() {
+                          _fetchData();
+                        });
+                      }
+                    },
+                    tooltip: 'Increment',
+                    child: const Icon(Icons.add),
+                  ),
+                )
     );
+    //   floatingActionButton: isCodeMasuk
+    //           ? Transform.translate(
+    //               offset: const Offset(0, -20),
+    //               child: FloatingActionButton(
+    //                 onPressed: () async {
+    //                   final result = await Navigator.pushNamed(context, '/create-laporan');
+    //                   if (result == true) {
+    //                     setState(() {
+    //                       _fetchData();
+    //                     });
+    //                   }
+    //                 },
+    //                 tooltip: 'Increment',
+    //                 child: const Icon(Icons.add),
+    //               ),
+    //             )
+    //           : null,
+    // );
   }
 
   Widget _buildCards() {
@@ -565,7 +516,9 @@ class _LaporanHarianState extends State<LaporanHarian>
             children: [
               const Icon(Icons.access_time, color: Colors.blue),
               Text(DateFormat("HH:mm").format(jamMasukTime)),
+              SizedBox(width: 10,),
               const Icon(Icons.arrow_forward_outlined),
+              SizedBox(width: 10,),
               Text(DateFormat("HH:mm").format(jamPulangTime)),
             ],
           ),
@@ -649,7 +602,7 @@ class _LaporanHarianState extends State<LaporanHarian>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Tanggal: $formattedDate'),
+              Text(DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateFormat('dd/MM/yyyy').parse(formattedDate)).toString()),
               ...rowWidgets,
             ],
           ),

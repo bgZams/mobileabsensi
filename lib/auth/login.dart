@@ -236,7 +236,7 @@ class LoginState extends State<Login> {
           height: MediaQuery.of(context).size.height,
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage("assets/images/ui/bg-white.png"),
+              image: AssetImage("assets/new/login.png"),
               fit: BoxFit.cover,
             ),
           ),
@@ -245,20 +245,13 @@ class LoginState extends State<Login> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 240),
+                const SizedBox(height: 360),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mobile Absensi\nLogin',
-                      style: heading2.copyWith(color: textBlack),
-                    ),
-                    const SizedBox(height: 10),
-                    Image.asset(
-                      'assets/images/accent.png',
-                      width: 99,
-                      height: 4,
-                    ),
+                      'Hi, Selamat Datang',
+                    ), 
                   ],
                 ),
                 const SizedBox(height: 25),
@@ -278,10 +271,10 @@ class LoginState extends State<Login> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _startLoading,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 1, 50, 106),
-                      padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 20),
+                      backgroundColor: const Color.fromARGB(246, 54, 51, 100),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(25),
                       ),
                       textStyle: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                     ),
@@ -309,7 +302,7 @@ class LoginState extends State<Login> {
     return Container(
       decoration: BoxDecoration(
         color: textWhiteGrey,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(25),
       ),
       child: TextFormField(
         controller: controller,

@@ -6,7 +6,7 @@ import 'package:mobileabsensi/frontend/absen/lihat_spt.dart';
 import 'package:sp_util/sp_util.dart';
 
 class RiwayatAbsen extends StatefulWidget {
-  const RiwayatAbsen({Key? key}) : super(key: key);
+  const RiwayatAbsen({super.key});
 
   @override
   _RiwayatAbsenState createState() => _RiwayatAbsenState();

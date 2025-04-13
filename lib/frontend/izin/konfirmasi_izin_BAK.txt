@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
 class KonfirmasiIzin extends StatefulWidget {
-  const KonfirmasiIzin({Key? key}) : super(key: key);
+  const KonfirmasiIzin({super.key});
 
   @override
   State<KonfirmasiIzin> createState() => _KonfirmasiIzinState();

@@ -577,7 +577,7 @@ class _BuatIzinState extends State<BuatIzin> {
       'key_notif': 'izin',
       'timestamp': DateTime.now().millisecondsSinceEpoch,
       // 'timestamp': DateFormat('dd-MM-yyyy HH:mm:ss').format(DateTime.now()),
-    };
+    }; 
      
     try {
       // Kirim permintaan

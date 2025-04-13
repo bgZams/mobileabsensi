@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:mobileabsensi/frontend/absen/lihat_spt.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
 import 'package:mobileabsensi/widget/bulan.dart';
+import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:sp_util/sp_util.dart';
 
 class RiwayatAbsen extends StatefulWidget {
@@ -34,8 +36,18 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
 
   String _getMonthName(int month) {
     const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
     ];
     return monthNames[month - 1];
   }
@@ -228,179 +240,177 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
             ));
     }
 
-    return Card(
-      key: ValueKey<String>('card_$index'),
-      margin: const EdgeInsets.all(8),
-      color: const Color.fromARGB(255, 255, 255, 255),
-      elevation: 4,
-      shape: const RoundedRectangleBorder(),
-      child: Stack(children: [
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 3,
-          child: Container(
-            color: Colors.blue,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
+    return Stack(children: [
+      Row(
+        children: [
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_month_rounded,
-                        color: Colors.black,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        tanggal,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 50),
-                  Row(
-                    children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black,
-                        ),
-                        padding: const EdgeInsets.all(1),
-                        child: CircleAvatar(
-                          backgroundColor: statusColor,
-                          radius: 8,
-                          child: Icon(
-                            statusIcon,
-                            color: Colors.black,
-                            size: 14,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      status,
-                    ],
-                  ),
-                ],
+              Text(
+                DateFormat('EEEE, dd/MM/yyyy', 'id')
+                    .format(DateTime.parse(tanggal)),
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(height: 8),
               if (statusAbsen != "1")
-                Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      const Align(
+                Column(
+                  children: [
+                    Container(
+                      color: Colors.white,
+                      child: Align(
                         alignment: Alignment.topLeft,
-                        child: Text(
-                          'Keterangan:',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Keterangan:',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '$keterangan',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        '$keterangan',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.normal,
+                    ),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            String safeUrl = '$url/$file';
+                            String encodedUrl = Uri.encodeComponent(safeUrl);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      LihatSpt(imageUrl: encodedUrl)),
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 236, 181, 255),
+                              border: Border.all(
+                                color: const Color.fromARGB(255, 187, 0, 255),
+                              ),
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(5)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.image,
+                                  color: Color.fromARGB(255, 187, 0, 255),
+                                ),
+                                Text(
+                                  ' FOTO ',
+                                  style: TextStyle(
+                                    color: Color.fromARGB(255, 187, 0, 255),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      ],
+                    )
+                  ],
+                )
+              else
+                SizedBox(
+                  height: 50,
+                  child: Row(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.arrow_circle_right_outlined,
+                              color: Colors.blue,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              jamMasuk ?? '',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(width: 20),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.arrow_circle_left_outlined,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            jamPulangOk!,
+                            style: TextStyle(
+                              color:
+                                  jamPulang != 'TK' ? Colors.black : Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                )
-              else
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.arrow_circle_right_outlined,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Jam Masuk: $jamMasuk',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
                 ),
               const SizedBox(height: 8),
-              if (statusAbsen != "1")
-                Row(
-                  children: [
-                    GestureDetector(
-                        onTap: () {
-                          String safeUrl = '$url/$file';
-                          String encodedUrl = Uri.encodeComponent(safeUrl);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    LihatSpt(imageUrl: encodedUrl)),
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 236, 181, 255),
-                            border: Border.all(
-                              color: const Color.fromARGB(255, 187, 0, 255),
-                            ),
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(5)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                Icons.image,
-                                color: Color.fromARGB(255, 187, 0, 255),
-                              ),
-                              Text(
-                                ' FOTO ',
-                                style: TextStyle(
-                                  color: Color.fromARGB(255, 187, 0, 255),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),)
-                  ],
-                )
-              else
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.arrow_circle_left_outlined,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Jam Pulang: $jamPulangOk',
-                      style: TextStyle(
-                        color: jamPulang != 'TK' ? Colors.black : Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
             ],
           ),
-        ),
-      ]),
-    );
+          Spacer(),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Column(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black,
+                  ),
+                  padding: const EdgeInsets.all(1),
+                  child: CircleAvatar(
+                    backgroundColor: statusColor,
+                    radius: 8,
+                    child: Column(
+                      children: [
+                        Icon(
+                          statusIcon,
+                          color: Colors.black,
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                status
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      Container(
+        height: 1,
+        width: double.infinity,
+        color: const Color.fromARGB(255, 201, 201, 201),
+      ),
+    ]);
   }
 
   Future<void> _refreshData() async {
@@ -417,37 +427,61 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
 
   @override
   Widget build(BuildContext context) {
-    double deviceHeight = MediaQuery.of(context).size.height;
+    Size size = MediaQuery.of(context).size;
     return Scaffold(
-        appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+      body: Stack(
+        children: [
+          Header().header(context),
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
 
-          title: const Center(
-            child: Text(
-              'Riwayat Absen',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          elevation: 4,
-        ),
-
-        body: SizedBox(
-          height: deviceHeight * 1.2,
-          child: Container(
-            color: const Color.fromARGB(255, 238, 238, 238),
-            child: RefreshIndicator(
-              onRefresh: _refreshData,
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount:
-                          1 + _rows.length,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                DropdownButton<String>(
+              // Content area
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        topRight: Radius.circular(24),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: Offset(0, -3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            'Riwayat Absen',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 50, 50, 50),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF0F4FD),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(5)),
+                                ),
+                                child: DropdownButton<String>(
                                   value: selectedMonth,
                                   hint: const Text('Pilih Bulan'),
                                   onChanged: (newValue) {
@@ -476,8 +510,16 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
                                     );
                                   }).toList(),
                                 ),
-                                const SizedBox(width: 16),
-                                DropdownButton<String>(
+                              ),
+                              const SizedBox(width: 16),
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF0F4FD),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(5)),
+                                ),
+                                child: DropdownButton<String>(
                                   value: selectedYear,
                                   hint: const Text('Pilih Tahun'),
                                   onChanged: (newValue) {
@@ -487,22 +529,56 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
                                   },
                                   items: _getYearItems(),
                                 ),
-                                const SizedBox(width: 16),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    _cariData(selectedMonth, selectedYear);
-                                  },
-                                  child: const Text('Cari'),
+                              ),
+                              const SizedBox(width: 16),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 67, 60, 130),
                                 ),
-                              ]);
-                        } else {
-                          return _buildCard(index - 1);
-                        }
-                      },
+                                onPressed: () async {
+                                  if (!_isLoading) {
+                                    setState(() {
+                                      _isLoading = true;
+                                    });
+                                    await Future.delayed(const Duration(seconds: 2));
+                                  _cariData(selectedMonth, selectedYear);
+                                  }
+                                },
+                                child: const Text('Cari',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    )),
+                              ),
+                            ]),
+                        RefreshIndicator(
+                          onRefresh: _refreshData,
+                          child: _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: _rows.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 16, right: 16),
+                                      child: _buildCard(index),
+                                    );
+                                  },
+                                ),
+                        ),
+                        SizedBox(height: 32),
+                      ],
                     ),
-            ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ));
+        ],
+      ),
+    );
   }
 
   List<DropdownMenuItem<String>> _getYearItems() {

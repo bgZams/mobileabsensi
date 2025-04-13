@@ -110,23 +110,24 @@ class _HomeState extends State<Home> {
             ],
           ),
         ),
+        
         bottomNavigationBar: _showBottomNavBar ? CurvedNavigationBar(
-          backgroundColor:  const Color.fromARGB(255, 238, 238, 238),
+          backgroundColor:  const Color.fromARGB(255, 229, 229, 229),
           // buttonBackgroundColor: Colors.white,
-          color: const Color.fromARGB(255, 14, 60, 129),
+          color: const Color.fromARGB(255, 229, 229, 229),
           height: 65,
           index: _currentIndex, // Tentukan indeks aktif
           items: <Widget>[
-            _buildIcon(Icons.home, 0),
-            _buildIcon(Icons.timer, 1),
-            _buildIcon(Icons.mail, 2),
-            _buildIcon(Icons.assignment, 3),
+            _buildIconWithText(Icons.home, "Home", 0),
+            _buildIconWithText(Icons.timer, "Riwayat", 1),
+            _buildIconWithText(Icons.mail, "Izin", 2),
+            _buildIconWithText(Icons.assignment, "LHK", 3),
           ],
           onTap: (index) {
             _pageController.animateToPage(
               index,
               duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
+              curve: Curves.linearToEaseOut,
             );
             setState(() {
             _currentIndex = index;
@@ -138,28 +139,43 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildIcon(IconData icon, int index) {
-    return ShaderMask(
-      shaderCallback: (Rect bounds) {
-        return LinearGradient(
-          colors: _currentIndex == index
-              ? [
-                  const Color.fromARGB(255, 235, 120, 255),
-                  const Color.fromARGB(255, 159, 124, 255)
-                ] // Warna ungu gradian untuk ikon aktif
-              : [
-                  Colors.white,
-             Colors.white,
-                ], // Warna abu-abu untuk ikon non-aktif
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ).createShader(bounds);
-      },
-      child: Icon(
-        icon,
-        size: 35,
-        color: Colors.white, // Warna ikon putih, akan di-mask dengan gradian
-      ),
+  Widget _buildIconWithText(IconData icon, String label, int index) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              colors: _currentIndex == index
+                  ? [
+                      const Color.fromARGB(255, 50, 50, 50),
+                      const Color.fromARGB(255, 31, 31, 31)
+                    ] // Warna ungu gradian untuk ikon aktif
+                  : [
+                      Color.fromARGB(255, 139, 139, 139),
+                      Color.fromARGB(255, 113, 113, 113),
+                    ], // Warna abu-abu untuk ikon non-aktif
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ).createShader(bounds);
+          },
+          child: Icon(
+            icon,
+            size: 35,
+            color: Colors.white, // Warna ikon putih, akan di-mask dengan gradian
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: _currentIndex == index
+                ? const Color.fromARGB(255, 50, 50, 50)
+                : const Color.fromARGB(255, 150, 150, 150),
+          ),
+        ),
+      ],
     );
   }
 }

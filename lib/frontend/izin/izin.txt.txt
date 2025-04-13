@@ -9,7 +9,7 @@ import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Izin extends StatefulWidget {
-  const Izin({Key? key}) : super(key: key);
+  const Izin({super.key});
 
   @override
   State<Izin> createState() => _IzinState();

@@ -1,17 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
-import 'package:mobileabsensi/frontend/absen/widget_header.dart';
+import 'package:mobileabsensi/frontend/apel.dart';
+import 'package:mobileabsensi/frontend/list_wifi.dart';
+import 'package:mobileabsensi/frontend/pengumuman.dart';
+import 'package:mobileabsensi/frontend/statistik.dart';
+import 'package:mobileabsensi/widget/widget_fitur.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/izin/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/frontend/navigasi.dart';
-import 'package:mobileabsensi/services/refresh.dart';
+import 'package:mobileabsensi/widget/widget_header.dart';
+// import 'package:mobileabsensi/services/refresh.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
@@ -198,8 +204,9 @@ class _AbsenState extends State<Absen> {
               }
             }
           } catch (e) {
-            if(mounted)
-            {Alert.alerterror(context, 'Gagal mengambil absen!');}
+            if (mounted) {
+              Alert.alerterror(context, 'Gagal mengambil absen!');
+            }
           }
         }
       } else {
@@ -211,14 +218,14 @@ class _AbsenState extends State<Absen> {
   }
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
-   
-
-    if (SpUtil.getBool('is_PulangCepat') == true && SpUtil.getInt('status_idlk')  == 0) {
-          Alert.alertwarning(context,
+    if (SpUtil.getBool('is_PulangCepat') == true &&
+        SpUtil.getInt('status_idlk') == 0) {
+      Alert.alertwarning(context,
           'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
       return;
     }
-    if (SpUtil.getBool('is_PulangCepat') == true && SpUtil.getInt('status_idlk')  == 1) {
+    if (SpUtil.getBool('is_PulangCepat') == true &&
+        SpUtil.getInt('status_idlk') == 1) {
       try {
         var datapulang = {
           'id_user': idUser,
@@ -235,7 +242,7 @@ class _AbsenState extends State<Absen> {
             'Content-Type': 'application/json; charset=UTF-8',
           },
         );
-            final data = jsonDecode(absenPulang.body);
+        final data = jsonDecode(absenPulang.body);
 
         if (absenPulang.statusCode == 200) {
           if (mounted) {
@@ -325,7 +332,8 @@ class _AbsenState extends State<Absen> {
                 }
               } else {
                 if (mounted) {
-                  Alert.alertwarning(context, 'Tidak dapat terhubung ke server');
+                  Alert.alertwarning(
+                      context, 'Tidak dapat terhubung ke server');
                 }
               }
             } else {
@@ -360,7 +368,6 @@ class _AbsenState extends State<Absen> {
           setState(() {
             SpUtil.putInt('status_idlk', 1);
           });
-
         }
       } else {
         throw Exception('Failed to load data');
@@ -406,19 +413,19 @@ class _AbsenState extends State<Absen> {
 
   Future<void> refreshData() async {
     // print(isCodePulang);
- 
-    if (SyncLimiter.canSync() && mounted) {
-      await Future.delayed(const Duration(seconds: 2));
-        setState(() {
-          _getCurrentTime();
-          _initNetworkInfo();
-          _fetchNotif();
-          _isLoading = false;
-        });
-        
-    } else {
-      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    }
+
+    // if (SyncLimiter.canSync() && mounted) {
+    //   await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _getCurrentTime();
+      _initNetworkInfo();
+      _fetchNotif();
+      _isLoading = false;
+    });
+
+    // } else {
+    //   Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    // }
   }
 
   @override
@@ -427,146 +434,55 @@ class _AbsenState extends State<Absen> {
     double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
     var namaSSID = wifiName.toString().replaceAll('"', '');
+
     return Scaffold(
-  body: RefreshIndicator(
-    onRefresh: () async {
-      await refreshData();
-    },
-    child: SizedBox(
-      height: deviceHeight * 1.2,
-      child: Container(
-        color: const Color.fromARGB(255, 238, 238, 238),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Stack(
-            children: [
-              Container(
-                width: MediaQuery.of(context).size.width,
-                height: size.height * .3,
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    alignment: Alignment.topCenter,
-                    image: AssetImage('assets/images/imgheader.png'),
-                    fit: BoxFit.cover,
-                  ),
+  body: Stack(
+    children: [
+    Header().header(context),
+ 
+      // Scrollable content area taking most of the screen
+      Column(
+        children: [
+          SizedBox(height: size.height * 0.15),
+          // Content area
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 255, 255, 255),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -3),
+                  ),
+                ],
               ),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+              child: ListView(
+                padding: EdgeInsets.all(16),
+                children: [
+                  Fitur().fiturMenu(context),
                             Container(
-                              height: 70,
-                              margin: const EdgeInsets.only(bottom: 20),
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                const Navigasi()),
-                                      );
-                                    },
-                                    child: const CircleAvatar(
-                                      radius: 32,
-                                      backgroundImage: AssetImage(
-                                          'assets/images/profile.png'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  SizedBox(
-                                    width: 180,
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          nama ?? '',
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                        Text(instansi ?? '',
-                                            style: const TextStyle(
-                                                fontSize: 12)),
-                                      ],
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  StreamBuilder<String>(
-                                    stream: _jlhIzinController.stream,
-                                    builder: (context, snapshot) {
-                                      return IconButton(
-                                        icon: SizedBox(
-                                          width: 60,
-                                          height: 30,
-                                          child: Stack(
-                                            alignment: Alignment.bottomLeft,
-                                            children: [
-                                              const Icon(Icons.notifications),
-                                              if (snapshot.hasData &&
-                                                  snapshot.data != null)
-                                                Positioned(
-                                                  right: 28,
-                                                  top: 0,
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(1),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.red,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                    ),
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                      minWidth: 18,
-                                                      minHeight: 18,
-                                                    ),
-                                                    child: Text(
-                                                      notif ?? '0',
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 12,
-                                                      ),
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const KonfirmasiIzin(),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(
-                                    width: 10,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Header().headerMenu(context),
-                            const SizedBox(height: 20),
-                            Container(
-                                color: Colors.white,
                                 width: deviceWidth,
                                 padding: const EdgeInsets.all(8.0),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: const Color.fromARGB(255, 221, 235, 235),),
+                                  color: const Color.fromARGB(255, 240, 255, 255),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(10)),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color.fromARGB(255, 226, 226, 226),
+                                      spreadRadius: 1,
+                                      blurRadius: 1,
+                                    )
+                                  ],
+                                ),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -574,7 +490,6 @@ class _AbsenState extends State<Absen> {
                                     Container(
                                       width: 190,
                                       alignment: Alignment.center,
-                                      color: Colors.white,
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
                                         child: Text(
@@ -588,18 +503,13 @@ class _AbsenState extends State<Absen> {
                                     ),
                                     Container(
                                       clipBehavior: Clip.hardEdge,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: const Color.fromARGB(
-                                                255, 141, 151, 0)),
-                                        color: const Color.fromARGB(
-                                            255, 248, 255, 147),
+                                      decoration: BoxDecoration( 
+                                  color: const Color.fromARGB(255, 67, 60, 130),
                                         borderRadius: const BorderRadius.all(
                                             Radius.circular(10)),
                                         boxShadow: const [
                                           BoxShadow(
-                                            color: Color.fromARGB(
-                                                255, 141, 151, 0),
+                                            color: Color.fromARGB(255, 99, 99, 99),
                                             spreadRadius: 1,
                                             blurRadius: 1,
                                           )
@@ -608,8 +518,7 @@ class _AbsenState extends State<Absen> {
                                       child: IconButton(
                                         icon: const Icon(
                                           Icons.refresh,
-                                          color: Color.fromARGB(
-                                              255, 141, 151, 0),
+                                          color: Color.fromARGB(255, 255, 255, 255),
                                         ),
                                         onPressed: () {
                                           _initNetworkInfo();
@@ -617,12 +526,7 @@ class _AbsenState extends State<Absen> {
                                       ),
                                     ),
                                   ],
-                                )),
-                            Container(
-                              color: const Color.fromARGB(255, 0, 0, 0),
-                              width: deviceWidth,
-                              padding: const EdgeInsets.all(2.0),
-                            ),
+                                ),),
                             Container(
                               color: const Color.fromARGB(255, 255, 255, 255),
                               width: deviceWidth,
@@ -648,7 +552,7 @@ class _AbsenState extends State<Absen> {
                                           height: 5,
                                         ),
                                         Text(
-                                            DateFormat('E, dd/MM/yyyy')
+                                            DateFormat('EEEE, dd/MM/yyyy', 'id')
                                                 .format(DateTime.now()),
                                             style: const TextStyle(
                                                 fontSize: 25)),
@@ -657,15 +561,10 @@ class _AbsenState extends State<Absen> {
                                   ),
                                   const SizedBox(height: 20),
                                   Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const SizedBox(height: 20),
-                                      Container(
-                                        margin:
-                                            const EdgeInsets.only(left: 40),
+                                      Padding(
+                                        padding: const EdgeInsets.all(36.0),
                                         child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
                                           children: [
                                             //TOMBOL MASUK PULANG
                                             Column(
@@ -721,9 +620,9 @@ class _AbsenState extends State<Absen> {
                                                                   _isMasuk =
                                                                       true;
                                                                 });
-
+                                        
                                                                 await _initNetworkInfo();
-
+                                        
                                                                 if (wifiName !=
                                                                         null &&
                                                                     wifiBSSID !=
@@ -740,7 +639,7 @@ class _AbsenState extends State<Absen> {
                                                                       context,
                                                                       'Silahkan sambungkan ke Wifi!');
                                                                 }
-
+                                        
                                                                 setState(() {
                                                                   _isMasuk =
                                                                       false;
@@ -759,7 +658,7 @@ class _AbsenState extends State<Absen> {
                                                                         width:
                                                                             100,
                                                                         child: Image.asset(
-                                                                            'assets/images/sidikjari1new.png'),
+                                                                            'assets/new/masuk.png'),
                                                                       ),
                                                                       const Text(
                                                                         "Masuk",
@@ -776,7 +675,7 @@ class _AbsenState extends State<Absen> {
                                                       ),
                                               ],
                                             ),
-                                            const SizedBox(width: 45),
+                                            const Spacer(),
                                             Column(
                                               children: [
                                                 isCodePulang
@@ -824,7 +723,7 @@ class _AbsenState extends State<Absen> {
                                                                   _isPulang =
                                                                       true;
                                                                 });
-
+                                        
                                                                 if (isCodeMasuk ==
                                                                     false) {
                                                                   QuickAlert
@@ -849,7 +748,7 @@ class _AbsenState extends State<Absen> {
                                                                               context) {
                                                                         return AlertDialog(
                                                                           title: const Text('Yakin ingin absen pulang Cepat?',style: TextStyle(fontSize: 15),),
-
+                                        
                                                                           // content:
                                                                           //     SizedBox(
                                                                           //   height:
@@ -956,7 +855,7 @@ class _AbsenState extends State<Absen> {
                                                                         'Silahkan sambungkan ke Wifi!');
                                                                   }
                                                                 }
-
+                                        
                                                                 setState(() {
                                                                   _isPulang =
                                                                       false;
@@ -975,7 +874,7 @@ class _AbsenState extends State<Absen> {
                                                                         width:
                                                                             100,
                                                                         child: Image.asset(
-                                                                            'assets/images/sidikjari2new.png'),
+                                                                            'assets/new/pulang.png'),
                                                                       ),
                                                                       if (SpUtil.getInt(
                                                                               'status_idlk') ==
@@ -1000,7 +899,6 @@ class _AbsenState extends State<Absen> {
                                                       ),
                                               ],
                                             ),
-                                            const SizedBox(width: 45),
                                           ],
                                         ),
                                       ),
@@ -1091,15 +989,13 @@ class _AbsenState extends State<Absen> {
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
+    ],
   ),
 );
   }

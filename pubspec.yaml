@@ -20,7 +20,7 @@ version: 1.0.0+1
 
 environment:
   # sdk: '>=3.2.3 <4.0.0'
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=2.17.0 <3.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -158,6 +158,13 @@ flutter:
     - assets/images/admin/pengumuman.png
     - assets/images/admin/exit.png
     - assets/images/admin/bg.png
+    #new asset
+    - assets/new/login-first.png
+    - assets/new/login.png
+    - assets/new/home-bg.png
+    - assets/new/home-header-bg.png
+    - assets/new/masuk.png
+    - assets/new/pulang.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

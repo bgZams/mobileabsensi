@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/auth/login.dart';
-import 'package:mobileabsensi/auth/login_first.dart';
 import 'package:mobileabsensi/firebase_options.dart';
 import 'package:mobileabsensi/frontend/absen/absen.dart';
 import 'package:mobileabsensi/frontend/admin/absen.dart';
@@ -58,13 +57,96 @@ void main() async {
   }
   await SpUtil.getInstance();
   idUser = SpUtil.getString('id_user');
-  // await readData();
-  _checkAndUpdatePreferences();
+  await readData();
   HttpOverrides.global = MyHttpOverrides();
   runApp(MyApp());
 }
 
-void _checkAndUpdatePreferences() {
+Future<void> readData() async {
+  final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
+  databaseReference.child('izin').onValue.listen((event) {
+    processSnapshot(event.snapshot, 'izin');
+  }, onError: (error) {
+    debugPrint('Terjadi kesalahan pada child izin: $error');
+  });
+
+  databaseReference.child('laporan').onValue.listen((event) {
+    processSnapshot(event.snapshot, 'laporan');
+  }, onError: (error) {
+    debugPrint('Terjadi kesalahan pada child laporan: $error');
+  });
+}
+
+void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
+  if (snapshot != null && snapshot.value != null) {
+    final Map<dynamic, dynamic>? data = snapshot.value as Map<dynamic, dynamic>?;
+    if (data != null && data.isNotEmpty) {
+      int count = 1;
+      for (final MapEntry<dynamic, dynamic> entry in data.entries) {
+        final Map<dynamic, dynamic>? documentData = entry.value as Map<dynamic, dynamic>?;
+        if (documentData != null) {
+          final idAtasan = documentData['id_atasan'];
+          final idStatus = documentData['id_status'];
+          final parsedIdAtasan = int.tryParse(idAtasan);
+          final user = SpUtil.getString('id_user');
+          final userId = int.tryParse(user ?? '');
+          if (userId == parsedIdAtasan) {
+            if (idStatus == 2) {
+              count++;
+            }
+          }
+        }
+      }
+
+      for (final MapEntry<dynamic, dynamic> entry in data.entries) {
+        final Map<dynamic, dynamic>? documentData = entry.value as Map<dynamic, dynamic>?;
+        if (documentData != null) {
+          final idAtasan = documentData['id_atasan'];
+          final idStatus = documentData['id_status'];
+          final jenisIzin = documentData['jenis_izin'];
+          final parsedIdAtasan = int.tryParse(idAtasan);
+          final user = SpUtil.getString('id_user');
+          final userId = int.tryParse(user ?? '');
+          final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
+          if (idStatus == 0 && userId == parsedIdAtasan) {
+            try {
+              switch (keyNotif) {
+                case 'izin':
+                  NotificationController.createNewNotificationIzin(count, idAtasan, jenisIzin, idStatus, keyNotif);
+                  databaseReference.child('izin').child(entry.key).update({'id_status': 2});
+                  break;
+                case 'laporan':
+                  NotificationController.createNewNotificationLaporan(count, idAtasan, jenisIzin, idStatus, keyNotif);
+                  databaseReference.child('laporan').child(entry.key).update({'id_status': 2});
+                  break;
+              }
+            } catch (e) {
+              if (kDebugMode) {
+                print('Error sending $keyNotif notification: $e');
+              }
+            }
+          }
+        }
+      }
+    } else {
+      debugPrint('Dokumen $keyNotif kosong.');
+    }
+  } else {
+    debugPrint('Data $keyNotif tidak ditemukan');
+  }
+}
+
+class MyApp extends StatelessWidget {
+  MyApp({super.key});
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  final int _currentIndex = 0;
+  final _pageController = PageController();
+  void initState() {
+    _checkAndUpdatePreferences();
+  }
+
+  void _checkAndUpdatePreferences() {
     DateTime now = DateTime.now();
     String todayString = DateFormat('yyyy-MM-dd').format(now);
     String? savedDate = SpUtil.getString('saved_date');
@@ -78,125 +160,8 @@ void _checkAndUpdatePreferences() {
       SpUtil.putBool('is_codePulang', false);
       SpUtil.putBool('is_PulangCepat', false);
       SpUtil.putBool('_isMasuk', false);
-      SpUtil.putBool('_isPulang', false);
     }
   }
-
-// Future<void> readData() async {
-//   final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
-//   databaseReference.child('izin').onValue.listen((event) {
-//     processSnapshot(event.snapshot, 'izin');
-//   }, onError: (error) {
-//     debugPrint('Terjadi kesalahan pada child izin: $error');
-//   });
-
-//   databaseReference.child('laporan').onValue.listen((event) {
-//     processSnapshot(event.snapshot, 'laporan');
-//   }, onError: (error) {
-//     debugPrint('Terjadi kesalahan pada child laporan: $error');
-//   });
-// }
-
-// void processSnapshot(DataSnapshot? snapshot, String keyNotif) async {
-//   if (snapshot != null && snapshot.value != null) {
-//     final Map<dynamic, dynamic>? data = snapshot.value as Map<dynamic, dynamic>?;
-//     if (data != null && data.isNotEmpty) {
-//       final now = DateTime.now().millisecondsSinceEpoch;
-      
-//       // Simpan ID yang sudah diproses
-//       final String processedKey = 'processed_${keyNotif}_ids';
-//       final Set<String> processedIds = Set<String>.from(
-//         SpUtil.getStringList(processedKey) ?? []
-//       );
-      
-//       // Filter entri yang belum diproses dan timestamp-nya valid
-//       final validEntries = data.entries.where((entry) {
-//         // Periksa apakah entri sudah diproses sebelumnya
-//         if (processedIds.contains(entry.key)) {
-//           return false;
-//         }
-        
-//         final documentData = entry.value as Map<dynamic, dynamic>?;
-//         final timestamp = documentData?['timestamp'] as int?;
-//         final idStatus = documentData?['id_status'];
-        
-//         // Hanya ambil entri dengan status 0 dan timestamp yang valid
-//         // Gunakan "now - 300000" (5 menit yang lalu) untuk menghindari entri lama
-//         return timestamp != null && 
-//                timestamp > (now - 300000) && 
-//                timestamp <= now && 
-//                idStatus == 0;
-//       }).toList();
-      
-//       if (validEntries.isEmpty) {
-//         debugPrint('Tidak ada data $keyNotif baru yang perlu diproses');
-//         return;
-//       }
-      
-//       // Urutkan berdasarkan timestamp terbaru
-//       validEntries.sort((a, b) {
-//         final aTimestamp = (a.value as Map<dynamic, dynamic>)['timestamp'] as int;
-//         final bTimestamp = (b.value as Map<dynamic, dynamic>)['timestamp'] as int;
-//         return bTimestamp.compareTo(aTimestamp); // Urutkan dari terbaru
-//       });
-      
-//       // Ambil entri terbaru
-//       final latestEntry = validEntries.first;
-//       final documentData = latestEntry.value as Map<dynamic, dynamic>;
-      
-//       final idAtasan = documentData['id_atasan'];
-//       final idStatus = documentData['id_status'];
-//       final jenisIzin = documentData['jenis_izin'];
-//       final parsedIdAtasan = int.tryParse(idAtasan.toString());
-//       final user = SpUtil.getString('id_user');
-//       final userId = int.tryParse(user ?? '');
-      
-//       if (userId == parsedIdAtasan) {
-//         try {
-//           final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
-//           switch (keyNotif) {
-//             case 'izin':
-//               NotificationController.createNewNotificationIzin(1, idAtasan, jenisIzin, idStatus, keyNotif);
-//               databaseReference.child('izin').child(latestEntry.key).update({'id_status': 2});
-//               break;
-//             case 'laporan':
-//               NotificationController.createNewNotificationLaporan(1, idAtasan, jenisIzin, idStatus, keyNotif);
-//               databaseReference.child('laporan').child(latestEntry.key).update({'id_status': 2});
-//               break;
-//           }
-          
-//           // Simpan ID yang sudah diproses
-//           processedIds.add(latestEntry.key);
-//           SpUtil.putStringList(processedKey, processedIds.toList());
-          
-//           debugPrint('Berhasil memproses notifikasi $keyNotif dengan ID: ${latestEntry.key}');
-//         } catch (e) {
-//           if (kDebugMode) {
-//             print('Error sending $keyNotif notification: $e');
-//           }
-//         }
-//       } else {
-//         debugPrint('ID atasan tidak cocok dengan user saat ini');
-//       }
-//     } else {
-//       debugPrint('Data $keyNotif tidak ditemukan');
-//     }
-//   }
-// }
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-  
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  final int _currentIndex = 0;
-  final _pageController = PageController();
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +170,6 @@ class _MyAppState extends State<MyApp> {
       title: 'Mobile Absensi',
       navigatorKey: navigatorKey,
       routes: {
-        '/login-first': (context) => const LoginFirst(),
         '/login': (context) => const Login(),
         '/home-page': (context) => const Home(title: 'Mobile Absensi'),
         '/absen-masuk': (context) => const Absen(),
@@ -253,7 +217,7 @@ class _MyAppState extends State<MyApp> {
         }
         return null;
       },
-      initialRoute: (SpUtil.getString('id_groups').toString() == "3" || SpUtil.getString('id_groups').toString() == "5" ? '/home-page' : (SpUtil.getString('id_groups').toString() == "2" ? '/admin' : '/login-first')),
+      initialRoute: (SpUtil.getString('id_groups').toString() == "3" || SpUtil.getString('id_groups').toString() == "5" ? '/home-page' : (SpUtil.getString('id_groups').toString() == "2" ? '/admin' : '/login')),
       home: Scaffold(
         body: PageView(
           controller: _pageController,
@@ -265,7 +229,7 @@ class _MyAppState extends State<MyApp> {
           ],
         ),
         bottomNavigationBar: CurvedNavigationBar(
-                    color: const Color.fromARGB(255, 255, 250, 250),
+          color: const Color.fromARGB(255, 14, 60, 129),
           height: 65,
           index: _currentIndex,
           items: <Widget>[
@@ -291,8 +255,8 @@ class _MyAppState extends State<MyApp> {
       shaderCallback: (Rect bounds) {
         return LinearGradient(
           colors: _currentIndex == index
-              ? [const Color.fromARGB(255, 43, 42, 43), const Color.fromARGB(255, 16, 16, 16)]
-              : [const Color.fromARGB(255, 231, 228, 228), Color.fromARGB(255, 231, 228, 228)],
+              ? [const Color.fromARGB(255, 235, 120, 255), const Color.fromARGB(255, 159, 124, 255)]
+              : [Colors.white, Colors.white],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ).createShader(bounds);
@@ -300,7 +264,7 @@ class _MyAppState extends State<MyApp> {
       child: Icon(
         icon,
         size: 35,
-        color: Colors.black,
+        color: Colors.white,
       ),
     );
   }

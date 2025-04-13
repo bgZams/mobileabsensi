@@ -8,7 +8,7 @@ import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
 import 'package:sp_util/sp_util.dart';
 
 class LaporanHarian extends StatefulWidget {
-  const LaporanHarian({Key? key}) : super(key: key);
+  const LaporanHarian({super.key});
 
   @override
   State<LaporanHarian> createState() => _LaporanHarianState();

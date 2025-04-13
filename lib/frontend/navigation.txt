@@ -6,7 +6,7 @@ import 'package:mobileabsensi/frontend/tentang.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Navigasi extends StatelessWidget {
-  const Navigasi({Key? key}) : super(key: key);
+  const Navigasi({super.key});
 
   final title = "Menu";
 
