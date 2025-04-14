@@ -25,26 +25,30 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
   late String selectedMonth = Bulan().getMonthName(DateTime.now().month);
 
   List<dynamic> _riwayatIzin = [];
-  List<dynamic> _riwayatPengajuan = [];
   TabController? _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller?.addListener(() {
-      setState(() {
-        futureData = fetchData(selectedMonth, selectedYear);
+    if(mounted) {
+      _controller?.addListener(() {
+        setState(() {
+          futureData = fetchData(selectedMonth, selectedYear);
+        });
       });
-    });
-    futureData = fetchData(selectedMonth, selectedYear);
-    _refreshData();
+      futureData = fetchData(selectedMonth, selectedYear);
+      _refreshData();
+    }
+    
   }
 
   Future<List<Map<String, dynamic>>> fetchData(
       String month, String year) async {
+        if (mounted) {
     setState(() {
       isLoading = true;
     });
+        }
     String monthNumber = Bulan().getMonthNumber(month);
     final idUser = SpUtil.getString("id_user") ?? '';
     String? link;
@@ -54,11 +58,14 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
 
     if (response.statusCode == 200) {
       final List<dynamic> responseData = json.decode(response.body)['data'];
-      setState(() {
+      if (mounted) {
+        setState(() {
         _riwayatIzin = responseData;
         _controller?.animateTo(0);
         isLoading = false;
       });
+      }
+      
       return responseData.cast<Map<String, dynamic>>();
     } else {
       if (mounted) {
@@ -90,15 +97,10 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
-          // Background header that extends beyond what's visible
           Header().header(context),
-          // Scrollable content area taking most of the screen
           Column(
             children: [
-              // Spacer to push content down to create overlap
               SizedBox(height: size.height * 0.15),
-
-              // Content area
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -144,9 +146,11 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                                   value: selectedMonth,
                                   hint: const Text('Pilih Bulan'),
                                   onChanged: (newValue) {
-                                    setState(() {
-                                      selectedMonth = newValue!;
-                                    });
+                                    if (mounted) {
+                                      setState(() {
+                                        selectedMonth = newValue!;
+                                      });
+                                    }
                                   },
                                   items: [
                                     'Januari',
@@ -182,9 +186,11 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                                   value: selectedYear,
                                   hint: const Text('Pilih Tahun'),
                                   onChanged: (newValue) {
-                                    setState(() {
-                                      selectedYear = newValue!;
-                                    });
+                                    if (mounted) {
+                                      setState(() {
+                                        selectedYear = newValue!;
+                                      });
+                                    }
                                   },
                                   items: _getYearItems(),
                                 ),
@@ -395,11 +401,14 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
             // Navigasi ke halaman buat_izin dan tangkap data balikan
             final result = await Navigator.pushNamed(context, '/buat_izin');
             if (result == true) {
-              // Jika hasilnya sukses, ubah tab yang dipilih
-              setState(() {
-                _controller?.animateTo(1); // Ubah ke tab riwayat pengajuan
-                searchByDate(selectedMonth, selectedYear); // Refresh data
-              });
+              if (mounted) {
+                // Jika data berhasil ditambahkan, refresh data
+                setState(() {
+                  _controller?.animateTo(1); // Ubah ke tab riwayat pengajuan
+                  searchByDate(selectedMonth, selectedYear); // Refresh data
+                });
+              }
+              
             }
           },
           tooltip: 'Tambah Izin',

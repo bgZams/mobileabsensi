@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:mobileabsensi/services/alert.dart';
 import 'dart:convert';
 
 import 'package:sp_util/sp_util.dart';
@@ -139,9 +140,8 @@ class _DetailKonfirmasiIzinAtasanState
           'Accept': 'application/json',
         },
       );
-final data = jsonDecode(response.body);
-        // print(response.body);
       if (response.statusCode == 200) {
+final data = jsonDecode(response.body);
         
         // ignore: use_build_context_synchronously
         Navigator.pushNamed(context, '/konfirmasi-izin');
@@ -150,6 +150,9 @@ final data = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"])),
         );
+        if(mounted){
+          Alert.alertsuccess(context, data['message']);
+        }
         _fetchData(); // Refresh data
       } else {
         throw Exception('Gagal menyetujui izin');
@@ -260,17 +263,66 @@ final data = jsonDecode(response.body);
                           ],
                         ),
                       ),
-                      ListTile(
-                        title: Text(izin['nama_lengkap'] ?? ''),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Status: $jenisStatus'),
-                            Text('Tanggal Pengajuan: \n${DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
-                                .format(DateTime.parse(izin['timestamp_masuk']))}'),
-                            Text('Durasi: ${izin['durasi']} Hari'),
-                          ],
-                        ),
+                      Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(2),
+                          1: FlexColumnWidth(3),
+                        },
+                        border: TableBorder.all(color: Colors.grey),
+                        children: [
+                          TableRow(children: [
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('Nama Lengkap', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(izin['nama_lengkap'] ?? ''),
+                            ),
+                          ]),
+                          TableRow(children: [
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(jenisStatus),
+                            ),
+                          ]),
+                          TableRow(children: [
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('Tanggal Pengajuan', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+                                  .format(DateTime.parse(izin['created_at']))),
+                            ),
+                          ]),
+                          TableRow(children: [
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('Tanggal Mulai', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+                                  .format(DateTime.parse(izin['timestamp_masuk']))),
+                            ),
+                          ]),
+                          TableRow(children: [
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('Durasi', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text('${izin['durasi']} Hari'),
+                            ),
+                          ]),
+                        ],
                       ),
                       Container(
                         color: const Color.fromARGB(255, 255, 7, 7),

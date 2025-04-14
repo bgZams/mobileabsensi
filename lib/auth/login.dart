@@ -245,12 +245,24 @@ class LoginState extends State<Login> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 360),
+                const SizedBox(height: 50),
+
+             Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 230,
+              height: 40,
+              child: Image.asset("assets/new/login-header.png",
+                fit: BoxFit.cover,
+              ),
+            ),
+            ),
+                const SizedBox(height: 250),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hi, Selamat Datang',
+                      'Hi, Selamat Datang',style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
                     ), 
                   ],
                 ),

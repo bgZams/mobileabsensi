@@ -431,7 +431,6 @@ class _AbsenState extends State<Absen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
     var namaSSID = wifiName.toString().replaceAll('"', '');
 
@@ -465,7 +464,7 @@ class _AbsenState extends State<Absen> {
               child: ListView(
                 padding: EdgeInsets.all(16),
                 children: [
-                  Fitur().fiturMenu(context),
+                  const Fitur(),
                             Container(
                                 width: deviceWidth,
                                 padding: const EdgeInsets.all(8.0),

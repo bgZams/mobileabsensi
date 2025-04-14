@@ -261,8 +261,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
                                         isLoading ? null : _startLoading,
                                     clipBehavior: Clip.hardEdge,
                                     style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color.fromARGB(
-                                            255, 17, 110, 160),
+                                        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
                                         shape: RoundedRectangleBorder(
                                             borderRadius:
                                                 BorderRadius.circular(5))),

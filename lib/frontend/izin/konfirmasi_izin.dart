@@ -169,8 +169,9 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           'status': status,
         }
       );
+      final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        
         setState(() {
           selectedIndex = 1; // Set index to LHK tab
           _controller?.animateTo(1); // Move to LHK tab
@@ -249,24 +250,26 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
             ),
           )
           else
-          TabBarView(
-            controller: _controller,
-            children: [
-              _riwayatIzin.isEmpty
-                  ? const Center(child: Text('Tidak ada data'))
-                  : ListView.builder(
-                      itemCount: _riwayatIzin.length,
-                      itemBuilder: (context, index) =>
-                          _buildIzinItem(context, _riwayatIzin[index]),
-                    ),
-              _riwayatLhk.isEmpty
-                  ? const Center(child: Text('Tidak ada data'))
-                  : ListView.builder(
-                      itemCount: _riwayatLhk.length,
-                      itemBuilder: (context, index) =>
-                          _buildLhkItem(context, _riwayatLhk[index]),
-                    ),
-            ],
+          Expanded(
+            child: TabBarView(
+              controller: _controller,
+              children: [
+                _riwayatIzin.isEmpty
+                    ? const Center(child: Text('Tidak ada data'))
+                    : ListView.builder(
+                        itemCount: _riwayatIzin.length,
+                        itemBuilder: (context, index) =>
+                            _buildIzinItem(context, _riwayatIzin[index]),
+                      ),
+                _riwayatLhk.isEmpty
+                    ? const Center(child: Text('Tidak ada data'))
+                    : ListView.builder(
+                        itemCount: _riwayatLhk.length,
+                        itemBuilder: (context, index) =>
+                            _buildLhkItem(context, _riwayatLhk[index]),
+                      ),
+              ],
+            ),
           ),
         ],
       ),
@@ -286,7 +289,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           children: [
             Text('Status: $jenisStatus'),
             Text('Tanggal Pengajuan: \n${DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
-                                .format(DateTime.parse(izin['timestamp']))}'),
+                                .format(DateTime.parse(izin['created_at']))}'),
             Text('Durasi: ${izin['durasi']} Hari'),
           ],
         ),

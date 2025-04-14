@@ -376,30 +376,33 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
           Spacer(),
           Align(
             alignment: Alignment.centerRight,
-            child: Column(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black,
-                  ),
-                  padding: const EdgeInsets.all(1),
-                  child: CircleAvatar(
-                    backgroundColor: statusColor,
-                    radius: 8,
-                    child: Column(
-                      children: [
-                        Icon(
-                          statusIcon,
-                          color: Colors.black,
-                          size: 14,
-                        ),
-                      ],
+            child: SizedBox(
+              width: 80,
+              child: Column(
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black,
+                    ),
+                    padding: const EdgeInsets.all(1),
+                    child: CircleAvatar(
+                      backgroundColor: statusColor,
+                      radius: 8,
+                      child: Column(
+                        children: [
+                          Icon(
+                            statusIcon,
+                            color: Colors.black,
+                            size: 14,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                status
-              ],
+                  status
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 8),

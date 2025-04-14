@@ -5,6 +5,7 @@ import 'package:mobileabsensi/frontend/pengumuman_detail.dart';
 import 'package:mobileabsensi/model/model_pengumuman.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
+import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Pengumuman extends StatefulWidget {
@@ -58,35 +59,61 @@ class _PengumumanState extends State<Pengumuman> {
 
   @override
   Widget build(BuildContext context) {
+    Size size = MediaQuery.of(context).size;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Pengumuman', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: FutureBuilder<List<ModelPengumuman>>(
-          future: postsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasData) {
-              final posts = snapshot.data!;
-              return buildPosts(posts);
-            } else if (snapshot.hasError) {
-              return Center(child: Text("${snapshot.error}"));
-            } else {
-              return const Center(child: Text("No data available"));
-            }
-          },
-        ),
+      body: Stack(
+        children: [
+          // Background header that extends beyond what's visible
+          Header().header(context),
+
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
+
+              // Content area
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child: FutureBuilder<List<ModelPengumuman>>(
+                    future: postsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      } else if (snapshot.hasData) {
+                        final posts = snapshot.data!;
+                        return buildPosts(posts);
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text("${snapshot.error}"));
+                      } else {
+                        return const Center(
+                            child: Text("No data available"));
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -132,18 +159,18 @@ class _PengumumanState extends State<Pengumuman> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: Image.network(
-                  post.thumbnail ?? "",
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Image.asset(
-                    "assets/images/logo.png",
+                    post.thumbnail ?? "",
                     width: 80,
                     height: 80,
                     fit: BoxFit.cover,
-                    );
-                  },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        "assets/images/logo.png",
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 10),

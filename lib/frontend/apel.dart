@@ -299,7 +299,7 @@ class _ApelState extends State<Apel> {
                               return SingleChildScrollView(
                                 child: Center(
                                   child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Card(
                                         color: const Color.fromARGB(

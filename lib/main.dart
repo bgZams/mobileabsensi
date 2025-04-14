@@ -26,10 +26,10 @@ import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/izin/riwayat.dart';
 import 'package:mobileabsensi/frontend/izin/status.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
-import 'package:mobileabsensi/frontend/laporan_harian/konfirmasi_laporan.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/laporan.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/status.dart';
+import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
 import 'package:mobileabsensi/frontend/pengumuman.dart';
 import 'package:mobileabsensi/frontend/profile.dart';
 import 'package:mobileabsensi/frontend/senam.dart';
@@ -195,8 +195,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  final int _currentIndex = 0;
   final _pageController = PageController();
+        bool _showBottomNavBar = true;
+  int _currentIndex = 0;
+
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +225,6 @@ class _MyAppState extends State<MyApp> {
         '/status-izin': (context) => const StatusIzin(),
         '/konfirmasi-izin': (context) => const KonfirmasiIzin(),
         '/detail-konfirmasi-izin': (context) => const DetailKonfirmasiIzinAtasan(),
-        '/konfirmasi-laporan': (context) => const KonfirmasiLaporanHarian(),
         '/apel': (context) => const Apel(),
         '/senam': (context) => const Senam(),
         '/pengumuman': (context) => const Pengumuman(),
@@ -261,47 +262,74 @@ class _MyAppState extends State<MyApp> {
             Absen(),
             RiwayatAbsen(),
             Izin(),
-            LaporanHarian(),
+            NotifikasiPage(),
           ],
         ),
-        bottomNavigationBar: CurvedNavigationBar(
-                    color: const Color.fromARGB(255, 255, 250, 250),
+        bottomNavigationBar: _showBottomNavBar ? CurvedNavigationBar(
+          backgroundColor:  const Color.fromARGB(255, 229, 229, 229),
+          // buttonBackgroundColor: Colors.white,
+          color: const Color.fromARGB(255, 229, 229, 229),
           height: 65,
-          index: _currentIndex,
+          index: _currentIndex, // Tentukan indeks aktif
           items: <Widget>[
-            _buildIcon(Icons.home, 0),
-            _buildIcon(Icons.timer, 1),
-            _buildIcon(Icons.mail, 2),
-            _buildIcon(Icons.assignment, 3),
+            _buildIconWithText(Icons.home, "Home", 0),
+            _buildIconWithText(Icons.timer, "Riwayat", 1),
+            _buildIconWithText(Icons.mail, "Pengajuan", 2),
+            _buildIconWithText(Icons.notifications, "Notifikasi", 3),
           ],
           onTap: (index) {
             _pageController.animateToPage(
               index,
               duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
+              curve: Curves.linearToEaseOut,
             );
+            setState(() {
+            _currentIndex = index;
+            _showBottomNavBar = true;
+          });
           },
-        ),
+        ) : null,
       ),
     );
   }
 
-  Widget _buildIcon(IconData icon, int index) {
-    return ShaderMask(
-      shaderCallback: (Rect bounds) {
-        return LinearGradient(
-          colors: _currentIndex == index
-              ? [const Color.fromARGB(255, 43, 42, 43), const Color.fromARGB(255, 16, 16, 16)]
-              : [const Color.fromARGB(255, 231, 228, 228), Color.fromARGB(255, 231, 228, 228)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ).createShader(bounds);
-      },
-      child: Icon(
-        icon,
-        size: 35,
-        color: Colors.black,
-      ),
+  Widget _buildIconWithText(IconData icon, String label, int index) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              colors: _currentIndex == index
+                  ? [
+                      const Color.fromARGB(255, 50, 50, 50),
+                      const Color.fromARGB(255, 31, 31, 31)
+                    ] // Warna ungu gradian untuk ikon aktif
+                  : [
+                      Color.fromARGB(255, 188, 187, 187),
+                      Color.fromARGB(255, 169, 169, 169),
+                    ], // Warna abu-abu untuk ikon non-aktif
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ).createShader(bounds);
+          },
+          child: Icon(
+            icon,
+            size: 35,
+            color: Colors.white, // Warna ikon putih, akan di-mask dengan gradian
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: _currentIndex == index
+                ? const Color.fromARGB(255, 50, 50, 50)
+                : const Color.fromARGB(255, 150, 150, 150),
+          ),
+        ),
+      ],
     );
   }
 }

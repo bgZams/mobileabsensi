@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
@@ -97,8 +98,8 @@ class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
         jenisStatus = 'Belum Disetujui';
     }
 
-    var jamMasuk = widget.data['timestamp_masuk'].toString();
-
+    var jamMasuk = DateFormat('EEEE, dd/MM/yyyy H:i:s', 'id')
+                    .format(DateTime.parse(widget.data['timestamp_masuk']));
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 60, 129),
@@ -126,13 +127,13 @@ class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
                   1: FlexColumnWidth(1),
                 },
                 children: [
-                  _buildTableRow(
+                  _buildTableRow( 
                     'Tgl Pengajuan',
                     ': $jamMasuk' != '' ? ': $jamMasuk' : '',
                   ),
                   _buildTableRow(
                     'Tgl Izin',
-                    ': ${widget.data['tgl_mulai'].toString()} ',
+                    ':   ',
                   ),
                   _buildTableRow(
                     'Durasi',

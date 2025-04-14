@@ -5,6 +5,7 @@ import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/frontend/izin/detail_konfirmasi_atasan.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
+import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
 import 'package:mobileabsensi/frontend/pengumuman.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -85,7 +86,6 @@ class _HomeState extends State<Home> {
         '/konfirmasi-izin': (context) => const KonfirmasiIzin(),
         '/detail-konfirmasi-izin': (context) =>
             const DetailKonfirmasiIzinAtasan(),
-        '/konfirmasi-laporan': (context) => const KonfirmasiLaporanHarian(),
         '/apel': (context) => const Apel(),
         '/senam': (context) => const Senam(),
         '/pengumuman': (context) => const Pengumuman(),
@@ -106,7 +106,7 @@ class _HomeState extends State<Home> {
               Absen(),
               RiwayatAbsen(),
               Izin(),
-              LaporanHarian(),
+              NotifikasiPage(),
             ],
           ),
         ),
@@ -120,8 +120,8 @@ class _HomeState extends State<Home> {
           items: <Widget>[
             _buildIconWithText(Icons.home, "Home", 0),
             _buildIconWithText(Icons.timer, "Riwayat", 1),
-            _buildIconWithText(Icons.mail, "Izin", 2),
-            _buildIconWithText(Icons.assignment, "LHK", 3),
+            _buildIconWithText(Icons.mail, "Pengajuan", 2),
+            _buildIconWithText(Icons.notifications, "Notifikasi", 3),
           ],
           onTap: (index) {
             _pageController.animateToPage(
@@ -152,8 +152,8 @@ class _HomeState extends State<Home> {
                       const Color.fromARGB(255, 31, 31, 31)
                     ] // Warna ungu gradian untuk ikon aktif
                   : [
-                      Color.fromARGB(255, 139, 139, 139),
-                      Color.fromARGB(255, 113, 113, 113),
+                      Color.fromARGB(255, 188, 187, 187),
+                      Color.fromARGB(255, 169, 169, 169),
                     ], // Warna abu-abu untuk ikon non-aktif
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,

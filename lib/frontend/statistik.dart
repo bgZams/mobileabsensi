@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:mobileabsensi/widget/bulan.dart';
+import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Statistik extends StatefulWidget {
@@ -27,10 +28,10 @@ class StatistikState extends State<Statistik> {
     final now = DateTime.now();
     selectedMonth = _getMonthName(now.month);
     selectedYear = now.year.toString();
-    fetchData(selectedMonth,selectedYear);
+    fetchData(selectedMonth, selectedYear);
   }
 
-  Future<void> fetchData(String selectedMonth,String selectedYear) async {
+  Future<void> fetchData(String selectedMonth, String selectedYear) async {
     String monthNumber = Bulan().getMonthNumber(selectedMonth);
     var urlto = '$url/api/statistik/$idUser/$monthNumber/$selectedYear';
     try {
@@ -50,11 +51,11 @@ class StatistikState extends State<Statistik> {
     }
   }
 
-  void cariData(String selectedMonth,String selectedYear) {
+  void cariData(String selectedMonth, String selectedYear) {
     setState(() {
       isLoading = true;
     });
-    fetchData(selectedMonth,selectedYear);
+    fetchData(selectedMonth, selectedYear);
   }
 
   List<DropdownMenuItem<String>> _getYearItems() {
@@ -70,8 +71,18 @@ class StatistikState extends State<Statistik> {
 
   String _getMonthName(int month) {
     const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
     ];
     return monthNames[month - 1];
   }
@@ -79,42 +90,82 @@ class StatistikState extends State<Statistik> {
   @override
   Widget build(BuildContext context) {
     const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
     ];
+    Size size = MediaQuery.of(context).size;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Statistik',style: TextStyle(color: Colors.white),),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color:Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 5),
-            _buildDropdownRow(monthNames),
-            const SizedBox(height: 20),
-            isLoading
-                ? const CircularProgressIndicator()
-                : data == null
-                    ? const Text('No data available')
-                    : _buildChartData(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          // Background header that extends beyond what's visible
+          Header().header(context),
+
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
+
+              // Content area
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child: ListView(
+                    padding: EdgeInsets.all(16),
+                    children: [
+                      const SizedBox(height: 5),
+                      _buildDropdownRow(monthNames),
+                      const SizedBox(height: 20),
+                      isLoading
+                          ? const CircularProgressIndicator()
+                          : data == null
+                              ? const Text('No data available')
+                              : _buildChartData(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildDropdownRow(List<String> monthNames) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        DropdownButton<String>(
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: Color(0xFFF0F4FD),
+          borderRadius: const BorderRadius.all(Radius.circular(5)),
+        ),
+        child: DropdownButton<String>(
           value: selectedMonth,
           hint: const Text('Pilih Bulan'),
           onChanged: (newValue) {
@@ -122,15 +173,35 @@ class StatistikState extends State<Statistik> {
               selectedMonth = newValue!;
             });
           },
-          items: monthNames.map<DropdownMenuItem<String>>((String value) {
+          items: [
+            'Januari',
+            'Februari',
+            'Maret',
+            'April',
+            'Mei',
+            'Juni',
+            'Juli',
+            'Agustus',
+            'September',
+            'Oktober',
+            'November',
+            'Desember',
+          ].map<DropdownMenuItem<String>>((String value) {
             return DropdownMenuItem<String>(
               value: value,
               child: Text(value),
             );
           }).toList(),
         ),
-        const SizedBox(width: 16),
-        DropdownButton<String>(
+      ),
+      const SizedBox(width: 16),
+      Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: Color(0xFFF0F4FD),
+          borderRadius: const BorderRadius.all(Radius.circular(5)),
+        ),
+        child: DropdownButton<String>(
           value: selectedYear,
           hint: const Text('Pilih Tahun'),
           onChanged: (newValue) {
@@ -140,32 +211,52 @@ class StatistikState extends State<Statistik> {
           },
           items: _getYearItems(),
         ),
-        const SizedBox(width: 16),
-        ElevatedButton(
-          onPressed: () { if (!isLoading) {
-                        cariData(selectedMonth, selectedYear);
-                      }
-          },
-          child: const Text('Cari'),
+      ),
+      const SizedBox(width: 16),
+      ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 67, 60, 130),
         ),
-      ],
-    );
+        onPressed: () {
+          if (!isLoading) {
+            cariData(selectedMonth, selectedYear);
+          }
+        },
+        child: const Text('Cari',
+            style: TextStyle(
+              color: Colors.white,
+            )),
+      ),
+    ]);
   }
 
   Widget _buildChartData() {
     final totalAbsen = data!['absen']['telat'] + data!['absen']['tepat'];
-    final totalIzin = data!['izin']['dl'] + data!['izin']['izin'] + data!['izin']['sakit'] + data!['izin']['cuti'] + data!['izin']['idlk'];
+    final totalIzin = data!['izin']['dl'] +
+        data!['izin']['izin'] +
+        data!['izin']['sakit'] +
+        data!['izin']['cuti'] +
+        data!['izin']['idlk'];
+    final double totalSemua = data!['izin']['dl'].toDouble() +
+        data!['izin']['izin'].toDouble() +
+        data!['izin']['sakit'].toDouble() +
+        data!['izin']['cuti'].toDouble() +
+        data!['izin']['idlk'].toDouble() +
+        data!['absen']['tepat'].toDouble() +
+        data!['absen']['telat'].toDouble();
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
           // Pie chart for 'Absen'
+          const SizedBox(height: 20),
+          Text('Hadir (Total: $totalAbsen)'),
           Card(
             elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: SizedBox(
@@ -177,15 +268,62 @@ class StatistikState extends State<Statistik> {
                     sections: [
                       PieChartSectionData(
                         value: data!['absen']['telat'].toDouble(),
-                        color: Colors.red,
-                        title: '${data!['absen']['telat']} (${(data!['absen']['telat'] / totalAbsen * 100).toStringAsFixed(1)}%) Telat',
+                        color: Color(0xFFC983DE),
+                        title: '',
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['absen']['telat'] / totalAbsen * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Telat',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       PieChartSectionData(
                         value: data!['absen']['tepat'].toDouble(),
-                        color: Colors.green,
-                        title: '${data!['absen']['tepat']} (${(data!['absen']['tepat'] / totalAbsen * 100).toStringAsFixed(1)}%) Tepat',
+                        color: Color(0xFF433C82),
+                        title:
+                            '', // Set title to an empty string to avoid displaying 1.0
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['absen']['tepat'] / totalAbsen * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Tepat\nWaktu',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -193,17 +331,16 @@ class StatistikState extends State<Statistik> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Text('Absen (Total: $totalAbsen)'),
 
           const SizedBox(height: 20),
 
-          // Pie chart for 'Izin'
+          Text('Kehadiran (Total: ${totalIzin + totalAbsen})'),
+
           Card(
             elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: SizedBox(
@@ -215,33 +352,167 @@ class StatistikState extends State<Statistik> {
                     sections: [
                       PieChartSectionData(
                         value: data!['izin']['dl'].toDouble(),
-                        color: Colors.blue,
-                        title: '${data!['izin']['dl']} (${(data!['izin']['dl'] / totalIzin * 100).toStringAsFixed(1)}%) Dinas Luar',
+                        color: Color(0xFF433C82),
+                        title: '',
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['izin']['dl'] / totalSemua * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Dinas\nLuar',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       PieChartSectionData(
                         value: data!['izin']['izin'].toDouble(),
-                        color: Colors.orange,
-                        title: '${data!['izin']['izin']} (${(data!['izin']['izin'] / totalIzin * 100).toStringAsFixed(1)}%) Izin',
+                        color: Color(0xFFF0F4FD),
+                        title: '',
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['izin']['izin'] / totalSemua * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Izin',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       PieChartSectionData(
                         value: data!['izin']['sakit'].toDouble(),
-                        color: Colors.purple,
-                        title: '${data!['izin']['sakit']} (${(data!['izin']['sakit'] / totalIzin * 100).toStringAsFixed(1)}%) Sakit',
+                        color: Color(0xFFC983DE),
+                        title: '',
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['izin']['sakit'] / totalSemua * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Sakit',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       PieChartSectionData(
                         value: data!['izin']['cuti'].toDouble(),
-                        color: Colors.yellow,
-                        title: '${data!['izin']['cuti']} (${(data!['izin']['cuti'] / totalIzin * 100).toStringAsFixed(1)}%) Cuti',
+                        color: Color(0xFF433C82),
+                        title: '',
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['izin']['cuti'] / totalSemua * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Cuti',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       PieChartSectionData(
                         value: data!['izin']['idlk'].toDouble(),
-                        color: Colors.grey,
-                        title: '${data!['izin']['idlk']} (${(data!['izin']['idlk'] / totalIzin * 100).toStringAsFixed(1)}%) IDLK',
+                        color: Color(0xFFF0F4FD),
+                        title: '',
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['izin']['idlk'] / totalSemua * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'IDLK',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      PieChartSectionData(
+                        value:
+                            (data!['absen']['tepat'] + data!['absen']['telat'])
+                                .toDouble(),
+                        color: Color(0xFFC983DE),
+                        title: '',
+                        radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${((data!['absen']['tepat'] + data!['absen']['telat']) / totalSemua * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Hadir',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -249,17 +520,18 @@ class StatistikState extends State<Statistik> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Text('Izin (Total: $totalIzin)'),
 
+          const SizedBox(height: 20),
+          Text(
+              'Laporan harian (Total: ${(data?['laporan']?['laphar_diisi']?.toInt() ?? 0) + (data?['laporan']?['laphar_tidak_diisi']?.toInt() ?? 0)})'),
           const SizedBox(height: 20),
 
           // Pie chart for 'Laporan'
           Card(
             elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: SizedBox(
@@ -270,10 +542,63 @@ class StatistikState extends State<Statistik> {
                     centerSpaceRadius: 50,
                     sections: [
                       PieChartSectionData(
-                        value: data!['laporan']['tot_laphar'].toDouble(),
-                        color: Colors.blueGrey,
-                        title: '${data!['laporan']['tot_laphar']} (${100.0}%)', // Total Laporan always 100%
+                        value: data!['laporan']['laphar_diisi'].toDouble(),
+                        color: Color(0xFF433C82),
+                        title: '',
                         radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['laporan']['laphar_diisi'] / ((data?['laporan']?['laphar_diisi']?.toInt() ?? 0) + (data?['laporan']?['laphar_tidak_diisi']?.toInt() ?? 0)) * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Laporan Diisi',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      PieChartSectionData(
+                        value:
+                            data!['laporan']['laphar_tidak_diisi'].toDouble(),
+                        color: Color(0xFFC983DE),
+                        title: '',
+                        radius: 100,
+                        badgeWidget: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${(data!['laporan']['laphar_tidak_diisi'] / ((data?['laporan']?['laphar_diisi']?.toInt() ?? 0) + (data?['laporan']?['laphar_tidak_diisi']?.toInt() ?? 0)) * 100).toStringAsFixed(0)}%\n',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: 'Laporan Tidak Diisi',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -282,7 +607,6 @@ class StatistikState extends State<Statistik> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Laporan (Total: ${data!['laporan']['tot_laphar']})'),
         ],
       ),
     );

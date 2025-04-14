@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobileabsensi/services/alert.dart';
+import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
@@ -30,7 +31,8 @@ class _ListWifiState extends State<ListWifi> {
   Future<void> loadWifiData() async {
     String wifiDataJson = SpUtil.getString("wifi_data") ?? '[]';
     if (refrFetchTime != null &&
-        DateTime.now().difference(refrFetchTime!) < const Duration(seconds: 30)) {
+        DateTime.now().difference(refrFetchTime!) <
+            const Duration(seconds: 30)) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -75,111 +77,132 @@ class _ListWifiState extends State<ListWifi> {
 
   @override
   Widget build(BuildContext context) {
+        Size size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text('Daftar Wifi', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await loadWifiData();
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(8.0),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    Row(
-                      children: <Widget>[
-                        const Icon(
-                          Icons.wifi,
-                          color: Colors.pink,
-                          size: 24.0,
-                          semanticLabel: 'Text to announce in accessibility modes',
+  body: Stack(
+    children: [
+      Header().header(context),
+      Column(
+        children: [
+          SizedBox(height: size.height * 0.15),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: ListView(
+                padding: EdgeInsets.all(16),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.wifi,
+                              color: Colors.black,
+                              size: 24.0,
+                              semanticLabel:
+                                  'Daftar Wifi',
+                            ),
+                            Container(
+                              alignment: Alignment.center,
+                              child: Text(' Daftar Wifi',
+                                  style: TextStyle(color: Colors.black,fontSize: 20),),
+                            ),
+                          ],
                         ),
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          child: Text(' Daftar Wifi', style: Theme.of(context).textTheme.titleLarge),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: wifiData.length,
+                            itemBuilder: (context, index) {
+                              var wifi = wifiData[index];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0, horizontal: 16.0),
+                                margin: const EdgeInsets.symmetric(vertical: 4.0),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF0F4FD),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.5),
+                                      spreadRadius: 1,
+                                      blurRadius: 3,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.wifi, color: Colors.blue),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        wifi['SSID'],
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(
-  width: 400,
-  child: ListView.builder(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    itemCount: wifiData.length,
-    itemBuilder: (context, index) {
-      var wifi = wifiData[index];
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.wifi, color: Colors.blue),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                wifi['SSID'],
-                style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton.icon(
+                      icon: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Icon(Icons.sync_rounded,color: Colors.white),
+                      label: Text(
+                        _isLoading ? 'Loading...' : 'Syncron Wifi',
+                        style: const TextStyle(fontSize: 16,color: Colors.white),
+                      ),
+                      onPressed: _isLoading ? null : _startLoading,
+                      style: ElevatedButton.styleFrom(
+                        fixedSize: const Size(140, 50),
+                        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
+                      ),
+                    ),
+                  ),
+                  // Add more content elements here
+                ],
               ),
             ),
-          ],
-        ),
-      );
-    },
-  ),
-),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton.icon(
-                icon: _isLoading ? const CircularProgressIndicator() : const Icon(Icons.sync_rounded),
-                label: Text(
-                  _isLoading ? 'Loading...' : 'Syncron Data',
-                  style: const TextStyle(fontSize: 14),
-                ),
-                onPressed: _isLoading ? null : _startLoading,
-                style: ElevatedButton.styleFrom(fixedSize: const Size(140, 40)),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
+    ],
+  ),
+); 
   }
 
   Future<void> ambildata() async {
-  
-
     if (lastFetchTime != null &&
-        DateTime.now().difference(lastFetchTime!) < const Duration(minutes: 1)) {
+        DateTime.now().difference(lastFetchTime!) <
+            const Duration(minutes: 1)) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -188,8 +211,6 @@ class _ListWifiState extends State<ListWifi> {
       }
       return;
     }
-
-
 
     try {
       http.Response dataWifi = await http.get(
@@ -200,12 +221,11 @@ class _ListWifiState extends State<ListWifi> {
         },
       );
 
-
       if (dataWifi.statusCode == 200) {
         List<dynamic> newWifiData = json.decode(dataWifi.body)['data'];
         // Simpan ke SharedPreferences
         SpUtil.putString('wifi_data', json.encode(newWifiData));
-        
+
         // Update state dengan data baru
         if (mounted) {
           setState(() {
