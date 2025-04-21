@@ -1,25 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
-import 'package:mobileabsensi/frontend/apel.dart';
-import 'package:mobileabsensi/frontend/list_wifi.dart';
-import 'package:mobileabsensi/frontend/pengumuman.dart';
-import 'package:mobileabsensi/frontend/statistik.dart';
 import 'package:mobileabsensi/widget/widget_fitur.dart';
-import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/izin/riwayat_pengajuan.dart';
-import 'package:mobileabsensi/frontend/navigasi.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
-// import 'package:mobileabsensi/services/refresh.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sp_util/sp_util.dart';
 
 import '../../services/alert.dart';
@@ -32,8 +25,8 @@ class Absen extends StatefulWidget {
 }
 
 class _AbsenState extends State<Absen> {
-  final StreamController<String> _jlhIzinController =
-      StreamController<String>();
+  final PageController _pageController = PageController(); 
+  bool _enabled = true;
   Timer? _timer;
   String? url = SpUtil.getString("url");
   String _jamSekarang = '';
@@ -62,10 +55,11 @@ class _AbsenState extends State<Absen> {
   String? notif = '0';
   DateTime? lastFetchTime;
   int syncCount = 0;
-
   @override
   void initState() {
     super.initState();
+          _enabled = false;
+
     _initNetworkInfo();
     _jamSekarang = _formatDateTime(DateTime.now());
     Timer.periodic(const Duration(seconds: 1), (Timer t) => _getCurrentTime());
@@ -75,8 +69,6 @@ class _AbsenState extends State<Absen> {
       isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
       isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
     });
-    _jlhIzinController.add(SpUtil.getInt("jlh_izin").toString());
-    _simulateDataUpdate();
     _fetchNotif();
     refreshData();
     // print(SpUtil.getInt('status_idlk'));
@@ -89,7 +81,7 @@ class _AbsenState extends State<Absen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _jlhIzinController.close();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -101,14 +93,6 @@ class _AbsenState extends State<Absen> {
     }
   }
 
-  void _simulateDataUpdate() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      var updatedJlhIzin = SpUtil.getInt("jlh_izin").toString();
-      if (!_jlhIzinController.isClosed) {
-        _jlhIzinController.add(updatedJlhIzin);
-      }
-    });
-  }
 
   String _formatDateTime(DateTime dateTime) {
     return DateFormat('HH:mm:ss').format(dateTime);
@@ -160,7 +144,8 @@ class _AbsenState extends State<Absen> {
               'instansi': SpUtil.getString('id_instansi'),
               'ssid': connectedSSID,
               'bssid': connectedBSSID,
-              'versi': '1.4'
+              'versi': '1.4',
+              'deviceId': SpUtil.getString('deviceId'),
             };
             http.Response absenMasuk = await http.post(
               Uri.parse('$url/api/masuk'),
@@ -192,9 +177,13 @@ class _AbsenState extends State<Absen> {
                   setState(() {
                     isCodeMasuk = true;
                   });
+                } else if (data["code"] == "5") {
+                  Alert.alertinfo(context, message);
+                  setState(() {
+                    isCodeMasuk = false;
+                  });
                 } else {
                   Alert.alertinfo(context, message);
-
                   setState(() {
                     isCodeMasuk = false;
                   });
@@ -232,7 +221,8 @@ class _AbsenState extends State<Absen> {
           'id_admin_instansi': idAdmin,
           'ssid': 'IDLK',
           'bssid': 'IDLK',
-          'versi': '1.4'
+          'versi': '1.4',
+          'deviceId': SpUtil.getString('deviceId'),
         };
 
         http.Response absenPulang = await http.put(
@@ -262,6 +252,11 @@ class _AbsenState extends State<Absen> {
                 isCodePulang = true;
                 isPulangCepat = false;
               });
+              } else if (data["code"] == "5") {
+                  Alert.alertinfo(context, message);
+                  setState(() {
+                    isCodeMasuk = false;
+                  });
             } else {
               Alert.alertwarning(context, message);
             }
@@ -297,7 +292,8 @@ class _AbsenState extends State<Absen> {
                 'id_admin_instansi': idAdmin,
                 'ssid': ssID,
                 'bssid': connectedBSSID,
-                'versi': '1.4'
+                'versi': '1.4',
+                'deviceId': SpUtil.getString('deviceId'),
               };
 
               http.Response absenPulang = await http.put(
@@ -432,12 +428,14 @@ class _AbsenState extends State<Absen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     double deviceWidth = MediaQuery.of(context).size.width;
-    var namaSSID = wifiName.toString().replaceAll('"', '');
+    var namaSSID = (wifiName?.isNotEmpty ?? false) 
+        ? wifiName!.replaceAll('"', '') 
+        : 'Wifi tidak terhubung';
 
     return Scaffold(
   body: Stack(
     children: [
-    Header().header(context),
+    Header(), // Assuming Header is a widget. Replace with the correct method or widget if necessary.
  
       // Scrollable content area taking most of the screen
       Column(
@@ -461,335 +459,171 @@ class _AbsenState extends State<Absen> {
                   ),
                 ],
               ),
-              child: ListView(
-                padding: EdgeInsets.all(16),
-                children: [
-                  const Fitur(),
-                            Container(
-                                width: deviceWidth,
-                                padding: const EdgeInsets.all(8.0),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                      color: const Color.fromARGB(255, 221, 235, 235),),
-                                  color: const Color.fromARGB(255, 240, 255, 255),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(10)),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color.fromARGB(255, 226, 226, 226),
-                                      spreadRadius: 1,
-                                      blurRadius: 1,
-                                    )
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      width: 190,
-                                      alignment: Alignment.center,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          namaSSID,
-                                          style: const TextStyle(
-                                            color: Color.fromARGB(
-                                                255, 255, 31, 31),
+              child: Skeletonizer(
+                      enabled: _enabled,
+                      enableSwitchAnimation: true,
+                child: ListView(
+                  padding: EdgeInsets.all(16),
+                  children: [
+                    const Fitur(),
+                              Container(
+                                  width: deviceWidth,
+                                  padding: const EdgeInsets.all(8.0),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: const Color.fromARGB(255, 221, 235, 235),),
+                                    color: const Color.fromARGB(255, 240, 255, 255),
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(10)),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color.fromARGB(255, 226, 226, 226),
+                                        spreadRadius: 1,
+                                        blurRadius: 1,
+                                      )
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        width: 190,
+                                        alignment: Alignment.center,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Text(
+                                            namaSSID.isNotEmpty ? namaSSID : 'Wifi tidak terhubung',
+                                            style: const TextStyle(
+                                              color: Color.fromARGB(
+                                                  255, 255, 31, 31),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    Container(
-                                      clipBehavior: Clip.hardEdge,
-                                      decoration: BoxDecoration( 
-                                  color: const Color.fromARGB(255, 67, 60, 130),
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(10)),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: Color.fromARGB(255, 99, 99, 99),
-                                            spreadRadius: 1,
-                                            blurRadius: 1,
-                                          )
+                                      Container(
+                                        clipBehavior: Clip.hardEdge,
+                                        decoration: BoxDecoration( 
+                                    color: const Color.fromARGB(255, 67, 60, 130),
+                                          borderRadius: const BorderRadius.all(
+                                              Radius.circular(10)),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Color.fromARGB(255, 99, 99, 99),
+                                              spreadRadius: 1,
+                                              blurRadius: 1,
+                                            )
+                                          ],
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.refresh,
+                                            color: Color.fromARGB(255, 255, 255, 255),
+                                          ),
+                                          onPressed: () {
+                                            _initNetworkInfo();
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),),
+                              Container(
+                                color: const Color.fromARGB(255, 255, 255, 255),
+                                width: deviceWidth,
+                                child: Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(
+                                            height: 5,
+                                          ),
+                                          Text(_jamSekarang,
+                                              style: const TextStyle(
+                                                fontSize: 30,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color.fromARGB(
+                                                    255, 14, 60, 129),
+                                              )),
+                                          const SizedBox(
+                                            height: 5,
+                                          ),
+                                          Text(
+                                              DateFormat('EEEE, dd/MM/yyyy', 'id')
+                                                  .format(DateTime.now()),
+                                              style: const TextStyle(
+                                                  fontSize: 25)),
                                         ],
                                       ),
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.refresh,
-                                          color: Color.fromARGB(255, 255, 255, 255),
-                                        ),
-                                        onPressed: () {
-                                          _initNetworkInfo();
-                                        },
-                                      ),
                                     ),
-                                  ],
-                                ),),
-                            Container(
-                              color: const Color.fromARGB(255, 255, 255, 255),
-                              width: deviceWidth,
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                    const SizedBox(height: 20),
+                                    Column(
                                       children: [
-                                        const SizedBox(
-                                          height: 5,
-                                        ),
-                                        Text(_jamSekarang,
-                                            style: const TextStyle(
-                                              fontSize: 30,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color.fromARGB(
-                                                  255, 14, 60, 129),
-                                            )),
-                                        const SizedBox(
-                                          height: 5,
-                                        ),
-                                        Text(
-                                            DateFormat('EEEE, dd/MM/yyyy', 'id')
-                                                .format(DateTime.now()),
-                                            style: const TextStyle(
-                                                fontSize: 25)),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Column(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(36.0),
-                                        child: Row(
-                                          children: [
-                                            //TOMBOL MASUK PULANG
-                                            Column(
-                                              children: [
-                                                DateTime.now()
-                                                            .toIso8601String()
-                                                            .substring(0, 10) ==
-                                                        SpUtil.getString(
-                                                            'saved_date')
-                                                    ? Column(
-                                                        children: [
-                                                          Container(
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: const Color
-                                                                  .fromARGB(
-                                                                  255,
-                                                                  173,
-                                                                  218,
-                                                                  255),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          10),
-                                                            ),
-                                                            width: 100,
-                                                            height: 100,
-                                                            alignment: Alignment
-                                                                .center,
-                                                            child: Text(
-                                                              "${SpUtil.getString('masuk')}",
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontSize: 30,
-                                                                color: Color
+                                        Padding(
+                                          padding: const EdgeInsets.all(36.0),
+                                          child: Row(
+                                            children: [
+                                              //TOMBOL MASUK PULANG
+                                              Column(
+                                                children: [
+                                                  DateTime.now()
+                                                              .toIso8601String()
+                                                              .substring(0, 10) ==
+                                                          SpUtil.getString(
+                                                              'saved_date')
+                                                      ? Column(
+                                                          children: [
+                                                            Container(
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: const Color
                                                                     .fromARGB(
-                                                                        255,
-                                                                        2,
-                                                                        53,
-                                                                        95),
+                                                                    255,
+                                                                    173,
+                                                                    218,
+                                                                    255),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10),
+                                                              ),
+                                                              width: 100,
+                                                              height: 100,
+                                                              alignment: Alignment
+                                                                  .center,
+                                                              child: Text(
+                                                                "${SpUtil.getString('masuk')}",
+                                                                style:
+                                                                    const TextStyle(
+                                                                  fontSize: 30,
+                                                                  color: Color
+                                                                      .fromARGB(
+                                                                          255,
+                                                                          2,
+                                                                          53,
+                                                                          95),
+                                                                ),
                                                               ),
                                                             ),
-                                                          ),
-                                                          const SizedBox(
-                                                              height: 25),
-                                                        ],
-                                                      )
-                                                    : GestureDetector(
-                                                        onTap: _isLoading
-                                                            ? null
-                                                            : () async {
-                                                                setState(() {
-                                                                  _isMasuk =
-                                                                      true;
-                                                                });
-                                        
-                                                                await _initNetworkInfo();
-                                        
-                                                                if (wifiName !=
-                                                                        null &&
-                                                                    wifiBSSID !=
-                                                                        null &&
-                                                                    wifiName!
-                                                                        .isNotEmpty &&
-                                                                    wifiBSSID!
-                                                                        .isNotEmpty) {
-                                                                  await absenMasuk(
-                                                                      wifiName,
-                                                                      wifiBSSID);
-                                                                } else {
-                                                                  Alert.alertwarning(
-                                                                      context,
-                                                                      'Silahkan sambungkan ke Wifi!');
-                                                                }
-                                        
-                                                                setState(() {
-                                                                  _isMasuk =
-                                                                      false;
-                                                                });
-                                                              },
-                                                        child: Column(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            _isMasuk
-                                                                ? const CircularProgressIndicator()
-                                                                : Column(
-                                                                    children: [
-                                                                      SizedBox(
-                                                                        width:
-                                                                            100,
-                                                                        child: Image.asset(
-                                                                            'assets/new/masuk.png'),
-                                                                      ),
-                                                                      const Text(
-                                                                        "Masuk",
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                18,
-                                                                            fontWeight:
-                                                                                FontWeight.bold),
-                                                                      )
-                                                                    ],
-                                                                  ),
+                                                            const SizedBox(
+                                                                height: 25),
                                                           ],
-                                                        ),
-                                                      ),
-                                              ],
-                                            ),
-                                            const Spacer(),
-                                            Column(
-                                              children: [
-                                                isCodePulang
-                                                    ? Column(
-                                                        children: [
-                                                          Container(
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: const Color
-                                                                  .fromARGB(
-                                                                  255,
-                                                                  173,
-                                                                  218,
-                                                                  255),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          10),
-                                                            ),
-                                                            width: 100,
-                                                            height: 100,
-                                                            alignment: Alignment
-                                                                .center,
-                                                            child: Text(
-                                                                "${SpUtil.getString('pulang')}",
-                                                                style: const TextStyle(
-                                                                    fontSize:
-                                                                        30,
-                                                                    color: Color
-                                                                        .fromARGB(
-                                                                            255,
-                                                                            2,
-                                                                            53,
-                                                                            95))),
-                                                          ),
-                                                          const SizedBox(
-                                                              height: 25),
-                                                        ],
-                                                      )
-                                                    : GestureDetector(
-                                                        onTap: _isLoading
-                                                            ? null
-                                                            : () async {
-                                                                setState(() {
-                                                                  _isPulang =
-                                                                      true;
-                                                                });
-                                        
-                                                                if (isCodeMasuk ==
-                                                                    false) {
-                                                                  QuickAlert
-                                                                      .show(
-                                                                    context:
-                                                                        context,
-                                                                    type: QuickAlertType
-                                                                        .warning,
-                                                                    text:
-                                                                        "Belum mengambil absen masuk!",
-                                                                  );
-                                                                } else {
+                                                        )
+                                                      : GestureDetector(
+                                                          onTap: _isLoading
+                                                              ? null
+                                                              : () async {
+                                                                  setState(() {
+                                                                    _isMasuk =
+                                                                        true;
+                                                                  });
+                                          
                                                                   await _initNetworkInfo();
-                                                                  if (SpUtil.getInt(
-                                                                          'status_idlk') ==
-                                                                      1) {
-                                                                    showDialog(
-                                                                      context:
-                                                                          context,
-                                                                      builder:
-                                                                          (BuildContext
-                                                                              context) {
-                                                                        return AlertDialog(
-                                                                          title: const Text('Yakin ingin absen pulang Cepat?',style: TextStyle(fontSize: 15),),
-                                        
-                                                                          // content:
-                                                                          //     SizedBox(
-                                                                          //   height:
-                                                                          //       50,
-                                                                          //   width:
-                                                                          //       MediaQuery.of(context).size.width,
-                                                                          //   child:
-                                                                          //       const Text('Yakin ingin absen pulang'),
-                                                                          // ),
-                                                                          actions: <
-                                                                              Widget>[
-                                                                            TextButton(
-                                                                              style: TextButton.styleFrom(
-                                                                                textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                backgroundColor: Colors.green,
-                                                                              ),
-                                                                              child: const Text(
-                                                                                'Pulang',
-                                                                                style: TextStyle(color: Colors.white),
-                                                                              ),
-                                                                              onPressed: () async {
-                                                                                Navigator.of(context).pop();
-                                                                                await absenPulang('IDLK', 'IDLK');
-                                                                              },
-                                                                            ),
-                                                                            TextButton(
-                                                                              style: TextButton.styleFrom(
-                                                                                  textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                  backgroundColor: Colors.red),
-                                                                              child: const Text(
-                                                                                'Batal',
-                                                                                style: TextStyle(color: Colors.white),
-                                                                              ),
-                                                                              onPressed: () {
-                                                                                Navigator.of(context).pop();
-                                                                              },
-                                                                            ),
-                                                                          ],
-                                                                        );
-                                                                      },
-                                                                    );
-                                                                  } else if (wifiName !=
+                                          
+                                                                  if (wifiName !=
                                                                           null &&
                                                                       wifiBSSID !=
                                                                           null &&
@@ -797,198 +631,383 @@ class _AbsenState extends State<Absen> {
                                                                           .isNotEmpty &&
                                                                       wifiBSSID!
                                                                           .isNotEmpty) {
-                                                                    // Jika WiFi tersedia, gunakan WiFi untuk absen
-                                                                    showDialog(
+                                                                    await absenMasuk(
+                                                                        wifiName,
+                                                                        wifiBSSID);
+                                                                  } else {
+                                                                  Alert.alertwarning(
+                                                                      context,
+                                                                      'Silahkan sambungkan ke Wifi!');
+                                                                  }
+                                          
+                                                                  setState(() {
+                                                                    _isMasuk =
+                                                                        false;
+                                                                  });
+                                                                },
+                                                          child: Column(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              _isMasuk
+                                                                  ? const CircularProgressIndicator()
+                                                                  : Column(
+                                                                      children: [
+                                                                        SizedBox(
+                                                                          width:
+                                                                              100,
+                                                                          child: Image.asset(
+                                                                              'assets/new/masuk.png'),
+                                                                        ),
+                                                                        const Text(
+                                                                          "Masuk",
+                                                                          style: TextStyle(
+                                                                              fontSize:
+                                                                                  18,
+                                                                              fontWeight:
+                                                                                  FontWeight.bold),
+                                                                        )
+                                                                      ],
+                                                                    ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                ],
+                                              ),
+                                              const Spacer(),
+                                              Column(
+                                                children: [
+                                                  isCodePulang
+                                                      ? Column(
+                                                          children: [
+                                                            Container(
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: const Color
+                                                                    .fromARGB(
+                                                                    255,
+                                                                    173,
+                                                                    218,
+                                                                    255),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10),
+                                                              ),
+                                                              width: 100,
+                                                              height: 100,
+                                                              alignment: Alignment
+                                                                  .center,
+                                                              child: Text(
+                                                                  "${SpUtil.getString('pulang')}",
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          30,
+                                                                      color: Color
+                                                                          .fromARGB(
+                                                                              255,
+                                                                              2,
+                                                                              53,
+                                                                              95))),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 25),
+                                                          ],
+                                                        )
+                                                      : GestureDetector(
+                                                          onTap: _isLoading
+                                                              ? null
+                                                              : () async {
+                                                                  setState(() {
+                                                                    _isPulang =
+                                                                        true;
+                                                                  });
+                                          
+                                                                  if (isCodeMasuk ==
+                                                                      false && SpUtil.getInt(
+                                                                            'status_idlk') ==
+                                                                        0) {
+                                                                    QuickAlert
+                                                                        .show(
                                                                       context:
                                                                           context,
-                                                                      builder:
-                                                                          (BuildContext
-                                                                              context) {
-                                                                        return AlertDialog(
-                                                                          title:
-                                                                              const Text('Yakin ingin absen pulang?',style: TextStyle(fontSize: 15),),
-                                                                          // content:
-                                                                          //     SizedBox(
-                                                                          //   height:
-                                                                          //       50,
-                                                                          //   width:
-                                                                          //       MediaQuery.of(context).size.width,
-                                                                          //   child:
-                                                                          //       const Text('Yakin ingin absen pulang'),
-                                                                          // ),
-                                                                          actions: <
-                                                                              Widget>[
-                                                                            TextButton(
-                                                                              style: TextButton.styleFrom(
-                                                                                textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                backgroundColor: Colors.green,
-                                                                              ),
-                                                                              child: const Text(
-                                                                                'Pulang',
-                                                                                style: TextStyle(color: Colors.white),
-                                                                              ),
-                                                                              onPressed: () async {
-                                                                                Navigator.of(context).pop();
-                                                                                await absenPulang(wifiName, wifiBSSID); // Menggunakan WiFi
-                                                                              },
-                                                                            ),
-                                                                            TextButton(
-                                                                              style: TextButton.styleFrom(
-                                                                                  textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                  backgroundColor: Colors.red),
-                                                                              child: const Text(
-                                                                                'Batal',
-                                                                                style: TextStyle(color: Colors.white),
-                                                                              ),
-                                                                              onPressed: () {
-                                                                                Navigator.of(context).pop();
-                                                                              },
-                                                                            ),
-                                                                          ],
-                                                                        );
-                                                                      },
+                                                                      type: QuickAlertType
+                                                                          .warning,
+                                                                      text:
+                                                                          "Belum mengambil absen masuk!",
                                                                     );
-                                                                  } else { 
-                                                                    Alert.alertwarning(
-                                                                        context,
-                                                                        'Silahkan sambungkan ke Wifi!');
+                                                                  } else {
+                                                                    await _initNetworkInfo();
+                                                                    if (SpUtil.getInt(
+                                                                            'status_idlk') ==
+                                                                        1) {
+                                                                      showDialog(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (BuildContext
+                                                                                context) {
+                                                                          return AlertDialog(
+                                                                            title: const Text('Yakin ingin absen pulang Cepat?',style: TextStyle(fontSize: 15),),
+                                          
+                                                                            // content:
+                                                                            //     SizedBox(
+                                                                            //   height:
+                                                                            //       50,
+                                                                            //   width:
+                                                                            //       MediaQuery.of(context).size.width,
+                                                                            //   child:
+                                                                            //       const Text('Yakin ingin absen pulang'),
+                                                                            // ),
+                                                                            actions: <
+                                                                                Widget>[
+                                                                              TextButton(
+                                                                                style: TextButton.styleFrom(
+                                                                                  textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                  backgroundColor: Colors.green,
+                                                                                ),
+                                                                                child: const Text(
+                                                                                  'Pulang',
+                                                                                  style: TextStyle(color: Colors.white),
+                                                                                ),
+                                                                                onPressed: () async {
+                                                                                  Navigator.of(context).pop();
+                                                                                  await absenPulang('IDLK', 'IDLK');
+                                                                                },
+                                                                              ),
+                                                                              TextButton(
+                                                                                style: TextButton.styleFrom(
+                                                                                    textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                    backgroundColor: Colors.red),
+                                                                                child: const Text(
+                                                                                  'Batal',
+                                                                                  style: TextStyle(color: Colors.white),
+                                                                                ),
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      );
+                                                                    } else if (wifiName !=
+                                                                            null &&
+                                                                        wifiBSSID !=
+                                                                            null &&
+                                                                        wifiName!
+                                                                            .isNotEmpty &&
+                                                                        wifiBSSID!
+                                                                            .isNotEmpty) {
+                                                                      // Jika WiFi tersedia, gunakan WiFi untuk absen
+                                                                      showDialog(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (BuildContext
+                                                                                context) {
+                                                                          return AlertDialog(
+                                                                            title:
+                                                                                const Text('Yakin ingin absen pulang?',style: TextStyle(fontSize: 15),),
+                                                                            // content:
+                                                                            //     SizedBox(
+                                                                            //   height:
+                                                                            //       50,
+                                                                            //   width:
+                                                                            //       MediaQuery.of(context).size.width,
+                                                                            //   child:
+                                                                            //       const Text('Yakin ingin absen pulang'),
+                                                                            // ),
+                                                                            actions: <
+                                                                                Widget>[
+                                                                              TextButton(
+                                                                                style: TextButton.styleFrom(
+                                                                                  textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                  backgroundColor: Colors.green,
+                                                                                ),
+                                                                                child: const Text(
+                                                                                  'Pulang',
+                                                                                  style: TextStyle(color: Colors.white),
+                                                                                ),
+                                                                                onPressed: () async {
+                                                                                  Navigator.of(context).pop();
+                                                                                  await absenPulang(wifiName, wifiBSSID); // Menggunakan WiFi
+                                                                                },
+                                                                              ),
+                                                                              TextButton(
+                                                                                style: TextButton.styleFrom(
+                                                                                    textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                    backgroundColor: Colors.red),
+                                                                                child: const Text(
+                                                                                  'Batal',
+                                                                                  style: TextStyle(color: Colors.white),
+                                                                                ),
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      );
+                                                                    } else { 
+                                                                      Alert.alertwarning(
+                                                                          context,
+                                                                          'Silahkan sambungkan ke Wifi!');
+                                                                    }
                                                                   }
-                                                                }
-                                        
-                                                                setState(() {
-                                                                  _isPulang =
-                                                                      false;
-                                                                });
-                                                              },
-                                                        child: Column(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            _isPulang
-                                                                ? const CircularProgressIndicator()
-                                                                : Column(
-                                                                    children: [
-                                                                      SizedBox(
-                                                                        width:
-                                                                            100,
-                                                                        child: Image.asset(
-                                                                            'assets/new/pulang.png'),
-                                                                      ),
-                                                                      if (SpUtil.getInt(
-                                                                              'status_idlk') ==
-                                                                          1)
-                                                                        const Text(
-                                                                          "IDLK",
-                                                                          style: TextStyle(
-                                                                              fontSize: 18,
-                                                                              fontWeight: FontWeight.bold),
-                                                                        )
-                                                                      else
-                                                                        const Text(
-                                                                          "Pulang",
-                                                                          style: TextStyle(
-                                                                              fontSize: 18,
-                                                                              fontWeight: FontWeight.bold),
-                                                                        )
-                                                                    ],
-                                                                  )
-                                                          ],
+                                          
+                                                                  setState(() {
+                                                                    _isPulang =
+                                                                        false;
+                                                                  });
+                                                                },
+                                                          child: Column(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              _isPulang
+                                                                  ? const CircularProgressIndicator()
+                                                                  : Column(
+                                                                      children: [
+                                                                        SizedBox(
+                                                                          width:
+                                                                              100,
+                                                                          child: Image.asset(
+                                                                              'assets/new/pulang.png'),
+                                                                        ),
+                                                                        if (SpUtil.getInt(
+                                                                                'status_idlk') ==
+                                                                            1)
+                                                                          const Text(
+                                                                            "IDLK",
+                                                                            style: TextStyle(
+                                                                                fontSize: 18,
+                                                                                fontWeight: FontWeight.bold),
+                                                                          )
+                                                                        else
+                                                                          const Text(
+                                                                            "Pulang",
+                                                                            style: TextStyle(
+                                                                                fontSize: 18,
+                                                                                fontWeight: FontWeight.bold),
+                                                                          )
+                                                                      ],
+                                                                    )
+                                                            ],
+                                                          ),
                                                         ),
-                                                      ),
-                                              ],
-                                            ),
-                                          ],
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        SpUtil.getBool('is_codeMasuk') == true
-                                            ? SpUtil.getBool('is_codePulang') == false
-                                                ? SpUtil.getBool('is_PulangCepat') == true
-                                                    ? Column(
-                                                        children: [
-                                                          Center(
-                                                              child:
-                                                                  ElevatedButton(
-                                                            onPressed: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                    builder:
-                                                                        (context) =>
-                                                                            const RiwayatPengajuanIzin()),
-                                                              );
-                                                            },
-                                                            style: ElevatedButton
-                                                                .styleFrom(
-                                                              backgroundColor:
-                                                                  const Color
-                                                                      .fromARGB(
-                                                                      255,
-                                                                      173,
-                                                                      218,
-                                                                      255),
-                                                            ),
-                                                            child: const Text(
-                                                                'Status Pengajuan',
-                                                                style: TextStyle(
-                                                                    color: Color
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          SpUtil.getBool('is_codeMasuk') == true
+                                              ? SpUtil.getBool('is_codePulang') == false
+                                                  ? SpUtil.getBool('is_PulangCepat') == true
+                                                      ? Column(
+                                                          children: [
+                                                            if(SpUtil.getInt('status_idlk') == 1)
+                                                            Center(
+                                                                child:
+                                                                    ElevatedButton(
+                                                              onPressed: () {},
+                                                              style: ElevatedButton
+                                                                  .styleFrom(
+                                                                backgroundColor:Colors.green,
+                                                              ),
+                                                              child: const Text(
+                                                                  'IDLK Diterima',
+                                                                  style: TextStyle(
+                                                                      color: Colors.white)),
+                                                            ),)
+                                                            else
+                                                            Center(
+                                                                child:
+                                                                    ElevatedButton(
+                                                              onPressed: () {
+                                                                Navigator.push(
+                                                                  context,
+                                                                  MaterialPageRoute(
+                                                                      builder:
+                                                                          (context) =>
+                                                                              const RiwayatPengajuanIzin()),
+                                                                );
+                                                              },
+                                                              style: ElevatedButton
+                                                                  .styleFrom(
+                                                                backgroundColor:
+                                                                    const Color
                                                                         .fromARGB(
-                                                                            255,
-                                                                            0,
-                                                                            162,
-                                                                            255))),
-                                                          )),
-                                                          const SizedBox(
-                                                            height: 20,
-                                                          )
-                                                        ],
-                                                      )
-                                                    : Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(
-                                                                bottom: 8),
-                                                        child: Center(
-                                                          child:
-                                                              ElevatedButton(
-                                                            onPressed: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                    builder:
-                                                                        (context) =>
-                                                                            const PulangCepat()),
-                                                              );
-                                                            },
-                                                            style: ElevatedButton
-                                                                .styleFrom(
-                                                              backgroundColor:
-                                                                  Colors.red,
-                                                            ),
-                                                            child: const Text(
-                                                              ' Pulang Cepat ',
-                                                              style: TextStyle(
-                                                                color: Colors
-                                                                    .white,
+                                                                        255,
+                                                                        173,
+                                                                        218,
+                                                                        255),
+                                                              ),
+                                                              child: const Text(
+                                                                  'Status Pengajuan',
+                                                                  style: TextStyle(
+                                                                      color: Color
+                                                                          .fromARGB(
+                                                                              255,
+                                                                              0,
+                                                                              162,
+                                                                              255))),
+                                                            ),),
+                                                            const SizedBox(
+                                                              height: 20,
+                                                            )
+                                                          ],
+                                                        )
+                                                      : Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  bottom: 8),
+                                                          child: Center(
+                                                            child:
+                                                                ElevatedButton(
+                                                              onPressed: () {
+                                                                Navigator.push(
+                                                                  context,
+                                                                  MaterialPageRoute(
+                                                                      builder:
+                                                                          (context) =>
+                                                                              const PulangCepat()),
+                                                                );
+                                                              },
+                                                              style: ElevatedButton
+                                                                  .styleFrom(
+                                                                backgroundColor:
+                                                                    Colors.red,
+                                                              ),
+                                                              child: const Text(
+                                                                ' Pulang Cepat ',
+                                                                style: TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      )
-                                                : Container()
-                                            : Container(),
-                                      ]),
-                                ],
+                                                        )
+                                                  : Container()
+                                              : Container(),
+                                        ]),
+                                  ],
+                                ),
                               ),
-                            ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -996,6 +1015,6 @@ class _AbsenState extends State<Absen> {
       ),
     ],
   ),
-);
+  );
   }
 }

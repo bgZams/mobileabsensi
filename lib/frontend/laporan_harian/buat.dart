@@ -79,7 +79,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
     return Scaffold(
       body: Stack(
         children: [
-          Header().header(context),
+          Header(),
           // Scrollable content area taking most of the screen
           Column(
             children: [

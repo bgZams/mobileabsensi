@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/frontend/list_wifi.dart';
 import 'package:mobileabsensi/frontend/panduan.dart';
 import 'package:mobileabsensi/frontend/profile.dart';
@@ -27,8 +26,18 @@ class _NavigasiState extends State<Navigasi> {
     }
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Menu'),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
+        title: Center(child: Container(
+          margin: const EdgeInsets.only(right: 50),
+          child: const Text("Menu",style: TextStyle(color: Colors.white),),)),
+        elevation: 4,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back,color: Colors.white,),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
+      ),
         body: Container(
           color: const Color.fromARGB(255, 228, 224, 224),
           child: Column(
@@ -317,11 +326,13 @@ Container()
                       ),
                     ),
                     onPressed: () {
-                      SpUtil.clear();
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const Login()));
+  SpUtil.clear();
+  Navigator.pushNamedAndRemoveUntil(
+    context,
+    '/login',
+    (Route<dynamic> route) => false,
+  );
+
                     },
                     clipBehavior: Clip.hardEdge,
                     style: ElevatedButton.styleFrom(

@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:mobileabsensi/core.dart';
-import 'package:mobileabsensi/frontend/admin/home.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:sp_util/sp_util.dart';
 
@@ -142,6 +141,7 @@ class LoginState extends State<Login> {
     final deviceData = json.decode(getDeviceResponse.body);
     if (deviceData['status'] == true) {
       await _syncUserData(simpel);
+      SpUtil.putString('deviceId', deviceId!);
     } else {
       if (mounted) {
         Alert.alertwarning(context, deviceData["message"]);
@@ -204,27 +204,15 @@ class LoginState extends State<Login> {
   }
 
   void _navigateToHome() {
-      if (SpUtil.getString('id_groups') == "2") {
-        SpUtil.putBool('isLogin', true);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Admin()),
-        );
-
-      } else if (SpUtil.getString('id_groups') == "5" || SpUtil.getString('id_groups') == "3") {
-        SpUtil.putBool('isLogin', true);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Home(title: 'Dashboard')),
-        );
-
-      } else {
-        SpUtil.clear();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Login()),
-        );
-      }
+    String? idGroups = SpUtil.getString('id_groups');
+    if (idGroups == "3" || idGroups == "5") {
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } else if (idGroups == "2") {
+      Navigator.pushReplacementNamed(context, '/admin');
+    } else {
+      SpUtil.clear();
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
@@ -271,9 +259,9 @@ class LoginState extends State<Login> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      _buildTextField(username, 'Username', false),
+                      _buildTextField(username, ' Username', false),
                       const SizedBox(height: 25),
-                      _buildTextField(password, 'Password', true),
+                      _buildTextField(password, ' Password', true),
                     ],
                   ),
                 ),

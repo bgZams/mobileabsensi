@@ -51,13 +51,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
+                          SizedBox(
+                            width: 120,
+                            height: 120,
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/pegawai.png'),
-                                fit: BoxFit.cover,),
-                                
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),
@@ -72,12 +77,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
-                            child: Container( 
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/wifi.png'),
-                                fit: BoxFit.cover,),
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.wifi,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),
@@ -99,13 +110,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
+                          SizedBox(
+                            width: 120,
+                            height: 120,
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/masuk.png'),
-                                fit: BoxFit.cover,),
-                                
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.login,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),
@@ -120,12 +136,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
-                            child: Container( 
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/apel.png'),
-                                fit: BoxFit.cover,),
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),
@@ -148,12 +170,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
-                            child: Container( 
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/pengumuman.png'),
-                                fit: BoxFit.cover,),
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.campaign,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),
@@ -168,13 +196,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
-                            child: Container( 
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/berita.png'),
-                                fit: BoxFit.cover,),
-                                
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.newspaper,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),
@@ -197,12 +230,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
-                            child: Container( 
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/tentang.png'),
-                                fit: BoxFit.cover,),
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.info,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),
@@ -217,13 +256,18 @@ class _AdminState extends State<Admin> {
                       },
                       child: Column(
                         children: [
-                          SizedBox(width: 120,height: 120,
-                            child: Container( 
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                image: const DecorationImage(image: AssetImage('assets/images/admin/exit.png'),
-                                fit: BoxFit.cover,),
-                                
+                                color: Colors.blue.shade100,
+                              ),
+                              child: const Icon(
+                                Icons.exit_to_app,
+                                size: 60,
+                                color: Color.fromARGB(255, 0, 71, 128),
                               ),
                             ),
                           ),

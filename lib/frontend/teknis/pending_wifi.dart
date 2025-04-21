@@ -151,7 +151,7 @@ class _WifiPenddingState extends State<WifiPendding> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
 
         title: const Text('Pengajuan Wifi',style: TextStyle(color: Colors.white),),
         elevation: 4,

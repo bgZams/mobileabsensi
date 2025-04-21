@@ -229,7 +229,7 @@ class MyApp extends StatelessWidget {
           ],
         ),
         bottomNavigationBar: CurvedNavigationBar(
-          color: const Color.fromARGB(255, 14, 60, 129),
+          color: const Color.fromARGB(255, 67, 60, 130),
           height: 65,
           index: _currentIndex,
           items: <Widget>[

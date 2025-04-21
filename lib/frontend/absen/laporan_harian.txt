@@ -233,7 +233,7 @@ class _LaporanHarianState extends State<LaporanHarian> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+          backgroundColor: const Color.fromARGB(255, 67, 60, 130),
           title: const Center(child:  Text('Riwayat Laporan Harian',style: TextStyle(color: Colors.white),)),
           elevation: 4,
         ),
@@ -258,7 +258,7 @@ class _LaporanHarianState extends State<LaporanHarian> {
                                       clipBehavior: Clip.hardEdge,
                                       decoration: BoxDecoration(
                                         border: Border.all(color: Colors.white, width: 2),
-                                        color: const Color.fromARGB(255, 14, 60, 129),
+                                        color: const Color.fromARGB(255, 67, 60, 130),
                                         borderRadius: const BorderRadius.all(
                                           Radius.circular(10),
                                         ),

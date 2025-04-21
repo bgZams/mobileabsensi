@@ -1,30 +1,29 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:mobileabsensi/core.dart';
-import 'package:mobileabsensi/frontend/izin/detail_konfirmasi_atasan.dart';
-import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
-import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
+import 'package:mobileabsensi/frontend/absen/absen.dart';
+import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
+import 'package:mobileabsensi/frontend/izin/izin.dart';
 import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
-import 'package:mobileabsensi/frontend/pengumuman.dart';
+import 'package:mobileabsensi/notifikasi/notification_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class Home extends StatefulWidget {
-  const Home({super.key, required this.title});
-  final String title;
-  static final GlobalKey<NavigatorState> navigatorKey =
-      GlobalKey<NavigatorState>();
- 
+class Dashboard extends StatefulWidget {
+  const Dashboard({super.key});
+
   @override
-  State<Home> createState() => _HomeState();
+  State<Dashboard> createState() => _DashboardState();
 }
 
-class _HomeState extends State<Home> {
-  final DatabaseReference databaseReference =
-      FirebaseDatabase.instance.ref();
-      bool _showBottomNavBar = true;
-  final _pageController = PageController();
+class _DashboardState extends State<Dashboard> {
+  final PageController _pageController = PageController();
   int _currentIndex = 0;
+
+  final List<Widget> _pages = const [
+    Absen(),
+    RiwayatAbsen(),
+    Izin(),
+    NotifikasiPage(),
+  ];
 
   @override
   void initState() {
@@ -38,6 +37,12 @@ class _HomeState extends State<Home> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   // Memeriksa dan meminta izin
@@ -63,78 +68,35 @@ class _HomeState extends State<Home> {
   }
 }
 
+  void _onNavTapped(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.linearToEaseOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      routes: {
-        '/login': (context) => const Login(),
-        '/home-page': (context) => const Home(title: 'Mobile Absensi'),
-        '/absen-masuk': (context) => const Absen(),
-        '/profil': (context) => const Profile(),
-        '/riwayat': (context) => const RiwayatAbsen(),
-        '/laporan': (context) => const Laporan(),
-        '/create-laporan': (context) => const BuatLaporan(),
-        '/riwayat-laporan': (context) => const LaporanHarian(),
-        '/riwayat-laporan/pengajuan': (context) => const RiwayatPengajuanLhk(),
-        '/status-laporan': (context) => const StatusLaporan(),
-        '/izin': (context) => const Izin(),
-        '/buat_izin': (context) => const BuatIzin(),
-        '/update-izin': (context) => const EditIzin(),
-        '/riwayat-izin': (context) => const RiwayatIzin(),
-        '/status-izin': (context) => const StatusIzin(),
-        '/konfirmasi-izin': (context) => const KonfirmasiIzin(),
-        '/detail-konfirmasi-izin': (context) =>
-            const DetailKonfirmasiIzinAtasan(),
-        '/apel': (context) => const Apel(),
-        '/senam': (context) => const Senam(),
-        '/pengumuman': (context) => const Pengumuman(),
-      },
-      // initialRoute:
-      //     (SpUtil.getBool('isLogin') ?? false) ? '/home-page' : '/login',
-      home: Scaffold(
-        body: Container(
-          color: const Color.fromARGB(255, 238, 238, 238),
-          child: PageView(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            children: const <Widget>[
-              Absen(),
-              RiwayatAbsen(),
-              Izin(),
-              NotifikasiPage(),
-            ],
-          ),
-        ),
-        
-        bottomNavigationBar: _showBottomNavBar ? CurvedNavigationBar(
-          backgroundColor:  const Color.fromARGB(255, 229, 229, 229),
-          // buttonBackgroundColor: Colors.white,
-          color: const Color.fromARGB(255, 229, 229, 229),
-          height: 65,
-          index: _currentIndex, // Tentukan indeks aktif
-          items: <Widget>[
-            _buildIconWithText(Icons.home, "Home", 0),
-            _buildIconWithText(Icons.timer, "Riwayat", 1),
-            _buildIconWithText(Icons.mail, "Pengajuan", 2),
-            _buildIconWithText(Icons.notifications, "Notifikasi", 3),
-          ],
-          onTap: (index) {
-            _pageController.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.linearToEaseOut,
-            );
-            setState(() {
-            _currentIndex = index;
-            _showBottomNavBar = true;
-          });
-          },
-        ) : null,
+    return Scaffold(
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const NeverScrollableScrollPhysics(),
+        children: _pages,
+      ),
+      bottomNavigationBar: CurvedNavigationBar(
+        backgroundColor: const Color.fromARGB(255, 229, 229, 229),
+        color: const Color.fromARGB(255, 229, 229, 229),
+        height: 65,
+        index: _currentIndex,
+        onTap: _onNavTapped,
+        items: [
+          _buildIconWithText(Icons.home, "Home", 0),
+          _buildIconWithText(Icons.timer, "Riwayat", 1),
+          _buildIconWithText(Icons.mail, "Izin", 2),
+          _buildIconWithText(Icons.upload, "Pengajuan", 3),
+        ],
       ),
     );
   }
@@ -148,21 +110,21 @@ class _HomeState extends State<Home> {
             return LinearGradient(
               colors: _currentIndex == index
                   ? [
-                      const Color.fromARGB(255, 50, 50, 50),
-                      const Color.fromARGB(255, 31, 31, 31)
-                    ] // Warna ungu gradian untuk ikon aktif
+                      Color.fromARGB(255, 50, 50, 50),
+                      Color.fromARGB(255, 31, 31, 31),
+                    ]
                   : [
-                      Color.fromARGB(255, 188, 187, 187),
-                      Color.fromARGB(255, 169, 169, 169),
-                    ], // Warna abu-abu untuk ikon non-aktif
+                      Color.fromARGB(255, 139, 139, 139),
+                      Color.fromARGB(255, 113, 113, 113),
+                    ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ).createShader(bounds);
           },
           child: Icon(
             icon,
-            size: 35,
-            color: Colors.white, // Warna ikon putih, akan di-mask dengan gradian
+            size: 30,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 4),
@@ -171,8 +133,8 @@ class _HomeState extends State<Home> {
           style: TextStyle(
             fontSize: 12,
             color: _currentIndex == index
-                ? const Color.fromARGB(255, 50, 50, 50)
-                : const Color.fromARGB(255, 150, 150, 150),
+                ? Color.fromARGB(255, 50, 50, 50)
+                : Color.fromARGB(255, 150, 150, 150),
           ),
         ),
       ],

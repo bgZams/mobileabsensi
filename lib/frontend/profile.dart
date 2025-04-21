@@ -48,7 +48,7 @@ class _ProfileState extends State<Profile> {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
         title: const Text('Profil',style: TextStyle(color: Colors.white),),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

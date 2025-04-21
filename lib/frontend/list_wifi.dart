@@ -81,7 +81,7 @@ class _ListWifiState extends State<ListWifi> {
     return Scaffold(
   body: Stack(
     children: [
-      Header().header(context),
+      Header(),
       Column(
         children: [
           SizedBox(height: size.height * 0.15),

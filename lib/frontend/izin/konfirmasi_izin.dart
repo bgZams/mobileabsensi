@@ -203,7 +203,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
           title: const Text(
             'Notifikasi',
             style: TextStyle(color: Colors.white),
@@ -239,7 +239,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
           if(SpUtil.getString('role') == '1')
           Container(
             padding: const EdgeInsets.all(8),
-            color: const Color.fromARGB(255, 14, 60, 129),
+            color: const Color.fromARGB(255, 67, 60, 130),
             child: const Text(
               'Konfirmasi Izin dan LHK',
               style: TextStyle(

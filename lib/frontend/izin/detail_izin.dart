@@ -102,10 +102,17 @@ class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
                     .format(DateTime.parse(widget.data['timestamp_masuk']));
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
-        title: const Text(
-          'Detail Pengajuan Izin',
-          style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
+        title: Center(
+          child: Container(
+            margin: EdgeInsets.only(right: 15),
+            child: Text(
+              'Detail Pengajuan Izin',
+              style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),
+            ),
+            
+                    ),
+          ),
         ),
         elevation: 4,
         leading: IconButton(
@@ -133,7 +140,8 @@ class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
                   ),
                   _buildTableRow(
                     'Tgl Izin',
-                    ':   ',
+                    ': ${DateFormat('EEEE, dd/MM/yyyy', 'id')
+                    .format(DateTime.parse(widget.data['tgl_group']))}',
                   ),
                   _buildTableRow(
                     'Durasi',

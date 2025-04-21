@@ -148,7 +148,7 @@ class _ApelBawahanState extends State<ApelBawahan> {
     double deviceHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
         title: const Text(
           'Riwayat Apel Anggota',
           style: TextStyle(color: Colors.white),

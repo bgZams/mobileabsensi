@@ -302,7 +302,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
     return Scaffold(
       body: Stack(
         children: [
-          Header().header(context),
+          Header(),
           Column(
             children: [
               // Spacer to push content down to create overlap
@@ -331,7 +331,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                       const Padding(
                         padding: EdgeInsets.all(16),
                         child: Text(
-                          'Notifikasi',
+                          'Pengajuan',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

@@ -109,7 +109,7 @@ class StatistikState extends State<Statistik> {
       body: Stack(
         children: [
           // Background header that extends beyond what's visible
-          Header().header(context),
+          Header(),
 
           // Scrollable content area taking most of the screen
           Column(

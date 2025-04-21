@@ -116,7 +116,7 @@ class EditLaporanState extends State<EditLaporan> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
         title: const Text(
           'Edit Laporan',
           style: TextStyle(color: Colors.white),

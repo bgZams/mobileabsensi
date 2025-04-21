@@ -152,7 +152,7 @@ class _ApelState extends State<Apel> {
     double deviceHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
         title: const Text(
           'Riwayat Apel',
           style: TextStyle(color: Colors.white),
@@ -186,7 +186,7 @@ class _ApelState extends State<Apel> {
                               clipBehavior: Clip.hardEdge,
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.white, width: 2),
-                                color: const Color.fromARGB(255, 14, 60, 129),
+                                color: const Color.fromARGB(255, 67, 60, 130),
                                 borderRadius: const BorderRadius.all(
                                   Radius.circular(10),
                                 ),
@@ -210,7 +210,7 @@ class _ApelState extends State<Apel> {
                               clipBehavior: Clip.hardEdge,
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.white, width: 2),
-                                color: const Color.fromARGB(255, 14, 60, 129),
+                                color: const Color.fromARGB(255, 67, 60, 130),
                                 borderRadius: const BorderRadius.all(
                                   Radius.circular(10),
                                 ),

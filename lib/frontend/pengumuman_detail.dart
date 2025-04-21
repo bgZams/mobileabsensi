@@ -51,7 +51,7 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
     return Scaffold(
      
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
         title: const Text('Detail Pengumuman',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
         elevation: 4,
          leading: IconButton(

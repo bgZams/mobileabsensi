@@ -7,6 +7,7 @@ import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
 import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sp_util/sp_util.dart';
 
 class RiwayatAbsen extends StatefulWidget {
@@ -17,6 +18,8 @@ class RiwayatAbsen extends StatefulWidget {
 }
 
 class RiwayatAbsenState extends State<RiwayatAbsen> {
+  bool _enabled = true;
+
   var url = SpUtil.getString("url");
   List<DataRow> _rows = [];
   bool _isLoading = true;
@@ -28,6 +31,8 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
   @override
   void initState() {
     super.initState();
+              _enabled = false;
+
     DateTime now = DateTime.now();
     selectedYear = now.year.toString();
     selectedMonth = _getMonthName(now.month);
@@ -222,7 +227,7 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
             ));
         break;
       case '5':
-        statusIcon = Icons.close;
+        statusIcon = Icons.car_repair;
         statusColor = const Color.fromARGB(255, 255, 170, 43);
         status = const Text('IDLK',
             style: TextStyle(
@@ -434,13 +439,13 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
     return Scaffold(
       body: Stack(
         children: [
-          Header().header(context),
+          Header(),
           // Scrollable content area taking most of the screen
           Column(
             children: [
               // Spacer to push content down to create overlap
               SizedBox(height: size.height * 0.15),
-
+      
               // Content area
               Expanded(
                 child: SingleChildScrollView(
@@ -460,119 +465,125 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
                         ),
                       ],
                     ),
-                    child: Column(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'Riwayat Absen',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 50, 50, 50),
+                    child: Skeletonizer(
+                      enabled: _enabled,
+                      enableSwitchAnimation: true,
+                      effect:  ShimmerEffect(duration: Duration (seconds: 10 ),),
+                      ignoreContainers: true,
+                      child: Column(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                              'Riwayat Absen w',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color.fromARGB(255, 50, 50, 50),
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFF0F4FD),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(5)),
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFF0F4FD),
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(5)),
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: selectedMonth,
+                                    hint: const Text('Pilih Bulan'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedMonth = newValue!;
+                                      });
+                                    },
+                                    items: [
+                                      'Januari',
+                                      'Februari',
+                                      'Maret',
+                                      'April',
+                                      'Mei',
+                                      'Juni',
+                                      'Juli',
+                                      'Agustus',
+                                      'September',
+                                      'Oktober',
+                                      'November',
+                                      'Desember',
+                                    ].map<DropdownMenuItem<String>>(
+                                        (String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
-                                child: DropdownButton<String>(
-                                  value: selectedMonth,
-                                  hint: const Text('Pilih Bulan'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedMonth = newValue!;
-                                    });
+                                const SizedBox(width: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFF0F4FD),
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(5)),
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: selectedYear,
+                                    hint: const Text('Pilih Tahun'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedYear = newValue!;
+                                      });
+                                    },
+                                    items: _getYearItems(),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        const Color.fromARGB(255, 67, 60, 130),
+                                  ),
+                                  onPressed: () async {
+                                    if (!_isLoading) {
+                                      setState(() {
+                                        _isLoading = true;
+                                      });
+                                      await Future.delayed(const Duration(seconds: 2));
+                                    _cariData(selectedMonth, selectedYear);
+                                    }
                                   },
-                                  items: [
-                                    'Januari',
-                                    'Februari',
-                                    'Maret',
-                                    'April',
-                                    'Mei',
-                                    'Juni',
-                                    'Juli',
-                                    'Agustus',
-                                    'September',
-                                    'Oktober',
-                                    'November',
-                                    'Desember',
-                                  ].map<DropdownMenuItem<String>>(
-                                      (String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
+                                  child: const Text('Cari',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      )),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFF0F4FD),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(5)),
-                                ),
-                                child: DropdownButton<String>(
-                                  value: selectedYear,
-                                  hint: const Text('Pilih Tahun'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedYear = newValue!;
-                                    });
-                                  },
-                                  items: _getYearItems(),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      const Color.fromARGB(255, 67, 60, 130),
-                                ),
-                                onPressed: () async {
-                                  if (!_isLoading) {
-                                    setState(() {
-                                      _isLoading = true;
-                                    });
-                                    await Future.delayed(const Duration(seconds: 2));
-                                  _cariData(selectedMonth, selectedYear);
-                                  }
-                                },
-                                child: const Text('Cari',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                    )),
-                              ),
-                            ]),
-                        RefreshIndicator(
-                          onRefresh: _refreshData,
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _rows.length,
-                                  itemBuilder: (context, index) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 16, right: 16),
-                                      child: _buildCard(index),
-                                    );
-                                  },
-                                ),
-                        ),
-                        SizedBox(height: 32),
-                      ],
+                              ]),
+                          RefreshIndicator(
+                            onRefresh: _refreshData,
+                            child: _isLoading
+                                ? const Center(child: CircularProgressIndicator())
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: _rows.length,
+                                    itemBuilder: (context, index) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                            left: 16, right: 16),
+                                        child: _buildCard(index),
+                                      );
+                                    },
+                                  ),
+                          ),
+                          SizedBox(height: 32),
+                        ],
+                      ),
                     ),
                   ),
                 ),

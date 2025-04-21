@@ -6,6 +6,7 @@ import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
@@ -18,6 +19,8 @@ class LaporanHarian extends StatefulWidget {
 
 class _LaporanHarianState extends State<LaporanHarian>
     with TickerProviderStateMixin {
+        bool _enabled = true;
+
   bool _isLoading = true;
 
   List<dynamic> _riwayatLaporan = [];
@@ -40,6 +43,8 @@ class _LaporanHarianState extends State<LaporanHarian>
   @override
   void initState() {
     super.initState();
+              _enabled = false;
+
     final now = DateTime.now();
     selectedYear = now.year.toString();
     selectedMonth = _getMonthName(now.month);
@@ -284,146 +289,148 @@ print(response.body);
 
   @override
   Widget build(BuildContext context) {
-        Size size = MediaQuery.of(context).size;
-    double deviceHeight = MediaQuery.of(context).size.height;
-    double deviceWidth = MediaQuery.of(context).size.width;
+        Size size = MediaQuery.of(context).size; 
     return Scaffold(
-  body: Stack(
-    children: [
-      // Background header that extends beyond what's visible
-      Header().header(context),
-      
-      // Scrollable content area taking most of the screen
-      Column(
-        children: [
-          // Spacer to push content down to create overlap
-          SizedBox(height: size.height * 0.15),
-          
-          // Content area
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -3),
+  body: Skeletonizer(
+                      enabled: _enabled,
+                      enableSwitchAnimation: true,
+    child: Stack(
+      children: [
+        // Background header that extends beyond what's visible
+        Header(),
+        
+        // Scrollable content area taking most of the screen
+        Column(
+          children: [
+            // Spacer to push content down to create overlap
+            SizedBox(height: size.height * 0.15),
+            
+            // Content area
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
                   ),
-                ],
-              ),
-              child: ListView(
-                padding: EdgeInsets.all(16),
-                children: [
-                  const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'Riwayat Laporan Harian',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 50, 50, 50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: ListView(
+                  padding: EdgeInsets.all(16),
+                  children: [
+                    const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                              'Riwayat Laporan Harian',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color.fromARGB(255, 50, 50, 50),
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFF0F4FD),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(5)),
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFF0F4FD),
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(5)),
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: selectedMonth,
+                                    hint: const Text('Pilih Bulan'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedMonth = newValue!;
+                                      });
+                                    },
+                                    items: [
+                                      'Januari',
+                                      'Februari',
+                                      'Maret',
+                                      'April',
+                                      'Mei',
+                                      'Juni',
+                                      'Juli',
+                                      'Agustus',
+                                      'September',
+                                      'Oktober',
+                                      'November',
+                                      'Desember',
+                                    ].map<DropdownMenuItem<String>>(
+                                        (String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
-                                child: DropdownButton<String>(
-                                  value: selectedMonth,
-                                  hint: const Text('Pilih Bulan'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedMonth = newValue!;
-                                    });
+                                const SizedBox(width: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFF0F4FD),
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(5)),
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: selectedYear,
+                                    hint: const Text('Pilih Tahun'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedYear = newValue!;
+                                      });
+                                    },
+                                    items: _getYearItems(),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        const Color.fromARGB(255, 67, 60, 130),
+                                  ),
+                                  onPressed: () async {
+    
+                                    if (!isLoading) {
+    
+                                      setState(() {
+                                        isLoading = true;
+                                      });
+                                      await Future.delayed(const Duration(seconds: 3));
+                                    searchData(selectedMonth, selectedYear);
+                                    }
                                   },
-                                  items: [
-                                    'Januari',
-                                    'Februari',
-                                    'Maret',
-                                    'April',
-                                    'Mei',
-                                    'Juni',
-                                    'Juli',
-                                    'Agustus',
-                                    'September',
-                                    'Oktober',
-                                    'November',
-                                    'Desember',
-                                  ].map<DropdownMenuItem<String>>(
-                                      (String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
+                                  child: const Text('Cari',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      )),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFF0F4FD),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(5)),
-                                ),
-                                child: DropdownButton<String>(
-                                  value: selectedYear,
-                                  hint: const Text('Pilih Tahun'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedYear = newValue!;
-                                    });
-                                  },
-                                  items: _getYearItems(),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      const Color.fromARGB(255, 67, 60, 130),
-                                ),
-                                onPressed: () async {
-
-                                  if (!isLoading) {
-
-                                    setState(() {
-                                      isLoading = true;
-                                    });
-                                    await Future.delayed(const Duration(seconds: 3));
-                                  searchData(selectedMonth, selectedYear);
-                                  }
-                                },
-                                child: const Text('Cari',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                    )),
-                              ),
-                            ],
-                          ),
-          _buildCards()
-
-                ],
+                              ],
+                            ),
+            _buildCards()
+    
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    ],
+          ],
+        ),
+      ],
+    ),
   ),
       floatingActionButton:Transform.translate(
                   offset: const Offset(0, -20),

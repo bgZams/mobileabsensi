@@ -170,7 +170,7 @@ class _BuatIzinState extends State<BuatIzin> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 14, 60, 129),
+        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
         title: const Text('Buat Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
         elevation: 4,
         leading: IconButton(

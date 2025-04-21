@@ -3,12 +3,14 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobileabsensi/frontend/apel.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/list_wifi.dart';
 import 'package:mobileabsensi/frontend/pengumuman.dart';
 import 'package:mobileabsensi/frontend/statistik.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
@@ -20,7 +22,7 @@ class Fitur extends StatefulWidget {
 }
 
 class _FiturState extends State<Fitur> {
-  final StreamController<String> _jlhIzinController = StreamController<String>();
+  final StreamController<String> _jlhIzinController = StreamController<String>.broadcast();
   String? notif = '0';
   String? idUser = SpUtil.getString("id_user");
   String? idAdmin = SpUtil.getString("id_admin_instansi") ?? '';
@@ -34,8 +36,17 @@ class _FiturState extends State<Fitur> {
     super.initState();
     _jlhIzinController.add(SpUtil.getInt("jlh_izin").toString());
     fetchNotif();
-  }
 
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          nama = SpUtil.getString("nama_lengkap");
+          instansi = SpUtil.getString("nama_instansi");
+        });
+      }
+    });
+  }
+ 
   @override
   void dispose() {
     _jlhIzinController.close();
@@ -64,14 +75,11 @@ class _FiturState extends State<Fitur> {
         print('Error: $error');
       }
     }
+
   }
 
   @override
   Widget build(BuildContext context) {
-    return fiturMenu(context);
-  }
-
-  Widget fiturMenu(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(
         bottom: 10,
