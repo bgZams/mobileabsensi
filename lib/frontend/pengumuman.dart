@@ -6,6 +6,7 @@ import 'package:mobileabsensi/model/model_pengumuman.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Pengumuman extends StatefulWidget {
@@ -27,17 +28,17 @@ class _PengumumanState extends State<Pengumuman> {
   }
 
   Future<void> refreshData() async {
-    if (SyncLimiter.canSync()) {
+    // if (SyncLimiter.canSync()) {//
       if (mounted) {
         setState(() {
           postsFuture = getPosts();
         });
       }
-    } else {
-      if (mounted) {
-        Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-      }
-    }
+    // } else {
+    //   if (mounted) {
+    //     Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    //   }
+    // }
   }
 
   Future<List<ModelPengumuman>> getPosts() async {
@@ -65,7 +66,7 @@ class _PengumumanState extends State<Pengumuman> {
       body: Stack(
         children: [
           // Background header that extends beyond what's visible
-          Header(),
+          WidgetNavbar(title: 'Pengumuman'),
 
           // Scrollable content area taking most of the screen
           Column(
@@ -152,7 +153,6 @@ class _PengumumanState extends State<Pengumuman> {
               ],
             ),
             margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-            padding: const EdgeInsets.all(8.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

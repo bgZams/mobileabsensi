@@ -261,7 +261,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
           Alert.alertsuccess(context, message);
           _refreshData();
         }
-      } else {
+      } else { 
         throw Exception('Failed to delete report');
       }
     } catch (error) {
@@ -271,17 +271,13 @@ class _NotifikasiPageState extends State<NotifikasiPage>
     }
   }
 
-  Future<void> _refreshData() async {
-    if (SyncLimiter.canSync()) {
+  Future<void> _refreshData() async { 
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
           _fetchData();
         });
-      }
-    } else {
-      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    }
+      } 
   }
 
   void navigateToEditLaporan(Map<String, dynamic> data) async {
@@ -538,118 +534,114 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                                       style: TextStyle(color: Colors.black));
                               }
                           
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 8,right: 8),
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      height: 1,
-                                      color: const Color.fromARGB(255, 215, 215, 215), // Warna border biru
-                                    ),
-                                    ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.start,
-                                            children: [
-                                              Expanded(
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(8.0),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
-                                              .format(DateTime.parse(_riwayatIzin[index]['tgl_group']
-                                                            .toString()))
-                                                        ,
-                                                        style: const TextStyle(
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 16),
-                                                      ),
-                                                      Row(
-                                                        children: [
-                                                          jenisStatus,
-                                                          if (_riwayatIzin[index][
-                                                                      'id_keterangan'] !=
-                                                                  null &&
-                                                              _riwayatIzin[index]
-                                                                      ['tgl_absen'] ==
-                                                                  DateTime.now()
-                                                                      .toString())
-                                                            const Chip(
-                                                              padding:
-                                                                  EdgeInsets.all(0),
-                                                              backgroundColor:
-                                                                  Colors.red,
-                                                              label: Text(
-                                                                  'Pulang Cepat',
-                                                                  style: TextStyle(
-                                                                      color: Colors
-                                                                          .white)),
-                                                            ),
-                                                        ],
-                                                      ),
-                                                      Text(
-                                                        '${_riwayatIzin[index]['durasi']} Hari',
-                                                        style: const TextStyle(
-                                                            color: Colors.black),
-                                                      )
-                                                    ],
+                              return InkWell(
+                                onTap: () {
+                                  navigateToDetailPage(
+                                      _riwayatIzin[index],
+                                      (_riwayatIzin[index]['no_urut']));
+                                },
+                                splashColor: const Color.fromARGB(60, 179, 2, 218),
+                                highlightColor: Colors.white10,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 8,right: 8),
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        height: 1,
+                                        color: const Color.fromARGB(255, 215, 215, 215), // Warna border biru
+                                      ),
+                                      ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        title: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(8.0),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
+                                                .format(DateTime.parse(_riwayatIzin[index]['tgl_group']
+                                                              .toString()))
+                                                          ,
+                                                          style: const TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 16),
+                                                        ),
+                                                        Row(
+                                                          children: [
+                                                            jenisStatus,
+                                                            if (_riwayatIzin[index][
+                                                                        'id_keterangan'] !=
+                                                                    null &&
+                                                                _riwayatIzin[index]
+                                                                        ['tgl_absen'] ==
+                                                                    DateTime.now()
+                                                                        .toString())
+                                                              const Chip(
+                                                                padding:
+                                                                    EdgeInsets.all(0),
+                                                                backgroundColor:
+                                                                    Colors.red,
+                                                                label: Text(
+                                                                    'Pulang Cepat',
+                                                                    style: TextStyle(
+                                                                        color: Colors
+                                                                            .white)),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                        Text(
+                                                          '${_riwayatIzin[index]['durasi']} Hari',
+                                                          style: const TextStyle(
+                                                              color: Colors.black),
+                                                        )
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              Column(
-                                                children: [
-                                                  IconButton(
-                                                    padding: EdgeInsets.zero,
-                                                    icon: Icon(
-                                                      Icons.remove_red_eye,
-                                                      color: Color.fromARGB(255, 67, 60, 130)),
-                                                    onPressed: () =>
-                                                        navigateToDetailPage(
-                                                            _riwayatIzin[index],
-                                                            (_riwayatIzin[index]
-                                                                ['no_urut'])),
-                                                  ),
-                                                  const SizedBox(
-                                                    height: 2,
-                                                  ),
-                                                  if (_riwayatIzin[index]
-                                                              ['status_approval'] ==
-                                                          1 &&
-                                                      DateTime.parse(_riwayatIzin[index]
-                                                              ['timestamp'])
-                                                          .isAfter(DateTime.now()
-                                                              .subtract(const Duration(
-                                                                  days: 1))))
-                                                    IconButton(
-                                                      padding: EdgeInsets.zero,
-                                                      icon: const Icon(
-                                                        Icons.delete,
-                                                        color: Colors.red,
+                                                Column(
+                                                  children: [
+                                                    if (_riwayatIzin[index]
+                                                                ['status_approval'] ==
+                                                            1 &&
+                                                        DateTime.parse(_riwayatIzin[index]
+                                                                ['timestamp'])
+                                                            .isAfter(DateTime.now()
+                                                                .subtract(const Duration(
+                                                                    days: 1))))
+                                                      IconButton(
+                                                        padding: EdgeInsets.zero,
+                                                        icon: const Icon(
+                                                          Icons.delete,
+                                                          color: Colors.red,
+                                                          size: 30,
+                                                        ),
+                                                        onPressed: () => _confirmDelete(
+                                                            _riwayatIzin[index]
+                                                                ['id_approval']),
                                                       ),
-                                                      onPressed: () => _confirmDelete(
-                                                          _riwayatIzin[index]
-                                                              ['id_approval']),
-                                                    ),
-                                                ],
-                                              ),
-                                              const SizedBox(
-                                                width: 8,
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(
-                                            height: 4,
-                                          ),
-                                        ],
+                                                  ],
+                                                ),
+                                                const SizedBox(
+                                                  width: 8,
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(
+                                              height: 4,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               );
                             },

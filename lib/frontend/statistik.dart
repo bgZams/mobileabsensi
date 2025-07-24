@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:mobileabsensi/widget/bulan.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Statistik extends StatefulWidget {
@@ -108,8 +109,8 @@ class StatistikState extends State<Statistik> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background header that extends beyond what's visible
-          Header(),
+          WidgetNavbar(title: 'Statistik'),
+
 
           // Scrollable content area taking most of the screen
           Column(
@@ -285,7 +286,7 @@ class StatistikState extends State<Statistik> {
                                 ),
                               ),
                               const TextSpan(
-                                text: 'Telat',
+                                text: 'Terlambat',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.black,

@@ -350,7 +350,7 @@ class AbsenPageState extends State<AbsenPage> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    LihatSpt(imageUrl: encodedUrl)),
+                                    LihatSpt(imageUrl: encodedUrl,keterangan: keterangan!,)),
                           );
                         },
                         child: Container(
@@ -405,15 +405,15 @@ class AbsenPageState extends State<AbsenPage> {
   }
 
   Future<void> _refreshData() async {
-    if (SyncLimiter.canSync()) {
+    // if (SyncLimiter.canSync()) {
       await Future.delayed(const Duration(seconds: 2));
       setState(() {
         _fetchData();
         _isLoading = false;
       });
-    } else {
-      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    }
+    // } else {
+      // Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    // }
   }
 
   @override
@@ -436,72 +436,69 @@ class AbsenPageState extends State<AbsenPage> {
           height: deviceHeight * 1.2,
           child: Container(
             color: const Color.fromARGB(255, 238, 238, 238),
-            child: RefreshIndicator(
-              onRefresh: _refreshData,
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount:
-                          1 + _rows.length,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                DropdownButton<String>(
-                                  value: selectedMonth,
-                                  hint: const Text('Pilih Bulan'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedMonth = newValue!;
-                                    });
-                                  },
-                                  items: [
-                                    'Januari',
-                                    'Februari',
-                                    'Maret',
-                                    'April',
-                                    'Mei',
-                                    'Juni',
-                                    'Juli',
-                                    'Agustus',
-                                    'September',
-                                    'Oktober',
-                                    'November',
-                                    'Desember',
-                                  ].map<DropdownMenuItem<String>>(
-                                      (String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
-                                ),
-                                const SizedBox(width: 16),
-                                DropdownButton<String>(
-                                  value: selectedYear,
-                                  hint: const Text('Pilih Tahun'),
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      selectedYear = newValue!;
-                                    });
-                                  },
-                                  items: _getYearItems(),
-                                ),
-                                const SizedBox(width: 16),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    _cariData(selectedMonth, selectedYear);
-                                  },
-                                  child: const Text('Cari'),
-                                ),
-                              ]);
-                        } else {
-                          return _buildCard(index - 1);
-                        }
-                      },
-                    ),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount:
+                        1 + _rows.length,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              DropdownButton<String>(
+                                value: selectedMonth,
+                                hint: const Text('Pilih Bulan'),
+                                onChanged: (newValue) {
+                                  setState(() {
+                                    selectedMonth = newValue!;
+                                  });
+                                },
+                                items: [
+                                  'Januari',
+                                  'Februari',
+                                  'Maret',
+                                  'April',
+                                  'Mei',
+                                  'Juni',
+                                  'Juli',
+                                  'Agustus',
+                                  'September',
+                                  'Oktober',
+                                  'November',
+                                  'Desember',
+                                ].map<DropdownMenuItem<String>>(
+                                    (String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(width: 16),
+                              DropdownButton<String>(
+                                value: selectedYear,
+                                hint: const Text('Pilih Tahun'),
+                                onChanged: (newValue) {
+                                  setState(() {
+                                    selectedYear = newValue!;
+                                  });
+                                },
+                                items: _getYearItems(),
+                              ),
+                              const SizedBox(width: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  _cariData(selectedMonth, selectedYear);
+                                },
+                                child: const Text('Cari'),
+                              ),
+                            ]);
+                      } else {
+                        return _buildCard(index - 1);
+                      }
+                    },
+                  ),
           ),
         ));
   }

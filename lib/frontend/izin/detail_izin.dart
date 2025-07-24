@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
@@ -39,7 +40,7 @@ class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
 
   Future<void> _initializeImageUrl() async {
     if (widget.data['file'] != null && widget.data['file'].isNotEmpty) {
-      String url1 = 'http://mobileabsensi1.pasamanbaratkab.go.id/api_android_v2/public/${widget.data['file']}';
+      String url1 = 'http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android_v2/public/foto/${widget.data['file']}';
       String url2 = 'https://mobileabsensi.pasamanbaratkab.go.id/foto/${widget.data['file']}';
  
       if (await checkUrl(url1)) {
@@ -99,31 +100,43 @@ class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
     }
 
     var jamMasuk = DateFormat('EEEE, dd/MM/yyyy H:i:s', 'id')
-                    .format(DateTime.parse(widget.data['timestamp_masuk']));
+                    .format(DateTime.parse(widget.data['timestamp']));
+                    print(widget.data['created_at']);
+    Size size = MediaQuery.of(context).size;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: Center(
-          child: Container(
-            margin: EdgeInsets.only(right: 15),
-            child: Text(
-              'Detail Pengajuan Izin',
-              style: TextStyle(color: Color.fromARGB(255, 255, 255, 255),
-            ),
-            
+     
+       
+      body: Stack(
+        children: [
+          // Background header that extends beyond what's visible
+          WidgetNavbar(title: 'Detail Izin'),
+
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
+
+              // Content area
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
-          ),
-        ),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child:   Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,6 +214,11 @@ class DetailPengajuanIzinState extends State<DetailPengajuanIzin> {
           ),
         ),
       ),
+              )
+            ]
+          )
+        ]
+      )
     );
   }
 

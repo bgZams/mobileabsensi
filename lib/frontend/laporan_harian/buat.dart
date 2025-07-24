@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
@@ -79,7 +80,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
     return Scaffold(
       body: Stack(
         children: [
-          Header(),
+          WidgetNavbar(title: 'Buat Laporan Harian'),
           // Scrollable content area taking most of the screen
           Column(
             children: [
@@ -113,18 +114,6 @@ class _BuatLaporanState extends State<BuatLaporan> {
                             key: _formKey,
                             child: Column(
                               children: [
-                                Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'Buat Laporan Harian',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 50, 50, 50),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -223,13 +212,17 @@ class _BuatLaporanState extends State<BuatLaporan> {
                                       labelText: "Masukkan kegiatan",
                                       alignLabelWithHint: true,
                                       labelStyle:
-                                          TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                                          TextStyle(color: Colors.black, fontSize: 18),
                                       border: OutlineInputBorder(),
                                       fillColor: Color.fromARGB(115, 245, 243, 243),
                                       filled: true,
                                       errorStyle:
                                           TextStyle(color: Colors.red),
+                                          hintStyle: TextStyle(
+                                            color: Color.fromARGB(255, 0, 0, 0),
+                                          ),
                                     ),
+                                    
                                   ),
                                 ),
                                 const SizedBox(

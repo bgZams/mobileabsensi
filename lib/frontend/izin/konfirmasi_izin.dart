@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
@@ -201,75 +202,65 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-          title: const Text(
-            'Notifikasi',
-            style: TextStyle(color: Colors.white),
-          ),
-          elevation: 4,
-          leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.white,),
-          onPressed: () => Navigator.pushNamed(context, '/home-page'),
-        ),
-     
-          bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50.0),
-          child: Container(
-            color: Color.fromARGB(163, 65, 65, 65),
-            child: Column(
-              children: [
-                const SizedBox(height: 10.0),
-                TabBar(
-                  controller: _controller,
-                  tabs: list,
-                  indicatorColor: Colors.green,
-                  dividerColor: Colors.blue,
-                  unselectedLabelColor: Colors.grey[500],
-                  labelColor: Colors.white,
-                ),
-              ],
-            ),
-          ),
-          ),
-        ), 
-      body: Column(
+      body: Stack(
         children: [
-          if(SpUtil.getString('role') == '1')
-          Container(
-            padding: const EdgeInsets.all(8),
-            color: const Color.fromARGB(255, 67, 60, 130),
-            child: const Text(
-              'Konfirmasi Izin dan LHK',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          )
-          else
-          Expanded(
-            child: TabBarView(
-              controller: _controller,
-              children: [
-                _riwayatIzin.isEmpty
-                    ? const Center(child: Text('Tidak ada data'))
-                    : ListView.builder(
-                        itemCount: _riwayatIzin.length,
-                        itemBuilder: (context, index) =>
-                            _buildIzinItem(context, _riwayatIzin[index]),
+        WidgetNavbar(title: 'Riwayat Laporan Harian',),
+          Column(
+            children: [
+              SizedBox(height: size.height * 0.15),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: ListView(
+               children: [ TabBar(
+                 controller: _controller,
+                 tabs: list,
+                 indicatorColor: Colors.green,
+                 dividerColor: Colors.blue,
+                 unselectedLabelColor: Colors.grey[500],
+                 labelColor: Colors.black,
+               ),
+               SizedBox(height: 20,),
+                selectedIndex == 0
+                    ? (_riwayatIzin.isEmpty
+                        ? const Center(child: Text('Tidak ada data Izin'))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _riwayatIzin.length,
+                            itemBuilder: (context, index) =>
+                                _buildIzinItem(context, _riwayatIzin[index]),
+                          ))
+                    : (_riwayatLhk.isEmpty
+                        ? const Center(child: Text('Tidak ada data Lhk'))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _riwayatLhk.length,
+                            itemBuilder: (context, index) =>
+                                _buildLhkItem(context, _riwayatLhk[index]),
+                          )),
+               ]
                       ),
-                _riwayatLhk.isEmpty
-                    ? const Center(child: Text('Tidak ada data'))
-                    : ListView.builder(
-                        itemCount: _riwayatLhk.length,
-                        itemBuilder: (context, index) =>
-                            _buildLhkItem(context, _riwayatLhk[index]),
                       ),
-              ],
-            ),
+                      ),
+            ],
           ),
         ],
       ),
@@ -280,7 +271,6 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     String jenisStatus = _getStatus(izin['status'].toString());
   
     return Card(
-      margin: const EdgeInsets.all(8),
       elevation: 4,
       child: ListTile(
         title: Text(izin['nama_lengkap'] ?? ''),

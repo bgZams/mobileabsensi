@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
-import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
@@ -21,10 +21,9 @@ class _LaporanHarianState extends State<LaporanHarian>
     with TickerProviderStateMixin {
         bool _enabled = true;
 
-  bool _isLoading = true;
 
-  List<dynamic> _riwayatLaporan = [];
-  List<dynamic> _riwayatPengajuan = [];
+  List<dynamic> riwayatLaporan = [];
+  List<dynamic> riwayatPengajuan = [];
   String? url = SpUtil.getString("url");
   String? idUser;
   late String selectedYear;
@@ -51,6 +50,7 @@ class _LaporanHarianState extends State<LaporanHarian>
     _fetchData();
     _refreshData();
     initializePreferences();
+    print(isCodeMasuk);
   }
 
   String _getMonthName(int month) {
@@ -145,7 +145,7 @@ class _LaporanHarianState extends State<LaporanHarian>
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
 
         setState(() {
-            _riwayatLaporan = jsonData['data'];
+            riwayatLaporan = jsonData['data'];
         });
 
         if (jsonData.containsKey('data')) {
@@ -199,9 +199,8 @@ class _LaporanHarianState extends State<LaporanHarian>
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-print(response.body);
         setState(() {
-            _riwayatLaporan = jsonData['data'];
+            riwayatLaporan = jsonData['data'];
         });
 
         if (jsonData.containsKey('data')) {
@@ -263,16 +262,16 @@ print(response.body);
   }
 
   Future<void> _refreshData() async {
-    if (SyncLimiter.canSync()) {
+    // if (SyncLimiter.canSync()) {
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
           _fetchData();
         });
       }
-    } else {
-      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    }
+    // } else {
+    //   Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    // }
   }
 
   void navigateToEditLaporan(Map<String, dynamic> data) async {
@@ -290,22 +289,17 @@ print(response.body);
   @override
   Widget build(BuildContext context) {
         Size size = MediaQuery.of(context).size; 
+        var isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
     return Scaffold(
   body: Skeletonizer(
                       enabled: _enabled,
                       enableSwitchAnimation: true,
     child: Stack(
       children: [
-        // Background header that extends beyond what's visible
-        Header(),
-        
-        // Scrollable content area taking most of the screen
+        WidgetNavbar(title: 'Riwayat Laporan Harian',),
         Column(
           children: [
-            // Spacer to push content down to create overlap
             SizedBox(height: size.height * 0.15),
-            
-            // Content area
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -432,21 +426,24 @@ print(response.body);
       ],
     ),
   ),
-      floatingActionButton:Transform.translate(
-                  offset: const Offset(0, -20),
-                  child: FloatingActionButton(
-                    onPressed: () async {
-                      final result = await Navigator.pushNamed(context, '/create-laporan');
-                      if (result == true) {
-                        setState(() {
-                          _fetchData();
-                        });
-                      }
-                    },
-                    tooltip: 'Increment',
-                    child: const Icon(Icons.add),
-                  ),
-                )
+      floatingActionButton: isCodeMasuk
+          ? Transform.translate(
+              offset: const Offset(0, -20),
+              child: FloatingActionButton(
+                onPressed: () async {
+                  final result =
+                      await Navigator.pushNamed(context, '/create-laporan');
+                  if (result == true) {
+                    setState(() {
+                      _fetchData();
+                    });
+                  }
+                },
+                tooltip: 'Increment',
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
     );
     //   floatingActionButton: isCodeMasuk
     //           ? Transform.translate(

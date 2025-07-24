@@ -5,6 +5,7 @@ import 'package:mobileabsensi/frontend/profile.dart';
 import 'package:mobileabsensi/frontend/teknis/list_opd.dart';
 import 'package:mobileabsensi/frontend/teknis/list_wifi.dart';
 import 'package:mobileabsensi/frontend/tentang.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Navigasi extends StatefulWidget {
@@ -24,21 +25,42 @@ class _NavigasiState extends State<Navigasi> {
       namaLengkap = '${namaLengkap.substring(0, 30)}...';
       namaInstansi = '${namaInstansi.substring(0, 30)}...';
     }
+    double deviceHeight = MediaQuery.of(context).size.height;
+    Size size = MediaQuery.of(context).size;
+
     return Scaffold(
-        appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: Center(child: Container(
-          margin: const EdgeInsets.only(right: 50),
-          child: const Text("Menu",style: TextStyle(color: Colors.white),),)),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.white,),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-        body: Container(
+     
+       
+      body: Stack(
+        children: [
+          // Background header that extends beyond what's visible
+          WidgetNavbar(title: 'Menu'),
+
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
+
+              // Content area
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child:   Container(
           color: const Color.fromARGB(255, 228, 224, 224),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,6 +368,13 @@ Container()
               ),
             ],
           ),
-        ),);
+        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+        );
   }
 }

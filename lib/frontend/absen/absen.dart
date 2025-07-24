@@ -27,18 +27,18 @@ class Absen extends StatefulWidget {
 class _AbsenState extends State<Absen> {
   final PageController _pageController = PageController(); 
   bool _enabled = true;
-  Timer? _timer;
   String? url = SpUtil.getString("url");
   String _jamSekarang = '';
   List<Map<String, dynamic>> wifiData = [];
-  final NetworkInfo _networkInfo = NetworkInfo();
   bool _isLoading = false;
   bool _isMasuk = false;
   bool _isPulang = false;
 
-  String? wifiName = '';
-  String? wifiBSSID = '';
+  String? wifiName;
+  String? wifiBSSID;
   String? wifiIPv4;
+  Timer? _timer;
+  final NetworkInfo _networkInfo = NetworkInfo();
 
   String? jamMasuk;
   String? jamPulang;
@@ -55,14 +55,16 @@ class _AbsenState extends State<Absen> {
   String? notif = '0';
   DateTime? lastFetchTime;
   int syncCount = 0;
+
+
   @override
   void initState() {
     super.initState();
           _enabled = false;
-
     _initNetworkInfo();
+    _startPeriodicCheck();
+
     _jamSekarang = _formatDateTime(DateTime.now());
-    Timer.periodic(const Duration(seconds: 1), (Timer t) => _getCurrentTime());
     loadWifiData();
     setState(() {
       isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
@@ -110,15 +112,59 @@ class _AbsenState extends State<Absen> {
     }
   }
 
+
+  void _startPeriodicCheck() {
+    _timer = Timer.periodic(Duration(seconds: 3), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      _checkNetworkChanges();
+    });
+  }
+
+  Future<void> _checkNetworkChanges() async {
+    try {
+      String? currentWifiName = await _networkInfo.getWifiName();
+      String? cleanName = currentWifiName?.replaceAll('"', '');
+      
+      // Cek mounted sebelum setState
+      if (!mounted) return;
+      
+      if (cleanName != wifiName) {
+        setState(() {
+          wifiName = cleanName;
+        });
+        
+        // Update other network info juga
+        wifiBSSID = await _networkInfo.getWifiBSSID();
+        wifiIPv4 = await _networkInfo.getWifiIP();
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  
   Future<void> _initNetworkInfo() async {
     try {
       wifiName = await _networkInfo.getWifiName();
       wifiBSSID = await _networkInfo.getWifiBSSID();
       wifiIPv4 = await _networkInfo.getWifiIP();
+      
+      if (mounted) {
+        setState(() {
+          wifiName = wifiName?.replaceAll('"', '');
+        });
+      }
     } on PlatformException catch (e) {
       developer.log('Failed to get Wi-Fi Name or BSSID', error: e);
-      wifiName = 'Failed to get Wi-Fi Name';
-      wifiBSSID = 'Failed to get Wi-Fi BSSID';
+      if (mounted) {
+        setState(() {
+          wifiName = 'Failed to get Wi-Fi Name';
+          wifiBSSID = 'Failed to get Wi-Fi BSSID';
+        });
+      }
     }
   }
 
@@ -290,7 +336,10 @@ class _AbsenState extends State<Absen> {
               var datapulang = {
                 'id_user': idUser,
                 'id_admin_instansi': idAdmin,
-                'ssid': ssID,
+                'nama_lengkap': nama,
+                'username': SpUtil.getString('username'),
+                'instansi': SpUtil.getString('id_instansi'),
+                'ssid': connectedSSID,
                 'bssid': connectedBSSID,
                 'versi': '1.4',
                 'deviceId': SpUtil.getString('deviceId'),
@@ -485,10 +534,10 @@ class _AbsenState extends State<Absen> {
                                   ),
                                   child: Row(
                                     mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                        MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       Container(
-                                        width: 190,
                                         alignment: Alignment.center,
                                         child: Padding(
                                           padding: const EdgeInsets.all(8.0),
@@ -499,30 +548,6 @@ class _AbsenState extends State<Absen> {
                                                   255, 255, 31, 31),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                      Container(
-                                        clipBehavior: Clip.hardEdge,
-                                        decoration: BoxDecoration( 
-                                    color: const Color.fromARGB(255, 67, 60, 130),
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(10)),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Color.fromARGB(255, 99, 99, 99),
-                                              spreadRadius: 1,
-                                              blurRadius: 1,
-                                            )
-                                          ],
-                                        ),
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.refresh,
-                                            color: Color.fromARGB(255, 255, 255, 255),
-                                          ),
-                                          onPressed: () {
-                                            _initNetworkInfo();
-                                          },
                                         ),
                                       ),
                                     ],
@@ -569,11 +594,9 @@ class _AbsenState extends State<Absen> {
                                               //TOMBOL MASUK PULANG
                                               Column(
                                                 children: [
-                                                  DateTime.now()
-                                                              .toIso8601String()
-                                                              .substring(0, 10) ==
-                                                          SpUtil.getString(
-                                                              'saved_date')
+                                                  (DateTime.now().toIso8601String().substring(0, 10) ==
+                                                    SpUtil.getString('saved_date') &&
+                                                   SpUtil.getBool('is_codeMasuk') == true)
                                                       ? Column(
                                                           children: [
                                                             Container(
@@ -678,7 +701,9 @@ class _AbsenState extends State<Absen> {
                                               const Spacer(),
                                               Column(
                                                 children: [
-                                                  isCodePulang
+                                                  (DateTime.now().toIso8601String().substring(0, 10) ==
+                                                    SpUtil.getString('saved_date') &&
+                                                   SpUtil.getBool('is_codePulang') == true)
                                                       ? Column(
                                                           children: [
                                                             Container(

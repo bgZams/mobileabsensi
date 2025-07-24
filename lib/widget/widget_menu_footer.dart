@@ -26,7 +26,6 @@ class _MenuFooterState extends State<MenuFooter> {
   void initState() {
     super.initState();
     _requestPermissions();
-    NotificationController.startListeningNotificationEvents();
     super.initState();
   }
 

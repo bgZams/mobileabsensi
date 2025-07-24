@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobileabsensi/frontend/absen/laporan_harian.dart';
 import 'package:mobileabsensi/frontend/navigasi.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sp_util/sp_util.dart';
 
 class Header extends StatefulWidget {
@@ -35,7 +33,7 @@ class _HeaderState extends State<Header> {
     final deviceWidth = size.width;
 
     return Container(
-      height: size.height * 0.20,
+      height: size.height * 0.20 ,
       width: deviceWidth,
       decoration: const BoxDecoration(
         image: DecorationImage(
@@ -55,11 +53,22 @@ class _HeaderState extends State<Header> {
                   MaterialPageRoute(builder: (context) => const Navigasi()),
                 );
               },
-              child: CircleAvatar(
-                radius: deviceWidth * 0.08,
-                backgroundImage:
-                    const AssetImage('assets/images/profile.png'),
+              // child: CircleAvatar(
+              //   radius: deviceWidth * 0.08,
+              //   backgroundImage:
+              //       const AssetImage('assets/images/logo.png'),
+              // ),
+              child: Container(
+                width: deviceWidth * 0.15,
+                height: deviceWidth * 0.15,
+                decoration: BoxDecoration(
+                  image: const DecorationImage(
+                    image: AssetImage('assets/images/logo.png'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
+            
             ),
             SizedBox(width: deviceWidth * 0.02),
             SizedBox(
@@ -107,9 +116,15 @@ class _HeaderState extends State<Header> {
                 },
                 child: SizedBox(
                 width: deviceWidth * 0.15,
-                height: deviceWidth * 0.08,
-                child: const Icon(Icons.note_alt,
-                  color: Color(0xFFC983DE), size: 40),
+                height: deviceWidth * 0.15 + 2.0,
+                child: Column(
+                  children: [
+                    const Icon(Icons.note_alt,
+                      color: Color(0xFFC983DE), size: 40),
+                      Text('LHK',style: TextStyle(
+                      fontSize: deviceWidth * 0.03,color: Colors.white),),
+                  ],
+                ),
                 ),
               ),
               ),

@@ -8,15 +8,16 @@ import 'package:mobileabsensi/notifikasi/notification_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+  final int initialIndex;
+  const Dashboard({super.key, required this.initialIndex});
 
   @override
   State<Dashboard> createState() => _DashboardState();
 }
 
 class _DashboardState extends State<Dashboard> {
-  final PageController _pageController = PageController();
-  int _currentIndex = 0;
+  late final PageController _pageController;
+  late int _currentIndex;
 
   final List<Widget> _pages = const [
     Absen(),
@@ -28,8 +29,9 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
     _requestPermissions();
-    NotificationController.startListeningNotificationEvents();
     super.initState();
   }
 
@@ -79,12 +81,12 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const NeverScrollableScrollPhysics(),
-        children: _pages,
-      ),
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          physics: const NeverScrollableScrollPhysics(),
+          children: _pages,
+        ),
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: const Color.fromARGB(255, 229, 229, 229),
         color: const Color.fromARGB(255, 229, 229, 229),

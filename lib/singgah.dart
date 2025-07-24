@@ -11,7 +11,7 @@ class Singgah extends StatelessWidget {
   Widget build(BuildContext context) {
     String? idGroups = SpUtil.getString('id_groups');
     if (idGroups == "3" || idGroups == "5") {
-      return const Dashboard();
+      return const Dashboard(initialIndex: 0,);
     } else if (idGroups == "2") {
       return const Admin();
     } else {

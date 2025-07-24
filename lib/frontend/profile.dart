@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
@@ -44,24 +45,43 @@ class _ProfileState extends State<Profile> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { 
     Size size = MediaQuery.of(context).size;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: const Text('Profil',style: TextStyle(color: Colors.white),),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: ListView(
-        children: [
-          const SizedBox(height: 15,),
 
+    return Scaffold(
+     
+       
+      body: Stack(
+        children: [
+          // Background header that extends beyond what's visible
+          WidgetNavbar(title: 'Profil'),
+
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
+
+              // Content area
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child:   ListView(
+        children: [
           Container(
             alignment: Alignment.center,
             height: size.height * .2,
@@ -69,6 +89,7 @@ class _ProfileState extends State<Profile> {
               image: DecorationImage(
                 alignment: Alignment.topCenter,
                 image: AssetImage('assets/images/profil.png'),
+                fit: BoxFit.cover,
               ),
             ),
             child: const Row(
@@ -114,11 +135,11 @@ class _ProfileState extends State<Profile> {
                           color: const Color.fromARGB(0, 255, 255, 255)),
                       children: [
                         TableRow(children: [
-                          const TableCell(child: Text("ID Server")),
+                          const TableCell(
+                              child: Text("ID Server")),
                           TableCell(
-                            child: Text(
-                                " Server ${SpUtil.getString('id_server') ?? ''}"),
-                          ),
+                              child: Text(
+                                  "Server ${SpUtil.getString('id_server') ?? ''}")),
                         ]),
                         TableRow(children: [
                           const TableCell(child: Text("ID User")),
@@ -166,11 +187,10 @@ class _ProfileState extends State<Profile> {
                     Table(
                       columnWidths: const {
                         0: FlexColumnWidth(),
-                        1: FlexColumnWidth(),
                       },
                       border: TableBorder.all(
                           color: const Color.fromARGB(0, 255, 255, 255)),
-                      children: [
+                      children: [ 
                         TableRow(children: [
                           const TableCell(child: Text("Nama")),
                           TableCell(
@@ -210,6 +230,12 @@ class _ProfileState extends State<Profile> {
               onPressed: _isLoading ? null : _startLoading,
               style: ElevatedButton.styleFrom(fixedSize: const Size(140, 40)),
             ),
+          ),
+        ],
+      ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

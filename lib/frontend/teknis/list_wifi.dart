@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
 import 'dart:developer' as developer;
 import 'package:mobileabsensi/services/alert.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sp_util/sp_util.dart';
@@ -137,7 +138,7 @@ class _WifiOpdState extends State<WifiOpd> {
     var opd = selectedUsername ?? 'admin.diskominfo';
     try {
       http.Response dataWifi = await http.delete(
-        Uri.parse('$url/api/wifi/$idUser/delete/$id'),
+        Uri.parse('$url/api/wifi/${SpUtil.getString('id_user')}/delete/$id'),
         headers: {
           'Content-type': 'application/json',
           'Accept': 'application/json',
@@ -147,7 +148,7 @@ class _WifiOpdState extends State<WifiOpd> {
         if (mounted) {
 
         setState(() {
-          wifiData.removeWhere((wifi) => wifi['id'] == id);
+          wifiData.removeWhere((wifi) => wifi['id_wifi'] == id);
           searchData(opd, serverName);
         });
           Alert.alertsuccess(context, "Data berhasil di hapus.");
@@ -353,7 +354,6 @@ class _WifiOpdState extends State<WifiOpd> {
         }),
       );
         var data = json.decode(dataWifi.body);
-print(data);
       if (dataWifi.statusCode == 200) {
         if (mounted) {
           setState(() {
@@ -388,118 +388,145 @@ print(data);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
+    double deviceHeight = MediaQuery.of(context).size.height;
+    Size size = MediaQuery.of(context).size;
 
-        title: const Text('List Wifi OPD',style: TextStyle(color: Colors.white),),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.white,),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Container(
-        color: const Color.fromARGB(255, 228, 224, 224),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: MediaQuery.of(context).size.width,
-              child: Container(
-                color: Colors.white,
-                child: Column(
-                  children: [
-                    _buildDropdownAdmin(),
-                    _buildSaveButton(context),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const WifiPendding())),
-                child: SizedBox(
-                  width: 50,
-                  child: Container(
-                    color: const Color.fromARGB(255, 255, 247, 201),
-                                  padding: const EdgeInsets.all(8.0),
-                                  child:
-                    const Icon(Icons.pending_actions,size: 25,color: Color.fromARGB(255, 152, 137, 0),),),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: <Widget>[
-                              const Icon(
-                                Icons.wifi,
-                                color: Colors.pink,
-                                size: 24.0,
-                              ),
-                              Container(
-                                alignment: Alignment.centerLeft,
-                                child: Text(' Daftar Wifi',
-                                    style: Theme.of(context).textTheme.titleLarge),
-                              ),
+    return Scaffold(
+     
+       
+      body: Stack(
+        children: [
+          // Background header that extends beyond what's visible
+          WidgetNavbar(title: 'List Wifi OPD'),
+
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
+
+              // Content area
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child:   Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 20,),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          child: Column(
+                            children: [
+                              _buildDropdownAdmin(),
+                              _buildSaveButton(context),
                             ],
                           ),
-                          SizedBox(
-                            width: 400,
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: wifiData.length,
-                              itemBuilder: (context, index) {
-                                var wifi = wifiData[index];
-                                return ListTile(
-                                  title: Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: () {
-                                          var id = wifi['id'].toString();
-                                          deleteWifi(serverName.text, id);
-                                        },
-                                        child: const Icon(Icons.delete, size: 30, color: Colors.red),
-                                      ),
-                                      const SizedBox(width: 20,),
-                                      Column(
-                                        mainAxisAlignment: MainAxisAlignment.start,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(wifi['SSID']),
-                                          Text(wifi['BSSID']),
-                                          Text(wifi['ip_address']),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(height: 5),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: InkWell(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const WifiPendding())),
+                          child: SizedBox(
+                            width: 50,
+                            child: Container(
+                              color: const Color.fromARGB(255, 255, 247, 201),
+                                            padding: const EdgeInsets.all(8.0),
+                                            child:
+                              const Icon(Icons.pending_actions,size: 25,color: Color.fromARGB(255, 152, 137, 0),),),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: <Widget>[
+                                        const Icon(
+                                          Icons.wifi,
+                                          color: Colors.pink,
+                                          size: 24.0,
+                                        ),
+                                        Container(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(' Daftar Wifi',
+                                              style: Theme.of(context).textTheme.titleLarge),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(
+                                      width: 400,
+                                      child: ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        itemCount: wifiData.length,
+                                        itemBuilder: (context, index) {
+                                          var wifi = wifiData[index];
+                                          return ListTile(
+                                            title: Row(
+                                              children: [
+                                                InkWell(
+                                                  onTap: () {
+                                                    var id = wifi['id_wifi'].toString();
+                                                    print(id);
+                                                    deleteWifi(serverName.text, id);
+                                                  },
+                                                  child: const Icon(Icons.delete, size: 30, color: Colors.red),
+                                                ),
+                                                const SizedBox(width: 20,),
+                                                Column(
+                                                  mainAxisAlignment: MainAxisAlignment.start,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(wifi['SSID']),
+                                                    Text(wifi['BSSID']),
+                                                    Text(wifi['ip_address']),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ), 
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
       floatingActionButton: Transform.translate(
         offset: const Offset(0, -20),
