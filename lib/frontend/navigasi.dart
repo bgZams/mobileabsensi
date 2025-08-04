@@ -96,18 +96,18 @@ class _NavigasiState extends State<Navigasi> {
                                     Text(
                                       namaLengkap,
                                       style: const TextStyle(
-                                        fontSize: 18,
+                                        fontSize: 16,
                                         color: Color.fromARGB(255, 3, 53, 139),
                                         fontWeight: FontWeight.bold,
                                       ),
                                       overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
                                     ),
                                     Text(
                                       namaInstansi,
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Color.fromARGB(255, 3, 53, 139),
-                                        fontWeight: FontWeight.bold,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 3,

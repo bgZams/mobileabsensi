@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobileabsensi/frontend/dashboard.dart';
-import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/widget/widget_navbar.dart';
 // import 'package:mobileabsensi/core.dart';
@@ -333,106 +332,128 @@ class _BuatIzinState extends State<BuatIzin> {
                     height: 20,
                   ),
                   if (_valJenisIzin == 'IDLK')
-                    Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width,
-                      child: TextFormField(
-                        enabled: false,
-                        controller: tanggal,
-                        decoration: InputDecoration(
-                          icon: const Icon(Icons.calendar_today), // icon of text field
-                          labelText: tanggal.text.isNotEmpty ? tanggal.text : DateTime.now().toLocal().toString().split(' ')[0], // menampilkan tanggal yang dipilih
-                        ),
-                        onTap: () async {
-                          DateTimeRange? pickedDate = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100),
-                          );
-                  
-                          if (pickedDate != null) {
-                            setState(() {
-                              tanggal.text =
-                                  '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
-                              durasi.text = (pickedDate.end.difference(pickedDate.start).inDays + 1).toString();
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  )
-                  else
-                  
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width,
-                      child: TextFormField(
-                        controller: tanggal,
-                        decoration: const InputDecoration(
-                          icon: Icon(Icons.calendar_today), // icon of text field
-                          labelText: "Pilih tanggal",
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Tanggal tidak boleh kosong';
-                          }
-                          return null;
-                        },
-                        readOnly: true,
-                        onTap: () async {
-                          DateTimeRange? pickedDate = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100),
-                          );
-                  
-                          if (pickedDate != null) {
-                            setState(() {
-                              tanggal.text =
-                                  '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
-                              durasi.text = (pickedDate.end.difference(pickedDate.start).inDays + 1).toString();
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                  if (_valJenisIzin == 'IDLK')
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: SizedBox(height: 1))
-                  else
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width,
-                      child: TextFormField(
-                        controller: durasi,
-                        decoration: const InputDecoration.collapsed(
-                          border: UnderlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(6)),
-                          ),
-                          hintText: 'Durasi',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Durasi tidak boleh kosong';
-                          }
-                          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                            return 'Hanya angka yang diperbolehkan';
-                          }
-                          return null;
-                        },
-                        keyboardType: TextInputType.number,
-                        enabled: false,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 40,
-                  ),
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: TextFormField(
+        enabled: false,
+        controller: tanggal,
+        decoration: InputDecoration(
+          icon: const Icon(Icons.calendar_today), // icon of text field
+          labelText: tanggal.text.isNotEmpty ? tanggal.text : DateTime.now().toLocal().toString().split(' ')[0], // menampilkan tanggal yang dipilih
+        ),
+        onTap: () async {
+          DateTimeRange? pickedDate = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime.now(),
+            lastDate: DateTime(2100),
+          );
+
+          if (pickedDate != null) {
+            setState(() {
+              tanggal.text =
+                  '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
+              
+              // Hitung durasi dalam hari
+              int days = (pickedDate.end.difference(pickedDate.start).inDays + 1);
+              
+              // Set teks durasi untuk tampilan (misal: "1 Hari")
+              durasi.text = '$days Hari'; 
+            });
+          }
+        },
+      ),
+    ),
+  )
+else
+
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: TextFormField(
+        controller: tanggal,
+        decoration: const InputDecoration(
+          icon: Icon(Icons.calendar_today), // icon of text field
+          labelText: "Pilih tanggal",
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Tanggal tidak boleh kosong';
+          }
+          return null;
+        },
+        readOnly: true,
+        onTap: () async {
+          DateTimeRange? pickedDate = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime.now(),
+            lastDate: DateTime(2100),
+          );
+
+          if (pickedDate != null) {
+            setState(() {
+              tanggal.text =
+                  '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
+              
+              // Hitung durasi dalam hari
+              int days = (pickedDate.end.difference(pickedDate.start).inDays + 1);
+              
+              // Set teks durasi untuk tampilan (misal: "1 Hari")
+              durasi.text = '$days Hari';
+            });
+          }
+        },
+      ),
+    ),
+  ),
+if (_valJenisIzin == 'IDLK')
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(height: 1))
+else
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: TextFormField(
+        controller: durasi,
+        decoration: const InputDecoration.collapsed(
+          border: UnderlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(6)),
+          ),
+          hintText: 'Durasi',
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Durasi tidak boleh kosong';
+          }
+          // Ambil bagian angka dari string "X Hari"
+          final parts = value.split(' ');
+          if (parts.length < 1) { // Periksa jika string kosong atau tidak sesuai format
+              return 'Format durasi tidak valid (contoh: 1 Hari)';
+          }
+          final numberString = parts[0];
+
+          // Validasi apakah bagian pertama adalah angka
+          if (!RegExp(r'^[0-9]+$').hasMatch(numberString)) {
+            return 'Hanya angka yang diperbolehkan';
+          }
+          // Anda juga bisa menambahkan validasi untuk memastikan ada "Hari" jika diinginkan
+          if (parts.length > 1 && parts[1].toLowerCase() != 'hari') {
+              return 'Format durasi tidak valid (contoh: 1 Hari)';
+          }
+          return null;
+        },
+        keyboardType: TextInputType.text, // Ubah ke TextInputType.text karena ada "Hari"
+        enabled: false, // Karena nilainya diatur secara otomatis dari pemilih tanggal
+      ),
+    ),
+  ),
+const SizedBox(
+  height: 40,
+),
                   
                   
                   Container(
@@ -538,6 +559,8 @@ class _BuatIzinState extends State<BuatIzin> {
     String tanggalTerpilih = tanggal.text.split(' - ')[0];
     String keteranganValue = keterangan.text;
     String durasiValue = durasi.text;
+    String durasiAngkaString = durasiValue.replaceAll(' Hari', '');
+    // int? durasiAngka = int.tryParse(durasiAngkaString);
 
     // String fileName = imagePath.split('/').last;
     String? idUser = SpUtil.getString("id_user");
@@ -557,7 +580,7 @@ class _BuatIzinState extends State<BuatIzin> {
     request.fields['id_admin_instansi'] = idadmininstansi!;
     request.fields['keterangan'] = keteranganValue;
     request.fields['status'] = jenisIzin!;
-    request.fields['durasi'] = durasiValue;
+    request.fields['durasi'] = durasiAngkaString;
     request.fields['id_atasan'] = idAtasan!;
     Map<String, dynamic> addFirebaseIzin = {
       'tanggal': tanggalTerpilih,

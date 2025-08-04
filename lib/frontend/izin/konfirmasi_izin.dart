@@ -16,6 +16,7 @@ class KonfirmasiIzin extends StatefulWidget {
 
 class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     with TickerProviderStateMixin {
+      bool isLoading = false;
   List<dynamic> _riwayatIzin = [];
   List<dynamic> _riwayatLhk = [];
   String? url;
@@ -76,6 +77,9 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   }
 
   Future<void> _fetchData() async {
+    setState(() {
+    isLoading = true;
+  });
     if (idUser == null || url == null || idUser!.isEmpty || url!.isEmpty) {
       debugPrint('Error: idUser or url is empty');
       return;
@@ -106,6 +110,9 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
       } else {
         throw Exception('Tidak ada data LHK ditemukan');
       }
+      setState(() {
+        isLoading = false;
+      });
     } catch (error) {
       debugPrint('Error: $error');
     }
@@ -136,12 +143,12 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
 
       if (response.statusCode == 200) {
         setState(() {
-          selectedIndex = 1; // Set index to LHK tab
-          _controller?.animateTo(1); // Move to LHK tab
+          selectedIndex = 1;
+          _controller?.animateTo(1);
         });
         if(mounted){
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Izin berhasil ditolak')),
+            SnackBar(content: Text('LHK berhasil ditolak')),
           );
         }
 
@@ -160,10 +167,6 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     try {
       var response = await http.put(
         Uri.parse('$url/api/lhk/terima/$id'),
-        headers: {
-          'Content-type': 'application/json',
-          'Accept': 'application/json',
-        },
         body: {
           'id_user':idUser,
           'pesan':'Izin diterima',
@@ -238,24 +241,28 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
                ),
                SizedBox(height: 20,),
                 selectedIndex == 0
-                    ? (_riwayatIzin.isEmpty
-                        ? const Center(child: Text('Tidak ada data Izin'))
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _riwayatIzin.length,
-                            itemBuilder: (context, index) =>
-                                _buildIzinItem(context, _riwayatIzin[index]),
-                          ))
-                    : (_riwayatLhk.isEmpty
-                        ? const Center(child: Text('Tidak ada data Lhk'))
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _riwayatLhk.length,
-                            itemBuilder: (context, index) =>
-                                _buildLhkItem(context, _riwayatLhk[index]),
-                          )),
+  ? (_riwayatIzin.isEmpty
+      ? (isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : const Center(child: Text('Tidak ada data Izin')))
+      : ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _riwayatIzin.length,
+          itemBuilder: (context, index) =>
+              _buildIzinItem(context, _riwayatIzin[index]),
+        ))
+  : (_riwayatLhk.isEmpty
+      ? (isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : const Center(child: Text('Tidak ada data Lhk')))
+      : ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _riwayatLhk.length,
+          itemBuilder: (context, index) =>
+              _buildLhkItem(context, _riwayatLhk[index]),
+        )),
                ]
                       ),
                       ),
@@ -308,157 +315,119 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     );
   }
 
-  Widget _buildLhkItem(BuildContext context, dynamic lhk) { 
-          Map<String, bool> expandedItems = {};
+  Widget _buildLhkItem(BuildContext context, dynamic lhk) {
+  Map<String, bool> expandedItems = {};
 
-    return Card(
-      margin: const EdgeInsets.all(8),
-      elevation: 4,
-      child: ListTile(
-        subtitle: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start, // Ubah alignment menjadi sebelah kiri
-          children: [
-            Text(
-              lhk['nama_lengkap'] ?? '',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-            Row(
-  mainAxisAlignment: MainAxisAlignment.start,
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Expanded(
+  return Card(
+    margin: const EdgeInsets.all(16),
+    elevation: 4,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Jam Mulai: ${lhk['jammulai'].toString()}',
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: TextStyle(fontSize: 14),
+            lhk['nama_lengkap'] ?? '',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 4),
-          Text(
-            'Jam Selesai: ${lhk['jamselesai'].toString()}',
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: TextStyle(fontSize: 14),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Jam Mulai: ${lhk['jammulai'].toString()}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Jam Selesai: ${lhk['jamselesai'].toString()}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Kegiatan: ',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        Flexible(
+                          child: Text(
+                            lhk['rincian_kegiatan'].toString(),
+                            style: TextStyle(fontSize: 16),
+                            softWrap: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 4),
-
-// Kemudian gunakan implementasi berikut
-Theme(
-  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-  child: Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'Kegiatan: ',
-        style: TextStyle(fontSize: 14),
-      ),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              onTap: () {
-                // Gunakan ID unik untuk setiap item (misalnya id dari lhk atau indeks dalam loop)
-                String itemId = lhk['id'].toString(); // atau gunakan indeks jika dalam loop
-                
-                setState(() {
-                  // Toggle status hanya untuk item spesifik ini
-                  expandedItems[itemId] = !(expandedItems[itemId] ?? false);
-                });
-              },
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      lhk['rincian_kegiatan'].toString(),
-                      style: TextStyle(fontSize: 14),
-                      maxLines: (expandedItems[lhk['id'].toString()] ?? false) ? null : 1,
-                      overflow: (expandedItems[lhk['id'].toString()] ?? false) ? TextOverflow.visible : TextOverflow.ellipsis,
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              InkWell(
+                onTap: () {
+                  _sendAcception(lhk['id'], lhk['id_user'], lhk['status']);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 13, horizontal: 50),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    color: const Color.fromARGB(255, 161, 255, 156),
+                  ),
+                  child: const Text(
+                    'Terima',
+                    style: TextStyle(
+                      color: Color.fromARGB(255, 8, 153, 0),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (lhk['rincian_kegiatan'].toString().length > 50)
-                    Icon(
-                      (expandedItems[lhk['id'].toString()] ?? false) ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                      size: 18,
-                    ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
-),
+              const Spacer(),
+              InkWell(
+                onTap: () {
+                  _showRejectDialog(lhk['id']);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 13, horizontal: 50),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    color: const Color.fromARGB(255, 255, 160,
+                        160), // Changed color to indicate a different action
+                  ),
+                  child: const Text(
+                    'Tolak',
+                    style: TextStyle(
+                        color: Color.fromARGB(255, 233, 3, 3),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     ),
-  ],
-),
-            const SizedBox(
-              height: 10,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: () {
-                    var id = lhk['id'];
-                    var idUser = lhk['id_user'];
-                    var status = lhk['status'];
-                    _sendAcception(id, idUser, status);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 13, horizontal: 50),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: const Color.fromARGB(255, 161, 255, 156),
-                    ),
-                    child: const Text(
-                      'Terima',
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 8, 153, 0),
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: () {
-                    _showRejectDialog(lhk['id']);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 13, horizontal: 50),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: const Color.fromARGB(255, 255, 160,
-                          160), // Changed color to indicate a different action
-                    ),
-                    child: const Text(
-                      'Tolak',
-                      style: TextStyle(
-                          color: Color.fromARGB(255, 233, 3, 3),
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  );
+}
 
   String _getStatus(String statusCode) {
     switch (statusCode) {

@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/frontend/izin/detail_izin.dart';
 import 'package:mobileabsensi/services/alert.dart';
-import 'package:mobileabsensi/services/refresh.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
@@ -108,9 +107,8 @@ class _NotifikasiPageState extends State<NotifikasiPage>
       if (selectedIndex == 0) {
         subUrl = '$url/api/izin/riwayat-izin/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
       } else {
-        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser';
+        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
       }
-
       final response = await http.get(
         Uri.parse(subUrl),
         headers: {
@@ -121,7 +119,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-
+      
         setState(() {
           if (selectedIndex == 0) {
             final List<dynamic> responseData = json.decode(response.body)['data'];
@@ -131,11 +129,12 @@ class _NotifikasiPageState extends State<NotifikasiPage>
               _riwayatIzin = responseData;
               _controller?.animateTo(0);
               isLoading = false;
+            _riwayatIzin = responseData.cast<Map<String, dynamic>>();
             });
             }
             
-            _riwayatIzin = responseData.cast<Map<String, dynamic>>();
-          } else {
+          } 
+          if (selectedIndex == 1) {
             _riwayatLaporan = jsonData['data'];
             if (mounted) {
               setState(() {
@@ -184,15 +183,15 @@ class _NotifikasiPageState extends State<NotifikasiPage>
     }
   }
   
-  Future<void> _searchData(selectedMonth, selectedYear) async {
+  Future<void> _searchData(selectedIndex, selectedMonth, selectedYear) async {
     final idUser = SpUtil.getString("id_user");
     String selectedMonthNumber = _getMonthNumber(selectedMonth);
     try {
       String subUrl = '';
       if (selectedIndex == 0) {
-        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser';
+        subUrl = '$url/api/izin/riwayat-izin/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
       } else {
-        subUrl = '$url/api/riwayat-lhk/$idUser/$selectedMonthNumber/$selectedYear';
+        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
       }
       final response = await http.get(
         Uri.parse(subUrl),
@@ -201,6 +200,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
           'Accept': 'application/json',
         },
       );
+      print(response.statusCode);
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -226,6 +226,16 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                   DataCell(Text(data['status'] ?? 'N/A')),
                 ])).toList();
             isLoading = false;
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Data berhasil dimuat'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            }
           });
         } else {
           setState(() {
@@ -243,6 +253,16 @@ class _NotifikasiPageState extends State<NotifikasiPage>
       if (mounted) {
         setState(() {
           isLoading = false;
+          // Show error message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Gagal memuat data'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         });
       }
       // print("Error fetching data: $e");
@@ -487,13 +507,29 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                                     isLoading = true;
                                   });
                                   await Future.delayed(const Duration(seconds: 2));
-                                  // _cariData(selectedMonth, selectedYear);
+                                  _searchData(selectedIndex, selectedMonth, selectedYear);
                                 }
                               },
-                              child: const Text('Cari',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                  )),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  isLoading
+                                    ? Container(
+                                        width: 16,
+                                        height: 16,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        child: const CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : 
+                                  const Text('Cari',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    )),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -503,6 +539,9 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                       Expanded(
                         child: RefreshIndicator(
                           onRefresh: _refreshData,
+                          color: const Color.fromARGB(255, 67, 60, 130),
+                          backgroundColor: Colors.white,
+                          strokeWidth: 3,
                           child: ListView.builder(
                             itemCount: _riwayatIzin.length,
                             itemBuilder: (context, index) {
@@ -581,7 +620,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                                                                         'id_keterangan'] !=
                                                                     null &&
                                                                 _riwayatIzin[index]
-                                                                        ['tgl_absen'] ==
+                                                                        ['tgl_group'] ==
                                                                     DateTime.now()
                                                                         .toString())
                                                               const Chip(
@@ -662,157 +701,156 @@ class _NotifikasiPageState extends State<NotifikasiPage>
   }
 
   Widget _buildCards() {
-    Map<String, List<DataRow>> groupedData = {};
-    for (var dataRow in _rows) {
-      final date = (dataRow.cells[1].child as Text).data!; // Assuming the date is in the second cell
-      groupedData.putIfAbsent(date, () => []).add(dataRow);
-    }
-    List<Widget> cards = groupedData.entries.map((entry) {
-      List<Widget> rowWidgets = entry.value.map((dataRow) {
-        final cells = dataRow.cells;
-        final id = (cells[0].child as Text).data!;
-        final tgl = (cells[1].child as Text).data!;
-        final jammulai = (cells[2].child as Text).data!;
-        final jamselesai = (cells[3].child as Text).data!;
-        final kegiatan = (cells[4].child as Text).data!;
-        final status = (cells[5].child as Text).data!;
-        IconData statusIcon;
-        Color statusColor;
-        switch (status) {
-          case '1':
-            statusIcon = Icons.check;
-            statusColor = Colors.green;
-            break;
-          case '2':
-            statusIcon = Icons.delete;
-            statusColor = Colors.red;
-            break;
-          default:
-            statusIcon = Icons.delete;
-            statusColor = Colors.red;
-        }
+  Map<String, List<DataRow>> groupedData = {};
+  for (var dataRow in _rows) {
+    final date = (dataRow.cells[1].child as Text).data!; // Assuming the date is in the second cell
+    groupedData.putIfAbsent(date, () => []).add(dataRow);
+  }
 
-        IconData delIcon;
-        switch (status) {
-          case '1':
-            delIcon = Icons.delete;
-            break;
-          case '2':
-            delIcon = Icons.delete;
-            break;
-          default:
-            delIcon = Icons.delete;
-        }
+  List<Widget> cards = groupedData.entries.map((entry) {
+    final reportDate = DateFormat('yyyy-MM-dd').parse(entry.key);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day); // Only date part
+    final threeDaysAgo = today.subtract(const Duration(days: 3));
 
-        bool isToday = tgl == DateFormat('yyyy-MM-dd').format(DateTime.now());
-        DateTime jamMasukTime = DateFormat("HH:mm").parse(jammulai);
-        DateTime jamPulangTime = DateFormat("HH:mm").parse(jamselesai);
-        return Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+    // Get the last day of the current month
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    // Condition to enable edit/delete
+    // The report date must be greater than or equal to 3 days ago from today AND
+    // the report date must be before or on the last day of the current month.
+    bool canModify = !reportDate.isBefore(threeDaysAgo) && !reportDate.isAfter(lastDayOfMonth);
+
+    Color cardColor = canModify ? Colors.white : Colors.grey[300]!; // Normal or disabled card color
+    Color textColor = canModify ? Colors.black : Colors.grey[600]!; // Normal or disabled text color
+
+    List<Widget> rowWidgets = entry.value.map((dataRow) {
+      final cells = dataRow.cells;
+      final id = (cells[0].child as Text).data!;
+      final tgl = (cells[1].child as Text).data!;
+      final jammulai = (cells[2].child as Text).data!;
+      final jamselesai = (cells[3].child as Text).data!;
+      final kegiatan = (cells[4].child as Text).data!;
+      final status = (cells[5].child as Text).data!;
+
+      DateTime jamMasukTime = DateFormat("HH:mm").parse(jammulai);
+      DateTime jamPulangTime = DateFormat("HH:mm").parse(jamselesai);
+                DateTime tglDateTime = DateFormat('yyyy-MM-dd').parse(tgl);
+
+      return Column(
+        children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.access_time, color: Colors.blue),
-              Text(DateFormat("HH:mm").format(jamMasukTime)),
-              SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_outlined),
-              SizedBox(width: 8),
-              Text(DateFormat("HH:mm").format(jamPulangTime)),
-            ],
-          ),
-                if (isToday)
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          navigateToEditLaporan({
-                            'id': id,
-                            'tgl': tgl,
-                            'jammulai': jammulai,
-                            'jamselesai': jamselesai,
-                            'kegiatan': kegiatan,
-                            'status': status,
-                          });
-                        },
-                        child: const CircleAvatar(
-                          backgroundColor: Colors.green,
-                          radius: 15,
-                          child: Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () async {
-                          bool? confirmDelete = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Hapus'),
-                              content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Hapus'),
-                                ),
-                              ],
-                            ),
-                          );
+              Row(
+                children: [
+                  Icon(Icons.access_time, color: canModify ? Colors.blue : textColor),
+                  Text(DateFormat("HH:mm").format(jamMasukTime), style: TextStyle(color: textColor)),
+                  const SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_outlined, color: canModify ? null : textColor),
+                  const SizedBox(width: 8),
+                  Text(DateFormat("HH:mm").format(jamPulangTime), style: TextStyle(color: textColor)),
+                ],
+              ),
+              if (canModify || status == '2')
 
-                          if (confirmDelete == true) {
-                            _deleteLaporan(id);
-                          }
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.red,
-                          radius: 15,
-                          child: Icon(
-                            delIcon,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.topLeft,
-              child: Text(kegiatan),
-            ),
-            const Divider(),
-          ],
-        );
-      }).toList();
-      var tgl = DateFormat('yyyy-MM-dd').parse(entry.key);
-      var formattedDate = DateFormat('dd/MM/yyyy').format(tgl);
-      return Card(
-        margin: const EdgeInsets.all(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
-                    .format(DateTime.parse(entry.key)),style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold),),
-              ...rowWidgets,
+Row(
+  children: [
+    InkWell(
+      onTap: () {
+        if (tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year) {
+          navigateToEditLaporan({
+            'id': id,
+            'tgl': tgl,
+            'jammulai': jammulai,
+            'jamselesai': jamselesai,
+            'kegiatan': kegiatan,
+            'status': status,
+          });
+        }
+      },
+      child: CircleAvatar(
+        backgroundColor: tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year ? Colors.green : Colors.red,
+        radius: 15,
+        child: Icon(
+          tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year ? Icons.edit : Icons.close,
+          color: Colors.white,
+          size: 20,
+        ),
+      ),
+    ),
+    const SizedBox(width: 8),
+    InkWell(
+      onTap: () async {
+        bool? confirmDelete = await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Konfirmasi Hapus'),
+            content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Hapus'),
+              ),
             ],
           ),
-        ),
+        );
+
+        if (confirmDelete == true) {
+          _deleteLaporan(id);
+        }
+      },
+      
+      child: tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year
+  ? CircleAvatar(
+      backgroundColor: Colors.red,
+      radius: 15,
+      child: Icon(
+        Icons.delete,
+        color: Colors.white,
+        size: 20,
+      ),
+    )
+  : SizedBox.shrink(),
+    ),
+  ],
+)
+            ],
+          ),
+          Align(
+            alignment: Alignment.topLeft,
+            child: Text(kegiatan, style: TextStyle(color: textColor)),
+          ),
+          Divider(color: textColor.withOpacity(0.5)), // Adjust divider color
+        ],
       );
     }).toList();
 
-    return Column(children: cards);
-  }
+    return Card(
+      margin: const EdgeInsets.all(8),
+      color: cardColor, // Apply card color
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              DateFormat('EEEE, dd/MM/yyyy', 'id').format(reportDate),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor), // Apply text color
+            ),
+            ...rowWidgets,
+          ],
+        ),
+      ),
+    );
+  }).toList();
+
+  return Column(children: cards);
+}
 
   // Fungsi untuk mengkonfirmasi penghapusan data
   void _confirmDelete(dynamic item) {

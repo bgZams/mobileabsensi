@@ -221,7 +221,7 @@ class LoginState extends State<Login> {
       }
     } catch (e) {
       if (mounted) {
-        Alert.alerterror(context, 'Gagal mendapatkan data perangkat: {$e}');
+        Alert.alerterror(context, 'Gagal mendapatkan data perangkat');
       }
       if (kDebugMode) {
         print(Exception(e));

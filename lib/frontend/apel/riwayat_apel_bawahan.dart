@@ -153,13 +153,6 @@ class _ApelBawahanState extends State<ApelBawahan> {
           'Riwayat Apel Anggota',
           style: TextStyle(color: Colors.white),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
-          onPressed: () {
-            Navigator.pushNamed(context, '/home-page');
-          },
-        ),
       ),
       body: SizedBox(
         height: deviceHeight * 1.2,

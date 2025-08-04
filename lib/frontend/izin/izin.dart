@@ -79,7 +79,8 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
           _riwayatIzin = []; // Reset data jika gagal
         });
       }
-      throw Exception('Gagal memuat data izin');
+      // throw Exception('Gagal memuat data izin');
+      return [];
     }
   }
 

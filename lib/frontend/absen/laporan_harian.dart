@@ -28,7 +28,7 @@ class _LaporanHarianState extends State<LaporanHarian>
   String? idUser;
   late String selectedYear;
   late String selectedMonth;
-  bool isLoading = true;
+  bool isLoading = false;
   bool value = false;
   List<DataRow> _rows = [];
   bool isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
@@ -400,7 +400,6 @@ class _LaporanHarianState extends State<LaporanHarian>
                                   onPressed: () async {
     
                                     if (!isLoading) {
-    
                                       setState(() {
                                         isLoading = true;
                                       });
@@ -408,10 +407,26 @@ class _LaporanHarianState extends State<LaporanHarian>
                                     searchData(selectedMonth, selectedYear);
                                     }
                                   },
-                                  child: const Text('Cari',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                      )),
+                                  child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  isLoading
+                                    ? Container(
+                                        width: 16,
+                                        height: 16,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        child: const CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : 
+                                  const Text('Cari',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    )),
+                                ],
+                              ),
                                 ),
                               ],
                             ),
@@ -508,7 +523,6 @@ class _LaporanHarianState extends State<LaporanHarian>
             delIcon = Icons.delete;
         }
 
-        bool isToday = tgl == DateFormat('yyyy-MM-dd').format(DateTime.now());
         DateTime jamMasukTime = DateFormat("HH:mm").parse(jammulai);
         DateTime jamPulangTime = DateFormat("HH:mm").parse(jamselesai);
         return Column(
@@ -526,63 +540,15 @@ class _LaporanHarianState extends State<LaporanHarian>
               Text(DateFormat("HH:mm").format(jamPulangTime)),
             ],
           ),
-                if (isToday)
                   Row(
                     children: [
-                      InkWell(
-                        onTap: () {
-                          navigateToEditLaporan({
-                            'id': id,
-                            'tgl': tgl,
-                            'jammulai': jammulai,
-                            'jamselesai': jamselesai,
-                            'kegiatan': kegiatan,
-                            'status': status,
-                          });
-                        },
-                        child: const CircleAvatar(
-                          backgroundColor: Colors.green,
-                          radius: 15,
-                          child: Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () async {
-                          bool? confirmDelete = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Hapus'),
-                              content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Hapus'),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirmDelete == true) {
-                            _deleteLaporan(id);
-                          }
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.red,
-                          radius: 15,
-                          child: Icon(
-                            delIcon,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                        CircleAvatar(
+                        backgroundColor: Colors.green,
+                        radius: 15,
+                        child: Icon(
+                          status == '1' ? Icons.check : Icons.sync,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                     ],
