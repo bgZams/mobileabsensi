@@ -1,13 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
-
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart';
-import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:sp_util/sp_util.dart';
 
@@ -18,9 +15,6 @@ import 'package:sp_util/sp_util.dart';
 const Color textWhiteGrey = Color(0xFFF1F1F1);
 const Color textGrey = Color(0xFFAAAAAA);
 const TextStyle heading6 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
-
-
-
 
 // Dummy root widget for demonstration. Replace with your actual root widget.
 class MobileAbsensiApp extends StatelessWidget {
@@ -68,7 +62,6 @@ class AdminScreen extends StatelessWidget {
   }
 }
 
-
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -79,16 +72,123 @@ class Login extends StatefulWidget {
 class LoginState extends State<Login> {
   bool passwordVisible = false;
   bool _isLoading = false;
+  bool _isDeviceInfoReady = false; // Track if device info is ready
   final _formKey = GlobalKey<FormState>();
   final TextEditingController username = TextEditingController();
   final TextEditingController password = TextEditingController();
-  String? deviceId;
-  String? systemVersion;
+  Timer? _timer;
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  Map<String, dynamic> _deviceData = <String, dynamic>{};
 
   @override
   void initState() {
     super.initState();
-    _getDeviceId();
+    _initializeDeviceInfo();
+  }
+
+  // Initialize device info and wait for completion
+  Future<void> _initializeDeviceInfo() async {
+    try {
+      await initPlatformState();
+      if (mounted) {
+        setState(() {
+          _isDeviceInfoReady = true;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Failed to initialize device info: $e");
+      }
+      // Retry after 2 seconds if failed
+      Timer(const Duration(seconds: 2), () {
+        if (mounted) {
+          _initializeDeviceInfo();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> initPlatformState() async {
+    var deviceData = <String, dynamic>{};
+
+    try {
+      // Get Android device info
+      final androidInfo = await deviceInfoPlugin.androidInfo;
+      deviceData = _readAndroidBuildData(androidInfo);
+
+      // Store device info with validation
+      if (deviceData['id'] != null && deviceData['id'].toString().isNotEmpty) {
+        await SpUtil.putString('device_id', deviceData['id'].toString());
+        if (kDebugMode) {
+          print("Device ID stored: ${deviceData['id']}");
+        }
+      } else {
+        // Fallback to androidId if id is null
+        final fallbackId = androidInfo.id;
+        await SpUtil.putString('device_id', fallbackId);
+        if (kDebugMode) {
+          print("Using fallback device ID: $fallbackId");
+        }
+      }
+
+      if (deviceData['version.release'] != null && deviceData['version.release'].toString().isNotEmpty) {
+        await SpUtil.putString('system_version', deviceData['version.release'].toString());
+        if (kDebugMode) {
+          print("System version stored: ${deviceData['version.release']}");
+        }
+      } else {
+        // Fallback system version
+        await SpUtil.putString('system_version', 'Unknown');
+        if (kDebugMode) {
+          print("Using fallback system version: Unknown");
+        }
+      }
+
+      // Update internal device data
+      setState(() {
+        _deviceData = deviceData;
+      });
+
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        print("Platform exception: $e");
+      }
+      // Set fallback values on error
+      await SpUtil.putString('device_id', 'fallback_device_${DateTime.now().millisecondsSinceEpoch}');
+      await SpUtil.putString('system_version', 'Unknown');
+      
+      deviceData = <String, dynamic>{
+        'Error:': 'Failed to get platform version: ${e.message}'
+      };
+    } catch (e) {
+      if (kDebugMode) {
+        print("General exception in initPlatformState: $e");
+      }
+      // Set fallback values on any error
+      await SpUtil.putString('device_id', 'fallback_device_${DateTime.now().millisecondsSinceEpoch}');
+      await SpUtil.putString('system_version', 'Unknown');
+      
+      deviceData = <String, dynamic>{
+        'Error:': 'Failed to get device information: $e'
+      };
+    }
+  }
+
+  Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
+    return {
+      'version.release': build.version.release,
+      'id': build.id,
+      'androidId': build.id,
+      'fingerprint': build.fingerprint,
+      'model': build.model,
+      'manufacturer': build.manufacturer,
+    };
   }
 
   void togglePassword() {
@@ -98,6 +198,25 @@ class LoginState extends State<Login> {
   }
 
   void _startLoading() async {
+    // Check if device info is ready before proceeding
+    if (!_isDeviceInfoReady) {
+      if (mounted) {
+        Alert.alertwarning(context, 'Sedang memuat informasi perangkat, mohon tunggu...');
+      }
+      return;
+    }
+
+    // Validate device info before login
+    final deviceId = SpUtil.getString('device_id');
+    final systemVersion = SpUtil.getString('system_version');
+    
+    if (deviceId == null || deviceId.isEmpty || systemVersion == null || systemVersion.isEmpty) {
+      if (mounted) {
+        Alert.alerterror(context, 'Gagal mendapatkan informasi perangkat. Mohon restart aplikasi.');
+      }
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -110,9 +229,11 @@ class LoginState extends State<Login> {
           print("Error: $error");
         }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     } else {
       setState(() {
@@ -121,26 +242,30 @@ class LoginState extends State<Login> {
     }
   }
 
-  Future<void> _getDeviceId() async {
-    final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-    try {
-      final AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
-      setState(() {
-        deviceId = androidInfo.id;
-        systemVersion = androidInfo.version.release;
-      });
-    } catch (e) {
-      setState(() {
-        deviceId = 'Failed to get device ID';
-        systemVersion = 'Failed to get system version';
-      });
-      if (kDebugMode) {
-        print("Error: $e");
-      }
-    }
-  }
-
   Future<void> _login(String username, String password) async {
+    // Validate device info again before making API calls
+    final deviceId = SpUtil.getString('device_id');
+    final systemVersion = SpUtil.getString('system_version');
+    
+    if (kDebugMode) {
+      print("Device ID: $deviceId");
+      print("System Version: $systemVersion");
+    }
+
+    if (deviceId == null || deviceId.isEmpty) {
+      if (mounted) {
+        Alert.alerterror(context, 'Device ID tidak ditemukan. Mohon restart aplikasi.');
+      }
+      return;
+    }
+
+    if (systemVersion == null || systemVersion.isEmpty) {
+      if (mounted) {
+        Alert.alerterror(context, 'System version tidak ditemukan. Mohon restart aplikasi.');
+      }
+      return;
+    }
+ 
     setState(() {
       _isLoading = true;
     });
@@ -155,19 +280,15 @@ class LoginState extends State<Login> {
         body: {
           'username': username,
           'password': password,
+          'device_id': SpUtil.getString('device_id'),
+          'system_version': SpUtil.getString('system_version'),
         },
       ).timeout(const Duration(seconds: 10));
 
       final simpel = json.decode(response.body);
       if (response.statusCode == 200) {
         if (simpel["success"] == 1) {
-        if (simpel["vesi_app"] == "1.5") {
-          if (mounted) {
-            Alert.alertwarning(context, simpel["message"]);
-          }
-        }
-        SpUtil.putString('id_server', simpel['id_server'].toString());
-
+          SpUtil.putString('id_server', simpel['id_server'].toString());
           if (simpel["id_groups"] == 2) {
             await _syncUserData(simpel);
           } else {
@@ -183,7 +304,7 @@ class LoginState extends State<Login> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          Alert.alerterror(context, 'Pastikan perangkat terhubung ke Internet {$e}');
+          Alert.alerterror(context, 'Tidak dapat terhubung ke server, silahkan coba lagi nanti!');
         });
       }
       if (kDebugMode) {
@@ -193,11 +314,14 @@ class LoginState extends State<Login> {
       setState(() {
         _isLoading = false;
       });
-    }
+    } 
   }
 
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
     try {
+      final deviceId = SpUtil.getString('device_id');
+      final systemVersion = SpUtil.getString('system_version');
+      
       final getDeviceResponse = await post(
         Uri.parse('http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android_v2/api/getDevice'),
         headers: {
@@ -210,10 +334,10 @@ class LoginState extends State<Login> {
           'versiApp': systemVersion,
         }),
       ).timeout(const Duration(seconds: 15));
+      
       final deviceData = json.decode(getDeviceResponse.body);
       if (deviceData['status'] == true) {
         await _syncUserData(simpel);
-        SpUtil.putString('deviceId', deviceId!);
       } else {
         if (mounted) {
           Alert.alertwarning(context, deviceData["message"]);
@@ -264,7 +388,7 @@ class LoginState extends State<Login> {
       }
     } catch (e) {
       if (mounted) {
-        Alert.alerterror(context, 'Gagal menyingkronkan data pengguna: {$e}');
+        Alert.alerterror(context, 'Gagal menyingkronkan data pengguna');
       }
       if (kDebugMode) {
         print(Exception(e));
@@ -291,41 +415,26 @@ class LoginState extends State<Login> {
   }
 
   void _navigateToHome() {
-
     String? idGroups = SpUtil.getString('id_groups');
     String? idInstansi = SpUtil.getString('id_admin_instansi');
-    // if (idInstansi == '4393') {
-      if (idGroups == "3" || idGroups == "5") {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-        // print('1');
-
-      } else if (idGroups == "2") {
-        Navigator.pushReplacementNamed(context, '/admin');
-        // print('2');
-
-      } else {
-        SpUtil.clear();
-        Navigator.pushReplacementNamed(context, '/login');
-        // print('2');
-
-      }
-    // } else {
-    //   SpUtil.clear();
-    //   Alert.alerterror(context, 'Tahap uji coba silahkan gunakan aplikasi yang lama');
-    //   Navigator.pushReplacementNamed(context, '/login');
-    // }
+    
+    if (idGroups == "3" || idGroups == "5") {
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } else if (idGroups == "2") {
+      Navigator.pushReplacementNamed(context, '/admin');
+    } else {
+      SpUtil.clear();
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
-
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Anda bisa menentukan faktor skala berdasarkan lebar/tinggi layar
-    // Misalnya, anggap desain Anda optimal di lebar 381px.
     const double referenceWidth = 381.0;
-    final double scaleFactor = screenWidth / referenceWidth; // Skala berdasarkan lebar
+    final double scaleFactor = screenWidth / referenceWidth;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -333,25 +442,24 @@ class LoginState extends State<Login> {
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/new/login.png"),
-            fit: BoxFit.cover, // Tetap BoxFit.cover untuk background
+            fit: BoxFit.cover,
           ),
         ),
         child: SingleChildScrollView(
           child: SizedBox(
-            height: screenHeight, // Pastikan SingleChildScrollView mengisi tinggi layar
-            width: screenWidth, // Pastikan SingleChildScrollView mengisi lebar layar
+            height: screenHeight,
+            width: screenWidth,
             child: Padding(
-              // Skala padding
               padding: EdgeInsets.fromLTRB(24 * scaleFactor, 40 * scaleFactor, 24 * scaleFactor, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 50 * scaleFactor), // Skala tinggi SizedBox
+                  SizedBox(height: 50 * scaleFactor),
                   Align(
                     alignment: Alignment.topLeft,
                     child: SizedBox(
-                      width: 230 * scaleFactor, // Skala lebar gambar
-                      height: 40 * scaleFactor, // Skala tinggi gambar
+                      width: 230 * scaleFactor,
+                      height: 40 * scaleFactor,
                       child: Image.asset(
                         "assets/new/login-header.png",
                         fit: BoxFit.cover,
@@ -366,10 +474,34 @@ class LoginState extends State<Login> {
                         'Hi, Selamat Datang',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 30 * scaleFactor, // Skala ukuran font
+                          fontSize: 30 * scaleFactor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (!_isDeviceInfoReady) // Show loading indicator
+                        Padding(
+                          padding: EdgeInsets.only(top: 8 * scaleFactor),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 16 * scaleFactor,
+                                height: 16 * scaleFactor,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ),
+                              SizedBox(width: 8 * scaleFactor),
+                              Text(
+                                'Memuat informasi perangkat...',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12 * scaleFactor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                   SizedBox(height: 25 * scaleFactor),
@@ -385,21 +517,21 @@ class LoginState extends State<Login> {
                   ),
                   SizedBox(height: 25 * scaleFactor),
                   SizedBox(
-                    width: double.infinity, // Ambil lebar penuh yang tersedia
+                    width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _startLoading,
+                      onPressed: (_isLoading || !_isDeviceInfoReady) ? null : _startLoading,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(246, 54, 51, 100),
-                        padding: EdgeInsets.symmetric(horizontal: 50 * scaleFactor, vertical: 20 * scaleFactor), // Skala padding
+                        padding: EdgeInsets.symmetric(horizontal: 50 * scaleFactor, vertical: 20 * scaleFactor),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25 * scaleFactor), // Skala border radius
+                          borderRadius: BorderRadius.circular(25 * scaleFactor),
                         ),
                       ),
                       child: Text(
-                        _isLoading ? 'Processing..' : 'Login',
+                        _isLoading ? 'Processing..' : !_isDeviceInfoReady ? 'Memuat...' : 'Login',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16.0 * scaleFactor, // Skala ukuran font
+                          fontSize: 16.0 * scaleFactor,
                           decoration: TextDecoration.none,
                           fontWeight: FontWeight.normal,
                         ),
@@ -407,6 +539,32 @@ class LoginState extends State<Login> {
                     ),
                   ),
                   SizedBox(height: 25 * scaleFactor),
+                  // Debug info (remove in production)
+                  // if (kDebugMode && _isDeviceInfoReady)
+                    // Container(
+                    //   padding: EdgeInsets.all(8 * scaleFactor),
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.black54,
+                    //     borderRadius: BorderRadius.circular(8),
+                    //   ),
+                    //   child: Column(
+                    //     crossAxisAlignment: CrossAxisAlignment.start,
+                    //     children: [
+                    //       Text(
+                    //         'Debug Info:',
+                    //         style: TextStyle(color: Colors.white, fontSize: 12 * scaleFactor, fontWeight: FontWeight.bold),
+                    //       ),
+                    //       Text(
+                    //         'Device ID: ${SpUtil.getString('device_id') ?? 'null'}',
+                    //         style: TextStyle(color: Colors.white, fontSize: 10 * scaleFactor),
+                    //       ),
+                    //       Text(
+                    //         'System Version: ${SpUtil.getString('system_version') ?? 'null'}',
+                    //         style: TextStyle(color: Colors.white, fontSize: 10 * scaleFactor),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                 ],
               ),
             ),

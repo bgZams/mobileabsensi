@@ -316,7 +316,9 @@ class _BuatLaporanState extends State<BuatLaporan> {
     String? idAdmin = SpUtil.getString('id_admin_instansi');
     String namalengkap = SpUtil.getString("nama_lengkap").toString();
     var now = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
+    if(idPimpinan == null){
+      Alert.alertwarning(context, 'ID Atasan tidak ditemukan');
+    }
     Map<String, dynamic> data = {
       'id_user': idUser,
       'id_atasan': idPimpinan,

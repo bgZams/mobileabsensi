@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/widget/widget_navbar.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
@@ -151,7 +152,6 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
             SnackBar(content: Text('LHK berhasil ditolak')),
           );
         }
-
         _refreshData();
       } else {
         throw Exception('Failed to reject izin');
@@ -160,6 +160,11 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
       if (kDebugMode) {
         print('Error: $error');
       }
+    }
+    finally {
+      setState(() {
+        isLoading = false; // Nonaktifkan skeleton
+      });
     }
   }
 
@@ -175,7 +180,6 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        
         setState(() {
           selectedIndex = 1; // Set index to LHK tab
           _controller?.animateTo(1); // Move to LHK tab
@@ -193,6 +197,10 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
       if (kDebugMode) {
         print('Error: $error');
       }
+    } finally {
+      setState(() {
+        isLoading = false; // Nonaktifkan skeleton
+      });
     }
   }
 
@@ -209,7 +217,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     return Scaffold(
       body: Stack(
         children: [
-        WidgetNavbar(title: 'Riwayat Laporan Harian',),
+        WidgetNavbar(title: 'Riwayat Pengajuan Bawahan',),
           Column(
             children: [
               SizedBox(height: size.height * 0.15),
@@ -277,36 +285,41 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   Widget _buildIzinItem(BuildContext context, dynamic izin) {
     String jenisStatus = _getStatus(izin['status'].toString());
   
-    return Card(
-      elevation: 4,
-      child: ListTile(
-        title: Text(izin['nama_lengkap'] ?? ''),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Status: $jenisStatus'),
-            Text('Tanggal Pengajuan: \n${DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
-                                .format(DateTime.parse(izin['created_at']))}'),
-            Text('Durasi: ${izin['durasi']} Hari'),
-          ],
-        ),
-        trailing: InkWell(
-          onTap: () {
-            Navigator.pushNamed(context, '/detail-konfirmasi-izin',
-                arguments: izin['id_approval']);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 28),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: const Color.fromARGB(255, 160, 212, 255),
-            ),
-            child: const Text(
-              'Detail',
-              style: TextStyle(
-                color: Color.fromARGB(255, 3, 117, 210),
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+    return Skeletonizer(
+      enabled: isLoading,
+      child: Card(
+        elevation: 4,
+        child: ListTile(
+          title: Text(izin['nama_lengkap'] ?? ''),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Status: $jenisStatus'),
+              Text('Tanggal Pengajuan: \n${DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+                                  .format(DateTime.parse(izin['created_at']))}'),
+              Text('Durasi: ${izin['durasi']} Hari'),
+            ],
+          ),
+          trailing: InkWell(
+            onTap: () {
+              Navigator.pushNamed(context, '/detail-konfirmasi-izin',
+                  arguments: izin['id_approval']);
+            },
+            child: Skeleton.replace(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 28),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: const Color.fromARGB(255, 160, 212, 255),
+                ),
+                child: const Text(
+                  'Detail',
+                  style: TextStyle(
+                    color: Color.fromARGB(255, 3, 117, 210),
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
@@ -316,114 +329,118 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   }
 
   Widget _buildLhkItem(BuildContext context, dynamic lhk) {
-  Map<String, bool> expandedItems = {};
 
-  return Card(
-    margin: const EdgeInsets.all(16),
-    elevation: 4,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            lhk['nama_lengkap'] ?? '',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Jam Mulai: ${lhk['jammulai'].toString()}',
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Jam Selesai: ${lhk['jamselesai'].toString()}',
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Kegiatan: ',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        Flexible(
-                          child: Text(
-                            lhk['rincian_kegiatan'].toString(),
+  return Skeletonizer(
+    enabled: isLoading,
+    child: Card(
+      margin: const EdgeInsets.all(16),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              lhk['nama_lengkap'] ?? '',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Jam Mulai: ${lhk['jammulai'].toString()}',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Jam Selesai: ${lhk['jamselesai'].toString()}',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kegiatan: ',
                             style: TextStyle(fontSize: 16),
-                            softWrap: true,
                           ),
+                          Flexible(
+                            child: Text(
+                              lhk['rincian_kegiatan'].toString(),
+                              style: TextStyle(fontSize: 16),
+                              softWrap: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Skeleton.replace(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      _sendAcception(lhk['id'], lhk['id_user'], lhk['status']);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 13, horizontal: 50),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5),
+                        color: const Color.fromARGB(255, 161, 255, 156),
+                      ),
+                      child: const Text(
+                        'Terima',
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 8, 153, 0),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              InkWell(
-                onTap: () {
-                  _sendAcception(lhk['id'], lhk['id_user'], lhk['status']);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 13, horizontal: 50),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    color: const Color.fromARGB(255, 161, 255, 156),
-                  ),
-                  child: const Text(
-                    'Terima',
-                    style: TextStyle(
-                      color: Color.fromARGB(255, 8, 153, 0),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const Spacer(),
-              InkWell(
-                onTap: () {
-                  _showRejectDialog(lhk['id']);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 13, horizontal: 50),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    color: const Color.fromARGB(255, 255, 160,
-                        160), // Changed color to indicate a different action
+                  const Spacer(),
+                  InkWell(
+                    onTap: () {
+                      _showRejectDialog(lhk['id']);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 13, horizontal: 50),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5),
+                        color: const Color.fromARGB(255, 255, 160,
+                            160), // Changed color to indicate a different action
+                      ),
+                      child: const Text(
+                        'Tolak',
+                        style: TextStyle(
+                            color: Color.fromARGB(255, 233, 3, 3),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
-                  child: const Text(
-                    'Tolak',
-                    style: TextStyle(
-                        color: Color.fromARGB(255, 233, 3, 3),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     ),
   );

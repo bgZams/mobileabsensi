@@ -270,7 +270,6 @@ void detailDataAbsen(idAbsen) async {
         'Accept': 'application/json',
       },
     );
-
     if (mounted) {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseJson = jsonDecode(response.body);
@@ -369,15 +368,14 @@ void detailDataAbsen(idAbsen) async {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengambil data absen. Status: ${response.statusCode}')),
+          SnackBar(content: Text('Gagal mengambil data absen.')),
         );
       }
     }
   } catch (e) {
-    print('Error fetching detail absen: $e');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Terjadi kesalahan jaringan atau server.')),
+        const SnackBar(content: Text('Tidak dapat terhubung ke server.')),
       );
     }
   } finally {
@@ -596,7 +594,7 @@ Widget _buildCalculationRow(String label, String value) {
                           children: [
                             GestureDetector(
                               onTap: () {
-                                String safeUrl = '$url/public/$file';
+                                String safeUrl = '$url/$file';
                                 String encodedUrl = Uri.encodeComponent(safeUrl);
                                 Navigator.push(
                                   context,
@@ -689,7 +687,7 @@ Widget _buildCalculationRow(String label, String value) {
               GestureDetector(
                       onTap: () {
                         if(statusAbsen != '1' && statusAbsen != '5') {
-                          String safeUrl = '$url/public/$file';
+                          String safeUrl = '$url/$file';
                           String encodedUrl = Uri.encodeComponent(safeUrl);
                           Navigator.push(
                             context,
@@ -700,12 +698,8 @@ Widget _buildCalculationRow(String label, String value) {
                           );
                         } else {
                           String idAbsen = (cells[6].child as Text).data ?? '';
-                          if (idAbsen.isNotEmpty) {
+                          if (idAbsen.isNotEmpty && statusAbsen == '1') {
                             detailDataAbsen(idAbsen);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('ID Absen tidak ditemukan')),
-                            );
                           }
                         }
                       },

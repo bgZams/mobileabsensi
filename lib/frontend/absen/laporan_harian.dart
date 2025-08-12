@@ -50,7 +50,6 @@ class _LaporanHarianState extends State<LaporanHarian>
     _fetchData();
     _refreshData();
     initializePreferences();
-    print(isCodeMasuk);
   }
 
   String _getMonthName(int month) {
@@ -184,6 +183,9 @@ class _LaporanHarianState extends State<LaporanHarian>
     }
   }
   Future<void> searchData(selectedMonth, selectedYear) async {
+    setState(() {
+      isLoading = true;
+    });
     final idUser = SpUtil.getString("id_user");
     String selectedMonthNumber = _getMonthNumber(selectedMonth);
     try {
@@ -196,9 +198,9 @@ class _LaporanHarianState extends State<LaporanHarian>
           'Accept': 'application/json',
         },
       );
-
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+
         setState(() {
             riwayatLaporan = jsonData['data'];
         });
@@ -237,29 +239,12 @@ class _LaporanHarianState extends State<LaporanHarian>
       }
       // print("Error fetching data: $e");
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
-  Future<void> _deleteLaporan(String id) async {
-    final urlDel = '$url/api/delete-lhk/$id';
-
-    try {
-      final response = await http.delete(Uri.parse(urlDel));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String message = data["message"] ?? 'Laporan berhasil dihapus';
-        if (mounted) {
-          Alert.alertsuccess(context, message);
-          _refreshData();
-        }
-      } else {
-        throw Exception('Failed to delete report');
-      }
-    } catch (error) {
-      if (mounted) {
-        Alert.alerterror(context, 'Error: $error');
-      }
-    }
-  }
+   
 
   Future<void> _refreshData() async {
     // if (SyncLimiter.canSync()) {
@@ -525,56 +510,71 @@ class _LaporanHarianState extends State<LaporanHarian>
 
         DateTime jamMasukTime = DateFormat("HH:mm").parse(jammulai);
         DateTime jamPulangTime = DateFormat("HH:mm").parse(jamselesai);
-        return Column(
+        return Skeletonizer(
+    // Aktifkan atau nonaktifkan efek skeleton berdasarkan variabel isLoading
+    enabled: isLoading,
+    child: Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-          Row(
-            children: [
-              const Icon(Icons.access_time, color: Colors.blue),
-              Text(DateFormat("HH:mm").format(jamMasukTime)),
-              SizedBox(width: 10,),
-              const Icon(Icons.arrow_forward_outlined),
-              SizedBox(width: 10,),
-              Text(DateFormat("HH:mm").format(jamPulangTime)),
-            ],
-          ),
-                  Row(
-                    children: [
-                        CircleAvatar(
-                        backgroundColor: Colors.green,
-                        radius: 15,
-                        child: Icon(
-                          status == '1' ? Icons.check : Icons.sync,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
+                // Icon akan tetap terlihat, namun teks akan berubah menjadi skeleton
+                const Icon(Icons.access_time, color: Colors.blue),
+                // Teks ini akan menjadi skeleton saat isLoading true
+                Skeleton.replace(child: Text(DateFormat("HH:mm").format(jamMasukTime))),
+                const SizedBox(width: 10),
+                const Icon(Icons.arrow_forward_outlined),
+                const SizedBox(width: 10),
+                // Teks ini juga akan menjadi skeleton
+                Skeleton.replace(child: Text(DateFormat("HH:mm").format(jamPulangTime))),
               ],
             ),
-            Align(
-              alignment: Alignment.topLeft,
-              child: Text(kegiatan),
+            Row(
+              children: [
+                // Avatar ini akan menjadi skeleton, termasuk warnanya
+                Skeleton.replace(
+                  child: CircleAvatar(
+                    backgroundColor: status == '1' ? Colors.green : Colors.blue,
+                    radius: 15,
+                    child: Icon(
+                      status == '1' ? Icons.check : Icons.sync,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const Divider(),
           ],
+        ),
+        const SizedBox(height: 10), // Tambahkan spasi
+        Align(
+          alignment: Alignment.topLeft,
+          // Teks ini juga akan menjadi skeleton
+          child: Skeleton.replace(child: Text(kegiatan)),
+        ),
+        const Divider(),
+      ],
+    )
         );
       }).toList();
       var tgl = DateFormat('yyyy-MM-dd').parse(entry.key);
       var formattedDate = DateFormat('dd/MM/yyyy').format(tgl);
-      return Card(
-        margin: const EdgeInsets.all(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateFormat('dd/MM/yyyy').parse(formattedDate)).toString()),
-              ...rowWidgets,
-            ],
+      return Skeletonizer(
+        enabled: isLoading,
+        child: Card(
+          margin: const EdgeInsets.all(8),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateFormat('dd/MM/yyyy').parse(formattedDate)).toString()),
+                ...rowWidgets,
+              ],
+            ),
           ),
         ),
       );

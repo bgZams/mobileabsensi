@@ -80,6 +80,8 @@ class _FiturState extends State<Fitur> {
 
   @override
   Widget build(BuildContext context) {
+      bool isLoading = false;
+
     return Container(
       margin: const EdgeInsets.only(
         bottom: 10,
@@ -94,229 +96,232 @@ class _FiturState extends State<Fitur> {
           Radius.circular(10),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(2.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            StreamBuilder<String>(
-              stream: _jlhIzinController.stream,
-              builder: (context, snapshot) {
-                return Column(
-                  children: [
-                    Container(
-                      clipBehavior: Clip.hardEdge,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white, width: 2),
-                        color: const Color.fromARGB(255, 67, 60, 130),
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.topRight,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.mail_outline_sharp,
-                              color: Colors.white,
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const KonfirmasiIzin(),
-                                ),
-                              );
-                            }
+      child: Skeletonizer(
+        enabled: isLoading,
+        child: Padding(
+          padding: const EdgeInsets.all(2.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              StreamBuilder<String>(
+                stream: _jlhIzinController.stream,
+                builder: (context, snapshot) {
+                  return Column(
+                    children: [
+                      Container(
+                        clipBehavior: Clip.hardEdge,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white, width: 2),
+                          color: const Color.fromARGB(255, 67, 60, 130),
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(10),
                           ),
-                          if (snapshot.hasData && snapshot.data != null)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 18,
-                                  minHeight: 18,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    notif ?? '0',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
+                        ),
+                        child: Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.mail_outline_sharp,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const KonfirmasiIzin(),
+                                  ),
+                                );
+                              }
+                            ),
+                            if (snapshot.hasData && snapshot.data != null)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 18,
+                                    minHeight: 18,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      notif ?? '0',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    textAlign: TextAlign.center,
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 2,
+                      ),
+                      const Text(
+                        'Pesan',
+                        style: TextStyle(fontSize: 12, color: Colors.black),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              
+              Column(
+                children: [
+                  Container(
+                    clipBehavior: Clip.hardEdge,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 2),
+                      color: const Color.fromARGB(255, 67, 60, 130),
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(10),
                       ),
                     ),
-                    const SizedBox(
-                      height: 2,
-                    ),
-                    const Text(
-                      'Pesan',
-                      style: TextStyle(fontSize: 12, color: Colors.black),
-                    ),
-                  ],
-                );
-              },
-            ),
-            
-            Column(
-              children: [
-                Container(
-                  clipBehavior: Clip.hardEdge,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 2),
-                    color: const Color.fromARGB(255, 67, 60, 130),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(10),
+                    child: IconButton(
+                      icon: const FaIcon(
+                        FontAwesomeIcons.usersBetweenLines,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Apel()),
+                        );
+                      },
                     ),
                   ),
-                  child: IconButton(
-                    icon: const FaIcon(
-                      FontAwesomeIcons.usersBetweenLines,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Apel()),
-                      );
-                    },
+                  const SizedBox(
+                    height: 2,
                   ),
-                ),
-                const SizedBox(
-                  height: 2,
-                ),
-                const Text(
-                  'Apel',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Container(
-                  clipBehavior: Clip.hardEdge,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 2),
-                    color: const Color.fromARGB(255, 67, 60, 130),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(10),
+                  const Text(
+                    'Apel',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.black,
                     ),
                   ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.wifi,
-                      color: Colors.white,
+                ],
+              ),
+              Column(
+                children: [
+                  Container(
+                    clipBehavior: Clip.hardEdge,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 2),
+                      color: const Color.fromARGB(255, 67, 60, 130),
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(10),
+                      ),
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ListWifi()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(
-                  height: 2,
-                ),
-                const Text(
-                  'Wifi',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Container(
-                  clipBehavior: Clip.hardEdge,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 2),
-                    color: const Color.fromARGB(255, 67, 60, 130),
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.pie_chart_rounded,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Statistik()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(
-                  height: 2,
-                ),
-                const Text(
-                  'Statistik',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Container(
-                  clipBehavior: Clip.hardEdge,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white),
-                    color: const Color.fromARGB(255, 67, 60, 130),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(10),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.wifi,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const ListWifi()),
+                        );
+                      },
                     ),
                   ),
-                  child: IconButton(
-                    icon: const FaIcon(
-                      FontAwesomeIcons.bullhorn,
-                      color: Colors.white,
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  const Text(
+                    'Wifi',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.black,
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const Pengumuman()),
-                      );
-                    },
                   ),
-                ),
-                const SizedBox(
-                  height: 2,
-                ),
-                const Text(
-                  'Info',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.black,
+                ],
+              ),
+              Column(
+                children: [
+                  Container(
+                    clipBehavior: Clip.hardEdge,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 2),
+                      color: const Color.fromARGB(255, 67, 60, 130),
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.pie_chart_rounded,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Statistik()),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-            
-          ],
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  const Text(
+                    'Statistik',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                children: [
+                  Container(
+                    clipBehavior: Clip.hardEdge,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white),
+                      color: const Color.fromARGB(255, 67, 60, 130),
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(10),
+                      ),
+                    ),
+                    child: IconButton(
+                      icon: const FaIcon(
+                        FontAwesomeIcons.bullhorn,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const Pengumuman()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  const Text(
+                    'Info',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+              
+            ],
+          ),
         ),
       ),
     );

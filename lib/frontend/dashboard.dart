@@ -4,7 +4,6 @@ import 'package:mobileabsensi/frontend/absen/absen.dart';
 import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
 import 'package:mobileabsensi/frontend/izin/izin.dart';
 import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
-import 'package:mobileabsensi/notifikasi/notification_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class Dashboard extends StatefulWidget {
@@ -54,6 +53,7 @@ class _DashboardState extends State<Dashboard> {
   final camera = await Permission.camera.request();
   final galleryStatus = await Permission.photos.request();
   var notificationStatus = await Permission.notification.status;
+  var storage = await Permission.storage.request();
 
   if (notificationStatus.isDenied) {
     notificationStatus = await Permission.notification.request();
@@ -63,6 +63,7 @@ class _DashboardState extends State<Dashboard> {
       wifiStatus.isGranted &&
       camera.isGranted &&
       galleryStatus.isGranted &&
+      storage.isGranted &&
       notificationStatus.isGranted) {
     // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
   } else {

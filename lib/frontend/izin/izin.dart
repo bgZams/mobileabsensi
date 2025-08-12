@@ -48,29 +48,29 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
   }
 
   Future<List<Map<String, dynamic>>> fetchData(
-      String month, String year) async {
-        if (mounted) {
+  String month, String year) async {
+  if (mounted) {
     setState(() {
       isLoading = true;
     });
-        }
-    String monthNumber = Bulan().getMonthNumber(month);
-    final idUser = SpUtil.getString("id_user") ?? '';
-    String? link;
-    link = '$url/api/izin/riwayat-izin/$idUser/$monthNumber/$year';
+  }
+  String monthNumber = Bulan().getMonthNumber(month);
+  final idUser = SpUtil.getString("id_user") ?? '';
+  String? link;
+  link = '$url/api/izin/riwayat-izin/$idUser/$monthNumber/$year';
 
+  try {
     final response = await http.get(Uri.parse(link));
 
     if (response.statusCode == 200) {
       final List<dynamic> responseData = json.decode(response.body)['data'];
       if (mounted) {
         setState(() {
-        _riwayatIzin = responseData;
-        _controller?.animateTo(0);
-        isLoading = false;
-      });
+          _riwayatIzin = responseData;
+          _controller?.animateTo(0);
+          isLoading = false;
+        });
       }
-      
       return responseData.cast<Map<String, dynamic>>();
     } else {
       if (mounted) {
@@ -82,7 +82,17 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
       // throw Exception('Gagal memuat data izin');
       return [];
     }
+  } catch (e) {
+    print('Error: $e');
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+        _riwayatIzin = []; // Reset data jika gagal
+      });
+    }
+    return [];
   }
+}
 
   void searchByDate(String month, String year) {
     if (mounted) {

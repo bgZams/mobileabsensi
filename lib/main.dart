@@ -79,7 +79,7 @@ class MyHttpOverrides extends HttpOverrides {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
-
+  await SpUtil.getInstance();
   const initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
   const initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
 
@@ -93,7 +93,6 @@ void main() async {
     debugPrint('Error initializing Firebase: $e');
   }
 
-  await SpUtil.getInstance();
   idUser = SpUtil.getString('id_user');
   _checkAndUpdatePreferences();
   await enableSecureScreen();
@@ -106,20 +105,18 @@ void main() async {
   });
 
   if (Platform.isAndroid) {
-    final deviceInfoPlugin = DeviceInfoPlugin();
     try {
-      final androidInfo = await deviceInfoPlugin.androidInfo;
-      if (androidInfo.version.sdkInt >= 23 && androidInfo.version.sdkInt <= 28) {
         HttpOverrides.global = MyHttpOverrides();
         if (kDebugMode) print("HttpOverrides applied for Android API 23.");
-      }
     } catch (e) {
       if (kDebugMode) print("Error getting device info: $e");
     }
   }
 
+
   runApp(const MyApp());
 }
+ 
 
 // Notification Payload Handler
 void _handleNotificationPayloadInMain(String payload) {
@@ -163,6 +160,9 @@ void _checkAndUpdatePreferences() {
     SpUtil.putBool('is_PulangCepat', false);
     SpUtil.putBool('_isMasuk', false);
     SpUtil.putBool('_isPulang', false);
+    SpUtil.putBool('statusPC', false);
+    SpUtil.putBool('is_IDLK', false);
+    SpUtil.putBool('status_idlk', false);
     SpUtil.putString('saved_date', todayString);
   }
 }

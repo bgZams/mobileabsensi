@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:mobileabsensi/frontend/dashboard.dart';
 import 'package:mobileabsensi/main.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'dart:convert';
@@ -26,14 +27,60 @@ class EditLaporanState extends State<EditLaporan> {
   late TextEditingController kegiatanController;
   final bool _isLoading = false;
 
+  // Helper function untuk parsing waktu yang aman
+  String parseTimeToHHMM(String timeString) {
+    try {
+      if (timeString.isEmpty) {
+        return '00:00';
+      }
+      
+      // Jika sudah dalam format HH:mm
+      if (timeString.length == 5 && timeString.contains(':')) {
+        // Validasi format HH:mm
+        List<String> parts = timeString.split(':');
+        if (parts.length == 2) {
+          int hour = int.parse(parts[0]);
+          int minute = int.parse(parts[1]);
+          if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+            return timeString;
+          }
+        }
+      }
+      
+      // Jika dalam format HH:mm:ss
+      if (timeString.length == 8 && timeString.split(':').length == 3) {
+        DateTime parsedTime = DateFormat('HH:mm:ss').parse(timeString);
+        return DateFormat('HH:mm').format(parsedTime);
+      }
+      
+      // Jika dalam format HH:mm
+      if (timeString.length == 5 && timeString.split(':').length == 2) {
+        DateTime parsedTime = DateFormat('HH:mm').parse(timeString);
+        return DateFormat('HH:mm').format(parsedTime);
+      }
+      
+      // Jika format tidak dikenali, return default
+      return '00:00';
+      
+    } catch (e) {
+      return '00:00';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    idController = TextEditingController(text: widget.data['id']);
-    tglController = TextEditingController(text: widget.data['tgl']);
-    jammulaiController = TextEditingController(text: DateFormat('HH:mm').format(DateFormat('HH:mm').parse(widget.data['jammulai'].toString())));
-    jamselesaiController = TextEditingController(text: DateFormat('HH:mm').format(DateFormat('HH:mm').parse(widget.data['jamselesai'].toString())));
-    kegiatanController = TextEditingController(text: widget.data['kegiatan']);
+    idController = TextEditingController(text: widget.data['id'].toString());
+    tglController = TextEditingController(text: widget.data['tgl'].toString());
+    
+    // Parse waktu dengan aman
+    String jammulaiText = parseTimeToHHMM(widget.data['jammulai'].toString());
+    String jamselesaiText = parseTimeToHHMM(widget.data['jamselesai'].toString());
+    
+    jammulaiController = TextEditingController(text: jammulaiText);
+    jamselesaiController = TextEditingController(text: jamselesaiText);
+    kegiatanController = TextEditingController(text: widget.data['kegiatan'].toString());
+     
   }
 
   @override
@@ -49,66 +96,100 @@ class EditLaporanState extends State<EditLaporan> {
   Future<void> _saveChanges() async {
     final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
     final headers = {'Content-Type': 'application/json'};
-    // Parsing waktu dari controller text
-    DateTime? mulai;
-    DateTime? selesai;
-    try {
-      mulai = DateFormat('HH:mm').parse(jammulaiController.text);
-      selesai = DateFormat('HH:mm').parse(jamselesaiController.text);
-    } catch (e) {
-      Alert.alerterror(context, 'Format waktu tidak valid');
+
+    // Validasi input waktu
+    String jammulaiText = jammulaiController.text.trim();
+    String jamselesaiText = jamselesaiController.text.trim();
+
+    if (jammulaiText.isEmpty || jamselesaiText.isEmpty) {
+      Alert.alerterror(context, 'Jam mulai dan jam selesai harus diisi');
       return;
     }
-    // Format kembali DateTime ke string dengan format yang sesuai
-    String formattedMulai = DateFormat('HH:mm').format(mulai);
-    String formattedSelesai = DateFormat('HH:mm').format(selesai);
-    // Mempersiapkan body request
-    final body = json.encode({
-      'id': widget.data['id'],
-      'tgl': tglController.text,
-      'id_user': idUser,
-      'jammulai': formattedMulai,
-      'jamselesai': formattedSelesai,
-      'rincian_kegiatan': kegiatanController.text,
-      'status': widget.data['status'],
-    });
 
-    DateTime jamMulaiTime = DateFormat("HH:mm").parse(formattedMulai);
-    // DateTime jamSelesaiTime = DateFormat("HH:mm").parse(formattedSelesai);
-    DateTime jamMasukTime = DateFormat("HH:mm").parse(SpUtil.getString('masuk').toString());
-    // DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
-
-    if (jamMulaiTime.isBefore(jamMasukTime)) {
-      Alert.alerterror(context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
+    // Validasi format waktu HH:mm
+    RegExp timeRegex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
+    if (!timeRegex.hasMatch(jammulaiText) || !timeRegex.hasMatch(jamselesaiText)) {
+      Alert.alerterror(context, 'Format waktu harus HH:mm (contoh: 14:30)');
       return;
     }
-    // if (jamSelesaiTime.isAfter(jamPulangTime)) {
-    //   Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
-    //   return;
-    // }
 
     try {
-      final response =
-          await http.put(Uri.parse(sendUrl), headers: headers, body: body);
+      // Parse waktu untuk validasi
+      DateTime jamMulaiTime = DateFormat("HH:mm").parse(jammulaiText);
+      DateTime jamSelesaiTime = DateFormat("HH:mm").parse(jamselesaiText);
+      
+      // Validasi jam mulai tidak boleh lebih besar dari jam selesai
+      if (jamMulaiTime.isAfter(jamSelesaiTime) || jamMulaiTime.isAtSameMomentAs(jamSelesaiTime)) {
+        Alert.alerterror(context, 'Jam mulai harus lebih kecil dari jam selesai');
+        return;
+      }
+
+      // Validasi dengan jam kerja (jika ada)
+      String? jamMasukStr = SpUtil.getString('masuk');
+      String? jamPulangStr = SpUtil.getString('pulang');
+      
+      if (jamMasukStr != null && jamMasukStr.isNotEmpty) {
+        try {
+          DateTime jamMasukTime = DateFormat("HH:mm").parse(jamMasukStr);
+          if (jamMulaiTime.isBefore(jamMasukTime)) {
+            Alert.alerterror(context, 'Jam mulai tidak boleh lebih kecil dari jam masuk ($jamMasukStr)');
+            return;
+          }
+        } catch (e) {
+          print('Error parsing jam masuk: $e');
+        }
+      }
+
+      if (jamPulangStr != null && jamPulangStr.isNotEmpty) {
+        try {
+          DateTime jamPulangTime = DateFormat("HH:mm").parse(jamPulangStr);
+          if (jamSelesaiTime.isAfter(jamPulangTime)) {
+            Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang ($jamPulangStr)');
+            return;
+          }
+        } catch (e) {
+          print('Error parsing jam pulang: $e');
+        }
+      }
+
+      // Mempersiapkan body request
+      final body = json.encode({
+        'id': widget.data['id'],
+        'tgl': tglController.text,
+        'id_user': idUser,
+        'jammulai': jammulaiText,
+        'jamselesai': jamselesaiText,
+        'rincian_kegiatan': kegiatanController.text,
+        'status': widget.data['status'],
+      });
+
+      // print('Sending data: $body');
+
+      final response = await http.put(Uri.parse(sendUrl), headers: headers, body: body);
 
       var data = jsonDecode(response.body);
-      // print(data);
+      // print('Response: $data');
+      
       if (response.statusCode == 200) {
         if (data['status'] == 'success') {
-          // ignore: use_build_context_synchronously
-          Alert.alertsuccess(context, data['message']);
           widget.onUpdate();
-          // ignore: use_build_context_synchronously
-          Navigator.pop(context); // Kembali ke halaman sebelumnya
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(initialIndex: 3),
+              ),
+            );
+          Alert.alertsuccess(context, data['message']);
+
         } else {
-          if(mounted)
-          {Alert.alertwarning(context, data['message']);}
+          Alert.alertwarning(context, data['message']);
         }
       } else {
-        throw Exception('Failed to update report');
+        Alert.alerterror(context, 'Gagal mengupdate laporan (Status: ${response.statusCode})');
       }
     } catch (error) {
-      // print('Error: $error');
+      print('Error in _saveChanges: $error');
+      Alert.alerterror(context, 'Gagal mengupdate laporan: $error');
     }
   }
 
@@ -151,8 +232,24 @@ class EditLaporanState extends State<EditLaporan> {
                           ),
                           readOnly: true,
                           onTap: () async {
+                            // Parse current time untuk initial value
+                            TimeOfDay initialTime = TimeOfDay.now();
+                            try {
+                              if (jammulaiController.text.isNotEmpty) {
+                                List<String> parts = jammulaiController.text.split(':');
+                                if (parts.length == 2) {
+                                  initialTime = TimeOfDay(
+                                    hour: int.parse(parts[0]),
+                                    minute: int.parse(parts[1]),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              print('Error parsing initial time: $e');
+                            }
+
                             TimeOfDay? pickedTime = await showTimePicker(
-                              initialTime: TimeOfDay.now(),
+                              initialTime: initialTime,
                               context: context,
                             );
 
@@ -180,8 +277,24 @@ class EditLaporanState extends State<EditLaporan> {
                           ),
                           readOnly: true,
                           onTap: () async {
+                            // Parse current time untuk initial value
+                            TimeOfDay initialTime = TimeOfDay.now();
+                            try {
+                              if (jamselesaiController.text.isNotEmpty) {
+                                List<String> parts = jamselesaiController.text.split(':');
+                                if (parts.length == 2) {
+                                  initialTime = TimeOfDay(
+                                    hour: int.parse(parts[0]),
+                                    minute: int.parse(parts[1]),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              print('Error parsing initial time: $e');
+                            }
+
                             TimeOfDay? pickedTime = await showTimePicker(
-                              initialTime: TimeOfDay.now(),
+                              initialTime: initialTime,
                               context: context,
                             );
 
@@ -282,6 +395,7 @@ class EditLaporanState extends State<EditLaporan> {
                       ),
                       Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
                       Text('2. Jam mulai tidak lebih besar dari jam selesai'),
+                      Text('3. Format waktu harus HH:mm (contoh: 14:30)'),
                     ],
                   ),
                 ),

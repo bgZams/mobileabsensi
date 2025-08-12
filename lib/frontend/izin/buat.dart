@@ -567,6 +567,9 @@ const SizedBox(
     String? idadmininstansi = SpUtil.getString("id_admin_instansi");
     String? jenisIzin = _valJenisIzin;
     String? idAtasan = SpUtil.getString("id_user_pimpinan");
+    if(idAtasan == null){
+      Alert.alertwarning(context, 'ID Atasan tidak ditemukan');
+    }
     String namalengkap = SpUtil.getString("nama_lengkap").toString();
     // Buat multipart request
     var request =
@@ -608,8 +611,11 @@ const SizedBox(
         if (data['status'] == 'success') {
           if(mounted){
             setState(() {
+              if(jenisIzin == 'IDLK'){
+                SpUtil.putInt('idlk', 1);
+                SpUtil.putBool('is_IDLK', true);
+              }
               _currentIndex = 3;
-              print(_currentIndex);
             });
             Navigator.pushReplacement(
               context,
@@ -617,9 +623,7 @@ const SizedBox(
                 builder: (context) => Dashboard(initialIndex: _currentIndex),
               ),
             );
-            
             Alert.alertsuccess(context,message);
-            SpUtil.putInt('idlk', 1);
           }
         } else {
           if(mounted){

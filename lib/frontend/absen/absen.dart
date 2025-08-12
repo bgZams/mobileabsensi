@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
+import 'package:mobileabsensi/frontend/dashboard.dart';
 import 'package:mobileabsensi/widget/widget_fitur.dart';
 import 'package:mobileabsensi/frontend/izin/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
@@ -32,6 +33,7 @@ class _AbsenState extends State<Absen> {
   List<Map<String, dynamic>> wifiData = [];
   bool _isLoading = false;
   bool _isMasuk = false;
+  bool statusPC = false;
   bool _isPulang = false;
 
   String? wifiName;
@@ -46,6 +48,7 @@ class _AbsenState extends State<Absen> {
   bool isCodeMasuk = false;
   bool isCodePulang = false;
   bool isPulangCepat = false;
+  bool isIDLK = false;
   String? idUser = SpUtil.getString("id_user");
   String? idAdmin = SpUtil.getString("id_admin_instansi") ?? '';
   String? admin = SpUtil.getString("username_admin") ?? '';
@@ -70,13 +73,12 @@ class _AbsenState extends State<Absen> {
       isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
       isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
       isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
+      isIDLK = SpUtil.getBool('is_IDLK') ?? false;
     });
     _fetchNotif();
     refreshData();
-    // print(SpUtil.getInt('status_idlk'));
-    // print(SpUtil.getBool('is_PulangCepat'));
-    if (SpUtil.getBool('is_PulangCepat') == true) {
-      _checkIdlk();
+    if (SpUtil.getBool('is_PulangCepat') == true || SpUtil.getBool('is_IDLK') == true) {
+      _checkIdlkandPulangCepat();
     }
   }
 
@@ -191,7 +193,7 @@ class _AbsenState extends State<Absen> {
               'ssid': connectedSSID,
               'bssid': connectedBSSID,
               'versi': '1.4',
-              'deviceId': SpUtil.getString('deviceId'),
+              'deviceId': SpUtil.getString('device_id'),
             };
             http.Response absenMasuk = await http.post(
               Uri.parse('$url/api/masuk'),
@@ -242,10 +244,14 @@ class _AbsenState extends State<Absen> {
             if (mounted) {
               Alert.alerterror(context, 'Gagal mengambil absen!');
             }
+          }finally {
+            setState(() {
+              _isLoading = false;
+            });
           }
         }
       } else {
-        Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!');
+        Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!. ');
       }
     } else {
       Alert.alerterror(context, 'Gagal mengambil absen!');
@@ -254,13 +260,13 @@ class _AbsenState extends State<Absen> {
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
     if (SpUtil.getBool('is_PulangCepat') == true &&
-        SpUtil.getInt('status_idlk') == 0) {
+        SpUtil.getBool('status_idlk') == false) {
       Alert.alertwarning(context,
           'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
       return;
     }
     if (SpUtil.getBool('is_PulangCepat') == true &&
-        SpUtil.getInt('status_idlk') == 1) {
+        SpUtil.getBool('status_idlk') == true) {
       try {
         var datapulang = {
           'id_user': idUser,
@@ -268,7 +274,7 @@ class _AbsenState extends State<Absen> {
           'ssid': 'IDLK',
           'bssid': 'IDLK',
           'versi': '1.4',
-          'deviceId': SpUtil.getString('deviceId'),
+          'deviceId': SpUtil.getString('device_id'),
         };
 
         http.Response absenPulang = await http.put(
@@ -290,13 +296,15 @@ class _AbsenState extends State<Absen> {
               DateTime waktuText = DateTime.parse(waktuJson);
               jamPulang = DateFormat('HH:mm').format(waktuText);
               SpUtil.putString('pulang', '$jamPulang');
-              SpUtil.putInt('idlk', 0);
-              SpUtil.putInt('status_idlk', 0);
-              SpUtil.putBool('is_codePulang', true);
+              
               Alert.alertsuccess(context, message);
               setState(() {
                 isCodePulang = true;
                 isPulangCepat = false;
+                isIDLK = false;
+                SpUtil.putInt('idlk', 0);
+                SpUtil.putBool('status_idlk', false);
+                SpUtil.putBool('is_codePulang', true);
               });
               } else if (data["code"] == "5") {
                   Alert.alertinfo(context, message);
@@ -314,7 +322,7 @@ class _AbsenState extends State<Absen> {
         }
       } catch (e) {
         if (mounted) {
-          Alert.alerterror(context, 'Gagal mengambil absen!');
+          Alert.alerterror(context, 'Gagal mengambil absen pulang!');
         }
       }
       return;
@@ -342,7 +350,7 @@ class _AbsenState extends State<Absen> {
                 'ssid': connectedSSID,
                 'bssid': connectedBSSID,
                 'versi': '1.4',
-                'deviceId': SpUtil.getString('deviceId'),
+                'deviceId': SpUtil.getString('device_id'),
               };
 
               http.Response absenPulang = await http.put(
@@ -370,6 +378,7 @@ class _AbsenState extends State<Absen> {
                     setState(() {
                       isCodePulang = true;
                       isPulangCepat = false;
+                      isIDLK = false;
                     });
                   } else {
                     Alert.alertwarning(context, message);
@@ -392,30 +401,80 @@ class _AbsenState extends State<Absen> {
           if (mounted) {
             Alert.alerterror(context, 'Gagal mengambil absen!');
           }
-        }
-      }
+        }finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
+      }
+    }  
   }
 
-  Future<void> _checkIdlk() async {
+  void _checkIdlkandPulangCepat() async {
     try {
-      final response = await http.get(
-        Uri.parse('$url/api/cek-pulang-cepat/$idUser'),
-        headers: {
-          'Content-type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['status'] == 'success') {
-          setState(() {
-            SpUtil.putInt('status_idlk', 1);
-          });
+      if(isIDLK == true){
+        final response = await http.get(
+          Uri.parse('$url/api/cek/idlk/$idUser'),
+          headers: {
+            'Content-type': 'application/json',
+            'Accept': 'application/json',
+          },
+        );
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['data'] == true) {
+            if(mounted){
+              setState(() {
+                SpUtil.putBool('status_idlk', true);
+              });
+            }
+          }
+        }else {
+          if(mounted){
+            setState(() {
+              SpUtil.putBool('status_idlk', false);
+            });
+          }
+          
+          throw Exception('Failed to load data');
         }
-      } else {
-        throw Exception('Failed to load data');
+      }
+      if(isPulangCepat == true){
+        final responsePc = await http.get(
+          Uri.parse('$url/api/cek-pulang-cepat/$idUser'),
+          headers: {
+            'Content-type': 'application/json',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (responsePc.statusCode == 200) {
+          final data = jsonDecode(responsePc.body);
+          if (data['data'] == true) {
+            SpUtil.putBool('statusPC', true);
+            if(mounted){
+              setState(() {
+                SpUtil.putBool('is_codeMasuk', false);
+                SpUtil.putBool('is_codePulang', false);
+                SpUtil.putBool('is_PulangCepat', false);
+                SpUtil.putBool('is_IDLK', false);
+                SpUtil.putBool('status_idlk', false);
+                SpUtil.putBool('_isMasuk', false);
+                SpUtil.putBool('_isPulang', false);
+              });
+          }
+        } else {
+          if(mounted){
+            setState(() {
+
+              SpUtil.putBool('statusPC', false);
+            });
+          }
+          
+          throw Exception('Failed to load data');
+        }
+        } else {
+        }
       }
     } catch (error) {
       if (kDebugMode) {
@@ -541,11 +600,13 @@ class _AbsenState extends State<Absen> {
                                         alignment: Alignment.center,
                                         child: Padding(
                                           padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                            namaSSID.isNotEmpty ? namaSSID : 'Wifi tidak terhubung',
-                                            style: const TextStyle(
-                                              color: Color.fromARGB(
-                                                  255, 255, 31, 31),
+                                          child: Skeleton.replace(
+                                            child: Text(
+                                              namaSSID.isNotEmpty ? namaSSID : 'Wifi tidak terhubung',
+                                              style: const TextStyle(
+                                                color: Color.fromARGB(
+                                                    255, 255, 31, 31),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -675,24 +736,29 @@ class _AbsenState extends State<Absen> {
                                                             children: [
                                                               _isMasuk
                                                                   ? const CircularProgressIndicator()
-                                                                  : Column(
-                                                                      children: [
-                                                                        SizedBox(
-                                                                          width:
-                                                                              100,
-                                                                          child: Image.asset(
-                                                                              'assets/new/masuk.png'),
+                                                                  : Skeletonizer(
+                                                                      enabled: _enabled,
+                                                                      child: Column(
+                                                                          children: [
+                                                                            SizedBox(
+                                                                              width:
+                                                                                  100,
+                                                                              child: Skeleton.replace(
+                                                                                child: Image.asset(
+                                                                                    'assets/new/masuk.png'),
+                                                                              ),
+                                                                            ),
+                                                                            const Text(
+                                                                              "Masuk",
+                                                                              style: TextStyle(
+                                                                                  fontSize:
+                                                                                      18,
+                                                                                  fontWeight:
+                                                                                      FontWeight.bold),
+                                                                            )
+                                                                          ],
                                                                         ),
-                                                                        const Text(
-                                                                          "Masuk",
-                                                                          style: TextStyle(
-                                                                              fontSize:
-                                                                                  18,
-                                                                              fontWeight:
-                                                                                  FontWeight.bold),
-                                                                        )
-                                                                      ],
-                                                                    ),
+                                                                    )
                                                             ],
                                                           ),
                                                         ),
@@ -750,9 +816,7 @@ class _AbsenState extends State<Absen> {
                                                                   });
                                           
                                                                   if (isCodeMasuk ==
-                                                                      false && SpUtil.getInt(
-                                                                            'status_idlk') ==
-                                                                        0) {
+                                                                      false && SpUtil.getBool('status_idlk') == false) {
                                                                     QuickAlert
                                                                         .show(
                                                                       context:
@@ -764,9 +828,7 @@ class _AbsenState extends State<Absen> {
                                                                     );
                                                                   } else {
                                                                     await _initNetworkInfo();
-                                                                    if (SpUtil.getInt(
-                                                                            'status_idlk') ==
-                                                                        1) {
+                                                                    if (SpUtil.getBool('status_idlk') == true) {
                                                                       showDialog(
                                                                         context:
                                                                             context,
@@ -895,32 +957,36 @@ class _AbsenState extends State<Absen> {
                                                             children: [
                                                               _isPulang
                                                                   ? const CircularProgressIndicator()
-                                                                  : Column(
-                                                                      children: [
-                                                                        SizedBox(
-                                                                          width:
-                                                                              100,
-                                                                          child: Image.asset(
-                                                                              'assets/new/pulang.png'),
-                                                                        ),
-                                                                        if (SpUtil.getInt(
-                                                                                'status_idlk') ==
-                                                                            1)
+                                                                  : Skeletonizer(
+                                                                    enabled: _enabled,
+                                                                    child: Column(
+                                                                        children: [
+                                                                          SizedBox(
+                                                                            width:
+                                                                                100,
+                                                                            child: Skeleton.replace(
+                                                                              child: Image.asset(
+                                                                                  'assets/new/pulang.png'),
+                                                                            ),
+                                                                          ),
+                                                                          if (SpUtil.getBool('status_idlk') == false)
                                                                           const Text(
-                                                                            "IDLK",
-                                                                            style: TextStyle(
-                                                                                fontSize: 18,
-                                                                                fontWeight: FontWeight.bold),
-                                                                          )
-                                                                        else
-                                                                          const Text(
-                                                                            "Pulang",
-                                                                            style: TextStyle(
-                                                                                fontSize: 18,
-                                                                                fontWeight: FontWeight.bold),
-                                                                          )
-                                                                      ],
-                                                                    )
+                                                                              "Pulang",
+                                                                              style: TextStyle(
+                                                                                  fontSize: 18,
+                                                                                  fontWeight: FontWeight.bold),
+                                                                            )
+                                                                          else
+                                                                            const Text(
+                                                                              "IDLK",
+                                                                              style: TextStyle(
+                                                                                  fontSize: 18,
+                                                                                  fontWeight: FontWeight.bold),
+                                                                            )
+                                                                            
+                                                                        ],
+                                                                      ),
+                                                                  )
                                                             ],
                                                           ),
                                                         ),
@@ -931,103 +997,12 @@ class _AbsenState extends State<Absen> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 20),
                                     Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          SpUtil.getBool('is_codeMasuk') == true
-                                              ? SpUtil.getBool('is_codePulang') == false
-                                                  ? SpUtil.getBool('is_PulangCepat') == true
-                                                      ? Column(
-                                                          children: [
-                                                            if(SpUtil.getInt('status_idlk') == 1)
-                                                            Center(
-                                                                child:
-                                                                    ElevatedButton(
-                                                              onPressed: () {},
-                                                              style: ElevatedButton
-                                                                  .styleFrom(
-                                                                backgroundColor:Colors.green,
-                                                              ),
-                                                              child: const Text(
-                                                                  'IDLK Diterima',
-                                                                  style: TextStyle(
-                                                                      color: Colors.white)),
-                                                            ),)
-                                                            else
-                                                            Center(
-                                                                child:
-                                                                    ElevatedButton(
-                                                              onPressed: () {
-                                                                Navigator.push(
-                                                                  context,
-                                                                  MaterialPageRoute(
-                                                                      builder:
-                                                                          (context) =>
-                                                                              const RiwayatPengajuanIzin()),
-                                                                );
-                                                              },
-                                                              style: ElevatedButton
-                                                                  .styleFrom(
-                                                                backgroundColor:
-                                                                    const Color
-                                                                        .fromARGB(
-                                                                        255,
-                                                                        173,
-                                                                        218,
-                                                                        255),
-                                                              ),
-                                                              child: const Text(
-                                                                  'Status Pengajuan',
-                                                                  style: TextStyle(
-                                                                      color: Color
-                                                                          .fromARGB(
-                                                                              255,
-                                                                              0,
-                                                                              162,
-                                                                              255))),
-                                                            ),),
-                                                            const SizedBox(
-                                                              height: 20,
-                                                            )
-                                                          ],
-                                                        )
-                                                      : Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .only(
-                                                                  bottom: 8),
-                                                          child: Center(
-                                                            child:
-                                                                ElevatedButton(
-                                                              onPressed: () {
-                                                                Navigator.push(
-                                                                  context,
-                                                                  MaterialPageRoute(
-                                                                      builder:
-                                                                          (context) =>
-                                                                              const PulangCepat()),
-                                                                );
-                                                              },
-                                                              style: ElevatedButton
-                                                                  .styleFrom(
-                                                                backgroundColor:
-                                                                    Colors.red,
-                                                              ),
-                                                              child: const Text(
-                                                                ' Pulang Cepat ',
-                                                                style: TextStyle(
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        )
-                                                  : Container()
-                                              : Container(),
-                                        ]),
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        _buildConditionalWidgets(context),
+                                      ],
+                                    )
                                   ],
                                 ),
                               ),
@@ -1042,4 +1017,145 @@ class _AbsenState extends State<Absen> {
   ),
   );
   }
+
+  Widget _buildConditionalWidgets(BuildContext context) {
+  // Ambil semua nilai boolean dari SpUtil terlebih dahulu
+    final isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
+    final statusPC = SpUtil.getBool('statusPC') ?? false;
+    final isIDLK = SpUtil.getBool('is_IDLK') ?? false;
+    final statusIDLK = SpUtil.getBool('status_idlk') ?? false;
+
+    // Logika utama
+      // if (isPulangCepat) {
+      //   if(statusPC) {
+      //     return Card(
+      //       color: Colors.green,
+      //       child: Padding(
+      //         padding: const EdgeInsets.all(16.0),
+      //         child: Center(
+      //           child: Column(
+      //             children: const [
+      //               Text(
+      //                 'Pulang Cepat sudah di setujui',
+      //                 textAlign: TextAlign.center,
+      //                 style: TextStyle(color: Colors.white),
+      //               ),
+      //             ],
+      //           ),
+      //         ),
+      //       ),
+      //     );
+      //   }else{
+      //     return Card(
+      //       color: Colors.red,
+      //       child: Padding(
+      //         padding: const EdgeInsets.all(16.0),
+      //         child: Center(
+      //           child: Column(
+      //             children: const [
+      //               Text(
+      //                 'Pulang Cepat belum di setujui',
+      //                 textAlign: TextAlign.center,
+      //                 style: TextStyle(color: Colors.white),
+      //               ),
+      //             ],
+      //           ),
+      //         ),
+      //       ),
+      //     );
+      //   }
+      // }
+  
+      if(isPulangCepat == true || isIDLK == true){
+        if(statusPC == true) {
+          return Card(
+            color: Colors.green,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Column(
+                  children: const [
+                    Text(
+                      'Pulang Cepat sudah di setujui',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }else if (statusIDLK == true) {
+            return Card(
+              color: Colors.green,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(
+                  child: Column(
+                    children: const [
+                      Text(
+                        'IDLK sudah di setujui \nsilahkan mengambil absen pulang', // Teksnya sama? Saya asumsikan ini kesalahan ketik dan biarkan seperti ini.
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+        } else {
+            return ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Dashboard(initialIndex: 3),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 173, 218, 255),
+              ),
+              child: const Text(
+                'Status Pengajuan',
+                style: TextStyle(
+                  color: Color.fromARGB(255, 0, 162, 255),
+                ),
+              ),
+            );
+        }
+      } else{
+        if(isCodeMasuk == true ){
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PulangCepat(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                child: const Text(
+                  'Pulang Cepat',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }else{
+          return const SizedBox.shrink();
+        }
+    }
+  }
+
 }
+
+
