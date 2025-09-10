@@ -355,22 +355,6 @@ class _BuatLaporanState extends State<BuatLaporan> {
       Alert.alerterror(context, 'Jam tidak boleh kosong');
       return;
     }
-
-    // DateTime jamMulaiTime = DateFormat("HH:mm").parse(mulai);
-    // // DateTime jamSelesaiTime = DateFormat("HH:mm").parse(selesai);
-    // DateTime jamMasukTime = DateFormat("HH:mm").parse(SpUtil.getString('masuk').toString());
-    // // DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
-
-    // if (jamMulaiTime.isBefore(jamMasukTime)) {
-    //   Alert.alerterror(
-    //       context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
-    //   return;
-    // }
-    // if (jamSelesaiTime.isAfter(jamPulangTime)) {
-    //   Alert.alerterror(
-    //       context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
-    //   return;
-    // }
     try {
       http.Response kirimLaporanHarian = await http.post(
         Uri.parse('$url/api/simpan-lhk'),
@@ -401,7 +385,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
       }
     } catch (e) {
       // ignore: use_build_context_synchronously
-      Alert.alerterror(context, 'Terjadi Kesalahan Jaringan!');
+      Alert.alerterror(context, 'Terjadi Kesalahan, Silahkan coba lagi!');
     }
   }
 

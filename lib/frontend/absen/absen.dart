@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,6 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sp_util/sp_util.dart';
-
 import '../../services/alert.dart';
 
 class Absen extends StatefulWidget {
@@ -33,15 +33,12 @@ class _AbsenState extends State<Absen> {
   List<Map<String, dynamic>> wifiData = [];
   bool _isLoading = false;
   bool _isMasuk = false;
-  bool statusPC = false;
   bool _isPulang = false;
-
   String? wifiName;
   String? wifiBSSID;
   String? wifiIPv4;
   Timer? _timer;
   final NetworkInfo _networkInfo = NetworkInfo();
-
   String? jamMasuk;
   String? jamPulang;
   String? code;
@@ -54,49 +51,75 @@ class _AbsenState extends State<Absen> {
   String? admin = SpUtil.getString("username_admin") ?? '';
   String? nama = SpUtil.getString("nama_lengkap").toString();
   String? instansi = SpUtil.getString("nama_instansi").toString();
-
   String? notif = '0';
   DateTime? lastFetchTime;
   int syncCount = 0;
+  static const platform = MethodChannel('com.mobileabsensi/secure_screen');
 
+  // Tambahkan ValueNotifier untuk state yang sering berubah
+  final ValueNotifier<String> _jamSekarangNotifier = ValueNotifier('');
+  final ValueNotifier<String?> _wifiNameNotifier = ValueNotifier(null);
+  final ValueNotifier<bool> _isLoadingNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isCodeMasukNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isCodePulangNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isPulangCepatNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isIDLKNotifier = ValueNotifier(false);
+  final ValueNotifier<String?> _notifNotifier = ValueNotifier('0');
+
+  Future<void> _enableScreenshot() async {
+    await platform.invokeMethod('setSecureScreen', {'enable': false});
+  }
+
+  Future<void> _disableScreenRecording() async {
+    if (Platform.isAndroid) {
+      await platform.invokeMethod('disableScreenRecording');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-          _enabled = false;
+    _enabled = false;
     _initNetworkInfo();
     _startPeriodicCheck();
-
-    _jamSekarang = _formatDateTime(DateTime.now());
-    loadWifiData();
-    setState(() {
-      isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
-      isCodePulang = SpUtil.getBool('is_codePulang') ?? false;
-      isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
-      isIDLK = SpUtil.getBool('is_IDLK') ?? false;
-    });
-    _fetchNotif();
-    refreshData();
+    
     if (SpUtil.getBool('is_PulangCepat') == true || SpUtil.getBool('is_IDLK') == true) {
       _checkIdlkandPulangCepat();
     }
+    _jamSekarangNotifier.value = _formatDateTime(DateTime.now());
+    loadWifiData();
+    
+    // Inisialisasi notifiers
+    _isCodeMasukNotifier.value = SpUtil.getBool('is_codeMasuk') ?? false;
+    _isCodePulangNotifier.value = SpUtil.getBool('is_codePulang') ?? false;
+    _isPulangCepatNotifier.value = SpUtil.getBool('is_PulangCepat') ?? false;
+    _isIDLKNotifier.value = SpUtil.getBool('is_IDLK') ?? false;
+    
+    _fetchNotif();
+    refreshData();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _pageController.dispose();
+    // Dispose semua notifiers
+    _jamSekarangNotifier.dispose();
+    _wifiNameNotifier.dispose();
+    _isLoadingNotifier.dispose();
+    _isCodeMasukNotifier.dispose();
+    _isCodePulangNotifier.dispose();
+    _isPulangCepatNotifier.dispose();
+    _isIDLKNotifier.dispose();
+    _notifNotifier.dispose();
     super.dispose();
   }
 
   void _getCurrentTime() {
     if (mounted) {
-      setState(() {
-        _jamSekarang = _formatDateTime(DateTime.now());
-      });
+      _jamSekarangNotifier.value = _formatDateTime(DateTime.now());
     }
   }
-
 
   String _formatDateTime(DateTime dateTime) {
     return DateFormat('HH:mm:ss').format(dateTime);
@@ -108,20 +131,16 @@ class _AbsenState extends State<Absen> {
       List<dynamic> decodedData = json.decode(wifiDataJson);
       wifiData = List<Map<String, dynamic>>.from(decodedData);
     }
-
-    if (mounted) {
-      setState(() {});
-    }
   }
 
-
   void _startPeriodicCheck() {
-    _timer = Timer.periodic(Duration(seconds: 3), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
       _checkNetworkChanges();
+      _getCurrentTime(); // Update waktu setiap 3 detik
     });
   }
 
@@ -130,23 +149,21 @@ class _AbsenState extends State<Absen> {
       String? currentWifiName = await _networkInfo.getWifiName();
       String? cleanName = currentWifiName?.replaceAll('"', '');
       
-      // Cek mounted sebelum setState
       if (!mounted) return;
       
-      if (cleanName != wifiName) {
-        setState(() {
-          wifiName = cleanName;
-        });
+      if (cleanName != _wifiNameNotifier.value) {
+        _wifiNameNotifier.value = cleanName;
         
-        // Update other network info juga
+        // Update other network info
         wifiBSSID = await _networkInfo.getWifiBSSID();
         wifiIPv4 = await _networkInfo.getWifiIP();
       }
     } catch (e) {
-      // Handle error silently
+      if (kDebugMode) {
+        print('Error checking network: $e');
+      }
     }
   }
-
   
   Future<void> _initNetworkInfo() async {
     try {
@@ -155,32 +172,31 @@ class _AbsenState extends State<Absen> {
       wifiIPv4 = await _networkInfo.getWifiIP();
       
       if (mounted) {
-        setState(() {
-          wifiName = wifiName?.replaceAll('"', '');
-        });
+        _wifiNameNotifier.value = wifiName?.replaceAll('"', '');
       }
     } on PlatformException catch (e) {
       developer.log('Failed to get Wi-Fi Name or BSSID', error: e);
       if (mounted) {
-        setState(() {
-          wifiName = 'Failed to get Wi-Fi Name';
-          wifiBSSID = 'Failed to get Wi-Fi BSSID';
-        });
+        _wifiNameNotifier.value = 'Failed to get Wi-Fi Name';
       }
     }
   }
 
   Future<void> absenMasuk(String? wifiName, String? wifiBSSID) async {
+    if (!mounted) return;
+    
+    _isLoadingNotifier.value = true;
+    
     String connectedSSID = wifiName ?? '';
     String ssID = connectedSSID.replaceAll('"', '');
     String connectedBSSID = wifiBSSID ?? '';
     var listWifiString = SpUtil.getString("wifi_data");
-
+    
     if (listWifiString != null) {
       List<dynamic> listWifi = jsonDecode(listWifiString);
       bool isWifiMatch = listWifi.any(
           (wifi) => wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
-
+      
       if (isWifiMatch) {
         if (SpUtil.getString("id_user") != null) {
           try {
@@ -195,78 +211,92 @@ class _AbsenState extends State<Absen> {
               'versi': '1.4',
               'deviceId': SpUtil.getString('device_id'),
             };
+            
             http.Response absenMasuk = await http.post(
               Uri.parse('$url/api/masuk'),
               body: datamasuk,
-            );
-
+            ).timeout(const Duration(seconds: 30));
+            
             await Future.delayed(const Duration(seconds: 2));
+            
+            if (!mounted) return;
+            
             if (absenMasuk.statusCode == 200) {
-              if (mounted) {
-                final data = jsonDecode(absenMasuk.body);
-                String message =
-                    json.encode(data["message"]).replaceAll('"', '');
-                if (data["code"] == "wifi" ||
-                    data["code"] == "versi_app" ||
-                    data["code"] == "unknown") {
-                  Alert.alertwarning(context, message);
-                } else if (data["code"] == "1" || data["code"] == "2") {
-                  code = data['code']?.toString();
-                  String waktuJson = data['waktu'];
-                  DateTime waktuText = DateTime.parse(waktuJson);
-                  SpUtil.putString(
-                      'saved_date', DateFormat('yyyy-MM-dd').format(waktuText));
-                  jamMasuk = DateFormat('HH:mm').format(waktuText);
-                  SpUtil.putString('masuk', '$jamMasuk');
-                  SpUtil.putBool('is_codeMasuk', true);
-
+              final data = jsonDecode(absenMasuk.body);
+              String message = json.encode(data["message"]).replaceAll('"', '');
+              
+              if (data["code"] == "wifi" ||
+                  data["code"] == "versi_app" ||
+                  data["code"] == "unknown") {
+                if (mounted) Alert.alertwarning(context, message);
+              } else if (data["code"] == "1" || data["code"] == "2") {
+                code = data['code']?.toString();
+                String waktuJson = data['waktu'];
+                DateTime waktuText = DateTime.parse(waktuJson);
+                SpUtil.putString(
+                    'saved_date', DateFormat('yyyy-MM-dd').format(waktuText));
+                jamMasuk = DateFormat('HH:mm').format(waktuText);
+                SpUtil.putString('masuk', '$jamMasuk');
+                SpUtil.putBool('is_codeMasuk', true);
+                
+                if (mounted) {
                   Alert.alertsuccess(context, message);
-
-                  setState(() {
-                    isCodeMasuk = true;
-                  });
-                } else if (data["code"] == "5") {
+                  _isCodeMasukNotifier.value = true;
+                }
+              } else if (data["code"] == "5") {
+                if (mounted) {
                   Alert.alertinfo(context, message);
-                  setState(() {
-                    isCodeMasuk = false;
-                  });
-                } else {
-                  Alert.alertinfo(context, message);
-                  setState(() {
-                    isCodeMasuk = false;
-                  });
+                  _isCodeMasukNotifier.value = false;
                 }
               } else {
-                throw Exception('Kesalahan HTTP: ${absenMasuk.statusCode}');
+                if (mounted) {
+                  Alert.alertinfo(context, message);
+                  _isCodeMasukNotifier.value = false;
+                }
               }
+            } else {
+              throw Exception('Kesalahan HTTP: ${absenMasuk.statusCode}');
             }
           } catch (e) {
             if (mounted) {
               Alert.alerterror(context, 'Gagal mengambil absen!');
             }
-          }finally {
-            setState(() {
-              _isLoading = false;
-            });
+          } finally {
+            if (mounted) {
+              _isLoadingNotifier.value = false;
+            }
           }
         }
       } else {
-        Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!. ');
+        if (mounted) {
+          Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!. ');
+          _isLoadingNotifier.value = false;
+        }
       }
     } else {
-      Alert.alerterror(context, 'Gagal mengambil absen!');
+      if (mounted) {
+        Alert.alerterror(context, 'Gagal mengambil absen!');
+        _isLoadingNotifier.value = false;
+      }
     }
   }
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
+    if (!mounted) return;
+    
+    _isLoadingNotifier.value = true;
     if (SpUtil.getBool('is_PulangCepat') == true &&
-        SpUtil.getBool('status_idlk') == false) {
-      Alert.alertwarning(context,
-          'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
+        SpUtil.getString('status_idlk') == '-' &&
+        SpUtil.getString('statusPC') == 'pending') {
+      if (mounted) {
+        Alert.alertwarning(context,
+            'Sedang mengajukan Pulang Cepat \nHapus pengajuan untuk mengambil absen pulang');
+        _isLoadingNotifier.value = false;
+      }
       return;
     }
-    if (SpUtil.getBool('is_PulangCepat') == true &&
-        SpUtil.getBool('status_idlk') == true) {
+    
+    if (SpUtil.getString('status_idlk') == 'setujui') {
       try {
         var datapulang = {
           'id_user': idUser,
@@ -276,42 +306,47 @@ class _AbsenState extends State<Absen> {
           'versi': '1.4',
           'deviceId': SpUtil.getString('device_id'),
         };
-
+        
         http.Response absenPulang = await http.put(
           Uri.parse('$url/api/pulang/$idUser'),
           body: jsonEncode(datapulang),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
           },
-        );
+        ).timeout(const Duration(seconds: 30));
+        
+        if (!mounted) return;
+        
         final data = jsonDecode(absenPulang.body);
-
+        
         if (absenPulang.statusCode == 200) {
-          if (mounted) {
-            code = data['code']?.toString();
-            String message = json.encode(data["message"]).replaceAll('"', '');
-            if (data["code"] == "1") {
-              SpUtil.putString('code_pulang', code!);
-              String waktuJson = data['waktu'];
-              DateTime waktuText = DateTime.parse(waktuJson);
-              jamPulang = DateFormat('HH:mm').format(waktuText);
-              SpUtil.putString('pulang', '$jamPulang');
-              
+          code = data['code']?.toString();
+          String message = json.encode(data["message"]).replaceAll('"', '');
+          
+          if (data["code"] == "1") {
+            SpUtil.putString('code_pulang', code!);
+            String waktuJson = data['waktu'];
+            DateTime waktuText = DateTime.parse(waktuJson);
+            jamPulang = DateFormat('HH:mm').format(waktuText);
+            SpUtil.putString('pulang', '$jamPulang');
+            
+            if (mounted) {
               Alert.alertsuccess(context, message);
-              setState(() {
-                isCodePulang = true;
-                isPulangCepat = false;
-                isIDLK = false;
-                SpUtil.putInt('idlk', 0);
-                SpUtil.putBool('status_idlk', false);
-                SpUtil.putBool('is_codePulang', true);
-              });
-              } else if (data["code"] == "5") {
-                  Alert.alertinfo(context, message);
-                  setState(() {
-                    isCodeMasuk = false;
-                  });
-            } else {
+              _isCodePulangNotifier.value = true;
+              _isPulangCepatNotifier.value = false;
+              _isIDLKNotifier.value = false;
+              SpUtil.putInt('idlk', 0);
+              SpUtil.putString('statusPC', '-');
+              SpUtil.putString('status_idlk', '-');
+              SpUtil.putBool('is_codePulang', true);
+            }
+          } else if (data["code"] == "5") {
+            if (mounted) {
+              Alert.alertinfo(context, message);
+              _isCodeMasukNotifier.value = false;
+            }
+          } else {
+            if (mounted) {
               Alert.alertwarning(context, message);
             }
           }
@@ -324,22 +359,28 @@ class _AbsenState extends State<Absen> {
         if (mounted) {
           Alert.alerterror(context, 'Gagal mengambil absen pulang!');
         }
+      } finally {
+        if (mounted) {
+          _isLoadingNotifier.value = false;
+        }
       }
       return;
     }
-
-    if (SpUtil.getBool('is_PulangCepat') == false) {
+    
+    if (SpUtil.getString('statusPC') == 'tolak' || SpUtil.getBool('is_codePulang') == false) {
       String connectedSSID = wifiName ?? '';
       String ssID = connectedSSID.replaceAll('"', '');
       String connectedBSSID = wifiBSSID ?? '';
+      
       if (SpUtil.getString("id_user") != null) {
         try {
           var listWifiString = SpUtil.getString("wifi_data");
+          
           if (listWifiString != null) {
             List<dynamic> listWifi = jsonDecode(listWifiString);
             bool isWifiMatch = listWifi.any((wifi) =>
                 wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
-
+            
             if (isWifiMatch) {
               var datapulang = {
                 'id_user': idUser,
@@ -352,128 +393,140 @@ class _AbsenState extends State<Absen> {
                 'versi': '1.4',
                 'deviceId': SpUtil.getString('device_id'),
               };
-
+              
               http.Response absenPulang = await http.put(
                 Uri.parse('$url/api/pulang/$idUser'),
                 body: jsonEncode(datapulang),
                 headers: <String, String>{
                   'Content-Type': 'application/json; charset=UTF-8',
                 },
-              );
-
+              ).timeout(const Duration(seconds: 30));
+              
+              if (!mounted) return;
+              
               if (absenPulang.statusCode == 200) {
-                if (mounted) {
-                  final data = jsonDecode(absenPulang.body);
-                  code = data['code']?.toString();
-                  String message =
-                      json.encode(data["message"]).replaceAll('"', '');
-                  if (data["code"] == "1") {
-                    SpUtil.putString('code_pulang', code!);
-                    String waktuJson = data['waktu'];
-                    DateTime waktuText = DateTime.parse(waktuJson);
-                    jamPulang = DateFormat('HH:mm').format(waktuText);
-                    SpUtil.putString('pulang', '$jamPulang');
-                    SpUtil.putBool('is_codePulang', true);
+                final data = jsonDecode(absenPulang.body);
+                code = data['code']?.toString();
+                SpUtil.putString('statusPC', '-');
+                SpUtil.putBool('is_PulangCepat', false);
+                String message = json.encode(data["message"]).replaceAll('"', '');
+                
+                if (data["code"] == "1") {
+                  SpUtil.putString('code_pulang', code!);
+                  String waktuJson = data['waktu'];
+                  DateTime waktuText = DateTime.parse(waktuJson);
+                  jamPulang = DateFormat('HH:mm').format(waktuText);
+                  SpUtil.putString('pulang', '$jamPulang');
+                  SpUtil.putBool('is_codePulang', true);
+                  
+                  if (mounted) {
                     Alert.alertsuccess(context, message);
-                    setState(() {
-                      isCodePulang = true;
-                      isPulangCepat = false;
-                      isIDLK = false;
-                    });
-                  } else {
+                    _isCodePulangNotifier.value = true;
+                    _isPulangCepatNotifier.value = false;
+                    _isIDLKNotifier.value = false;
+                  }
+                } else {
+                  if (mounted) {
                     Alert.alertwarning(context, message);
                   }
                 }
               } else {
                 if (mounted) {
-                  Alert.alertwarning(
-                      context, 'Tidak dapat terhubung ke server');
+                  Alert.alertwarning(context, 'Tidak dapat terhubung ke server');
                 }
               }
             } else {
-              Alert.alertwarning(
-                  context, 'SSID tidak ditemukan dalam daftar WiFi!');
+              if (mounted) {
+                Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!');
+                _isLoadingNotifier.value = false;
+              }
             }
           } else {
-            Alert.alerterror(context, 'Gagal mengambil absen!');
+            if (mounted) {
+              Alert.alerterror(context, 'Gagal mengambil absen!');
+              _isLoadingNotifier.value = false;
+            }
           }
         } catch (e) {
           if (mounted) {
             Alert.alerterror(context, 'Gagal mengambil absen!');
+            _isLoadingNotifier.value = false;
           }
-        }finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+        }
       }
-    }  
+    }
   }
 
   void _checkIdlkandPulangCepat() async {
     try {
-      if(isIDLK == true){
+      if (SpUtil.getBool('is_IDLK') == true) {
         final response = await http.get(
           Uri.parse('$url/api/cek/idlk/$idUser'),
           headers: {
             'Content-type': 'application/json',
             'Accept': 'application/json',
           },
-        );
+        ).timeout(const Duration(seconds: 30));
+        
+        if (!mounted) return;
+        
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          if (data['data'] == true) {
-            if(mounted){
-              setState(() {
-                SpUtil.putBool('status_idlk', true);
-              });
-            }
+          print(data);  
+          if (data['data'] == 'setujui') {
+            SpUtil.putString('status_idlk', 'setujui');
+          }else if (data['data'] == 'tolak') {
+            SpUtil.putString('status_idlk', 'tolak');
+          } else if (data['data'] == 'pending') {
+            SpUtil.putString('status_idlk', 'pending');
+            SpUtil.putString('statusPC', data['data']);
+            SpUtil.putBool('is_codeMasuk', true);
+            SpUtil.putBool('is_codePulang', false);
+            SpUtil.putBool('is_PulangCepat', false);
+            SpUtil.putBool('is_IDLK', true);
+            SpUtil.putBool('_isMasuk', true);
+            SpUtil.putBool('_isPulang', false);
           }
-        }else {
-          if(mounted){
-            setState(() {
-              SpUtil.putBool('status_idlk', false);
-            });
-          }
-          
+        } else {
+          SpUtil.putString('status_idlk', '-');
           throw Exception('Failed to load data');
         }
       }
-      if(isPulangCepat == true){
+      
+      if (SpUtil.getBool('is_PulangCepat') == true) {
         final responsePc = await http.get(
           Uri.parse('$url/api/cek-pulang-cepat/$idUser'),
           headers: {
             'Content-type': 'application/json',
             'Accept': 'application/json',
           },
-        );
-
+        ).timeout(const Duration(seconds: 30));
+        
+        if (!mounted) return;
+        
         if (responsePc.statusCode == 200) {
           final data = jsonDecode(responsePc.body);
-          if (data['data'] == true) {
-            SpUtil.putBool('statusPC', true);
-            if(mounted){
-              setState(() {
-                SpUtil.putBool('is_codeMasuk', false);
-                SpUtil.putBool('is_codePulang', false);
-                SpUtil.putBool('is_PulangCepat', false);
-                SpUtil.putBool('is_IDLK', false);
-                SpUtil.putBool('status_idlk', false);
-                SpUtil.putBool('_isMasuk', false);
-                SpUtil.putBool('_isPulang', false);
-              });
+          if (data['data'] == 'setujui') {
+            SpUtil.putString('statusPC', data['data']);
+            SpUtil.putBool('is_codeMasuk', false);
+            SpUtil.putBool('is_codePulang', false);
+            SpUtil.putBool('is_PulangCepat', false);
+            SpUtil.putBool('is_IDLK', false);
+            SpUtil.putString('status_idlk', '-');
+            SpUtil.putBool('_isMasuk', false);
+            SpUtil.putBool('_isPulang', false);
+            
+            // Update notifiers
+            _isCodeMasukNotifier.value = false;
+            _isCodePulangNotifier.value = false;
+            _isPulangCepatNotifier.value = false;
+            _isIDLKNotifier.value = false;
+          } else if (data['data'] == 'tolak') {
+            SpUtil.putString('statusPC', data['data']);
+            _isPulangCepatNotifier.value = false;
+          } else {
+            SpUtil.putString('statusPC', 'pending');
           }
-        } else {
-          if(mounted){
-            setState(() {
-
-              SpUtil.putBool('statusPC', false);
-            });
-          }
-          
-          throw Exception('Failed to load data');
-        }
-        } else {
         }
       }
     } catch (error) {
@@ -484,11 +537,11 @@ class _AbsenState extends State<Absen> {
   }
 
   Future<void> _fetchNotif() async {
-    if (idUser!.isEmpty || url!.isEmpty) {
+    if (idUser == null || idUser!.isEmpty || url == null || url!.isEmpty) {
       debugPrint('Error: idUser or url is empty');
       return;
     }
-
+    
     try {
       final responseIzin = await http.get(
         Uri.parse('$url/api/notif/get-notif-count/$idUser'),
@@ -496,15 +549,13 @@ class _AbsenState extends State<Absen> {
           'Content-type': 'application/json',
           'Accept': 'application/json',
         },
-      );
-
+      ).timeout(const Duration(seconds: 30));
+      
+      if (!mounted) return;
+      
       if (responseIzin.statusCode == 200) {
-        if (mounted) {
-          setState(() {
-            final data = jsonDecode(responseIzin.body);
-            notif = data["tot_Notif"].toString();
-          });
-        }
+        final data = jsonDecode(responseIzin.body);
+        _notifNotifier.value = data["tot_Notif"].toString();
       } else {
         throw Exception('Failed to load data');
       }
@@ -516,646 +567,582 @@ class _AbsenState extends State<Absen> {
   }
 
   Future<void> refreshData() async {
-    // print(isCodePulang);
-
-    // if (SyncLimiter.canSync() && mounted) {
-    //   await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _getCurrentTime();
-      _initNetworkInfo();
-      _fetchNotif();
-      _isLoading = false;
-    });
-
-    // } else {
-    //   Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    // }
+    if (!mounted) return;
+    
+    _getCurrentTime();
+    await _initNetworkInfo();
+    await _fetchNotif();
+    _isLoadingNotifier.value = false;
   }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    double deviceWidth = MediaQuery.of(context).size.width;
-    var namaSSID = (wifiName?.isNotEmpty ?? false) 
-        ? wifiName!.replaceAll('"', '') 
-        : 'Wifi tidak terhubung';
-
+    
     return Scaffold(
-  body: Stack(
-    children: [
-    Header(), // Assuming Header is a widget. Replace with the correct method or widget if necessary.
- 
-      // Scrollable content area taking most of the screen
-      Column(
+      body: Stack(
         children: [
-          SizedBox(height: size.height * 0.15),
-          // Content area
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 255, 255, 255),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -3),
-                  ),
-                ],
-              ),
-              child: Skeletonizer(
-                      enabled: _enabled,
-                      enableSwitchAnimation: true,
-                child: ListView(
-                  padding: EdgeInsets.all(16),
-                  children: [
-                    const Fitur(),
-                              Container(
-                                  width: deviceWidth,
-                                  padding: const EdgeInsets.all(8.0),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: const Color.fromARGB(255, 221, 235, 235),),
-                                    color: const Color.fromARGB(255, 240, 255, 255),
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(10)),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color.fromARGB(255, 226, 226, 226),
-                                        spreadRadius: 1,
-                                        blurRadius: 1,
-                                      )
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Skeleton.replace(
-                                            child: Text(
-                                              namaSSID.isNotEmpty ? namaSSID : 'Wifi tidak terhubung',
-                                              style: const TextStyle(
-                                                color: Color.fromARGB(
-                                                    255, 255, 31, 31),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),),
-                              Container(
-                                color: const Color.fromARGB(255, 255, 255, 255),
-                                width: deviceWidth,
-                                child: Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const SizedBox(
-                                            height: 5,
-                                          ),
-                                          Text(_jamSekarang,
-                                              style: const TextStyle(
-                                                fontSize: 30,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color.fromARGB(
-                                                    255, 14, 60, 129),
-                                              )),
-                                          const SizedBox(
-                                            height: 5,
-                                          ),
-                                          Text(
-                                              DateFormat('EEEE, dd/MM/yyyy', 'id')
-                                                  .format(DateTime.now()),
-                                              style: const TextStyle(
-                                                  fontSize: 25)),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Column(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(36.0),
-                                          child: Row(
-                                            children: [
-                                              //TOMBOL MASUK PULANG
-                                              Column(
-                                                children: [
-                                                  (DateTime.now().toIso8601String().substring(0, 10) ==
-                                                    SpUtil.getString('saved_date') &&
-                                                   SpUtil.getBool('is_codeMasuk') == true)
-                                                      ? Column(
-                                                          children: [
-                                                            Container(
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: const Color
-                                                                    .fromARGB(
-                                                                    255,
-                                                                    173,
-                                                                    218,
-                                                                    255),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            10),
-                                                              ),
-                                                              width: 100,
-                                                              height: 100,
-                                                              alignment: Alignment
-                                                                  .center,
-                                                              child: Text(
-                                                                "${SpUtil.getString('masuk')}",
-                                                                style:
-                                                                    const TextStyle(
-                                                                  fontSize: 30,
-                                                                  color: Color
-                                                                      .fromARGB(
-                                                                          255,
-                                                                          2,
-                                                                          53,
-                                                                          95),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 25),
-                                                          ],
-                                                        )
-                                                      : GestureDetector(
-                                                          onTap: _isLoading
-                                                              ? null
-                                                              : () async {
-                                                                  setState(() {
-                                                                    _isMasuk =
-                                                                        true;
-                                                                  });
-                                          
-                                                                  await _initNetworkInfo();
-                                          
-                                                                  if (wifiName !=
-                                                                          null &&
-                                                                      wifiBSSID !=
-                                                                          null &&
-                                                                      wifiName!
-                                                                          .isNotEmpty &&
-                                                                      wifiBSSID!
-                                                                          .isNotEmpty) {
-                                                                    await absenMasuk(
-                                                                        wifiName,
-                                                                        wifiBSSID);
-                                                                  } else {
-                                                                  Alert.alertwarning(
-                                                                      context,
-                                                                      'Silahkan sambungkan ke Wifi!');
-                                                                  }
-                                          
-                                                                  setState(() {
-                                                                    _isMasuk =
-                                                                        false;
-                                                                  });
-                                                                },
-                                                          child: Column(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              _isMasuk
-                                                                  ? const CircularProgressIndicator()
-                                                                  : Skeletonizer(
-                                                                      enabled: _enabled,
-                                                                      child: Column(
-                                                                          children: [
-                                                                            SizedBox(
-                                                                              width:
-                                                                                  100,
-                                                                              child: Skeleton.replace(
-                                                                                child: Image.asset(
-                                                                                    'assets/new/masuk.png'),
-                                                                              ),
-                                                                            ),
-                                                                            const Text(
-                                                                              "Masuk",
-                                                                              style: TextStyle(
-                                                                                  fontSize:
-                                                                                      18,
-                                                                                  fontWeight:
-                                                                                      FontWeight.bold),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                    )
-                                                            ],
-                                                          ),
-                                                        ),
-                                                ],
-                                              ),
-                                              const Spacer(),
-                                              Column(
-                                                children: [
-                                                  (DateTime.now().toIso8601String().substring(0, 10) ==
-                                                    SpUtil.getString('saved_date') &&
-                                                   SpUtil.getBool('is_codePulang') == true)
-                                                      ? Column(
-                                                          children: [
-                                                            Container(
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: const Color
-                                                                    .fromARGB(
-                                                                    255,
-                                                                    173,
-                                                                    218,
-                                                                    255),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            10),
-                                                              ),
-                                                              width: 100,
-                                                              height: 100,
-                                                              alignment: Alignment
-                                                                  .center,
-                                                              child: Text(
-                                                                  "${SpUtil.getString('pulang')}",
-                                                                  style: const TextStyle(
-                                                                      fontSize:
-                                                                          30,
-                                                                      color: Color
-                                                                          .fromARGB(
-                                                                              255,
-                                                                              2,
-                                                                              53,
-                                                                              95))),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 25),
-                                                          ],
-                                                        )
-                                                      : GestureDetector(
-                                                          onTap: _isLoading
-                                                              ? null
-                                                              : () async {
-                                                                  setState(() {
-                                                                    _isPulang =
-                                                                        true;
-                                                                  });
-                                          
-                                                                  if (isCodeMasuk ==
-                                                                      false && SpUtil.getBool('status_idlk') == false) {
-                                                                    QuickAlert
-                                                                        .show(
-                                                                      context:
-                                                                          context,
-                                                                      type: QuickAlertType
-                                                                          .warning,
-                                                                      text:
-                                                                          "Belum mengambil absen masuk!",
-                                                                    );
-                                                                  } else {
-                                                                    await _initNetworkInfo();
-                                                                    if (SpUtil.getBool('status_idlk') == true) {
-                                                                      showDialog(
-                                                                        context:
-                                                                            context,
-                                                                        builder:
-                                                                            (BuildContext
-                                                                                context) {
-                                                                          return AlertDialog(
-                                                                            title: const Text('Yakin ingin absen pulang Cepat?',style: TextStyle(fontSize: 15),),
-                                          
-                                                                            // content:
-                                                                            //     SizedBox(
-                                                                            //   height:
-                                                                            //       50,
-                                                                            //   width:
-                                                                            //       MediaQuery.of(context).size.width,
-                                                                            //   child:
-                                                                            //       const Text('Yakin ingin absen pulang'),
-                                                                            // ),
-                                                                            actions: <
-                                                                                Widget>[
-                                                                              TextButton(
-                                                                                style: TextButton.styleFrom(
-                                                                                  textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                  backgroundColor: Colors.green,
-                                                                                ),
-                                                                                child: const Text(
-                                                                                  'Pulang',
-                                                                                  style: TextStyle(color: Colors.white),
-                                                                                ),
-                                                                                onPressed: () async {
-                                                                                  Navigator.of(context).pop();
-                                                                                  await absenPulang('IDLK', 'IDLK');
-                                                                                },
-                                                                              ),
-                                                                              TextButton(
-                                                                                style: TextButton.styleFrom(
-                                                                                    textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                    backgroundColor: Colors.red),
-                                                                                child: const Text(
-                                                                                  'Batal',
-                                                                                  style: TextStyle(color: Colors.white),
-                                                                                ),
-                                                                                onPressed: () {
-                                                                                  Navigator.of(context).pop();
-                                                                                },
-                                                                              ),
-                                                                            ],
-                                                                          );
-                                                                        },
-                                                                      );
-                                                                    } else if (wifiName !=
-                                                                            null &&
-                                                                        wifiBSSID !=
-                                                                            null &&
-                                                                        wifiName!
-                                                                            .isNotEmpty &&
-                                                                        wifiBSSID!
-                                                                            .isNotEmpty) {
-                                                                      // Jika WiFi tersedia, gunakan WiFi untuk absen
-                                                                      showDialog(
-                                                                        context:
-                                                                            context,
-                                                                        builder:
-                                                                            (BuildContext
-                                                                                context) {
-                                                                          return AlertDialog(
-                                                                            title:
-                                                                                const Text('Yakin ingin absen pulang?',style: TextStyle(fontSize: 15),),
-                                                                            // content:
-                                                                            //     SizedBox(
-                                                                            //   height:
-                                                                            //       50,
-                                                                            //   width:
-                                                                            //       MediaQuery.of(context).size.width,
-                                                                            //   child:
-                                                                            //       const Text('Yakin ingin absen pulang'),
-                                                                            // ),
-                                                                            actions: <
-                                                                                Widget>[
-                                                                              TextButton(
-                                                                                style: TextButton.styleFrom(
-                                                                                  textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                  backgroundColor: Colors.green,
-                                                                                ),
-                                                                                child: const Text(
-                                                                                  'Pulang',
-                                                                                  style: TextStyle(color: Colors.white),
-                                                                                ),
-                                                                                onPressed: () async {
-                                                                                  Navigator.of(context).pop();
-                                                                                  await absenPulang(wifiName, wifiBSSID); // Menggunakan WiFi
-                                                                                },
-                                                                              ),
-                                                                              TextButton(
-                                                                                style: TextButton.styleFrom(
-                                                                                    textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                    backgroundColor: Colors.red),
-                                                                                child: const Text(
-                                                                                  'Batal',
-                                                                                  style: TextStyle(color: Colors.white),
-                                                                                ),
-                                                                                onPressed: () {
-                                                                                  Navigator.of(context).pop();
-                                                                                },
-                                                                              ),
-                                                                            ],
-                                                                          );
-                                                                        },
-                                                                      );
-                                                                    } else { 
-                                                                      Alert.alertwarning(
-                                                                          context,
-                                                                          'Silahkan sambungkan ke Wifi!');
-                                                                    }
-                                                                  }
-                                          
-                                                                  setState(() {
-                                                                    _isPulang =
-                                                                        false;
-                                                                  });
-                                                                },
-                                                          child: Column(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              _isPulang
-                                                                  ? const CircularProgressIndicator()
-                                                                  : Skeletonizer(
-                                                                    enabled: _enabled,
-                                                                    child: Column(
-                                                                        children: [
-                                                                          SizedBox(
-                                                                            width:
-                                                                                100,
-                                                                            child: Skeleton.replace(
-                                                                              child: Image.asset(
-                                                                                  'assets/new/pulang.png'),
-                                                                            ),
-                                                                          ),
-                                                                          if (SpUtil.getBool('status_idlk') == false)
-                                                                          const Text(
-                                                                              "Pulang",
-                                                                              style: TextStyle(
-                                                                                  fontSize: 18,
-                                                                                  fontWeight: FontWeight.bold),
-                                                                            )
-                                                                          else
-                                                                            const Text(
-                                                                              "IDLK",
-                                                                              style: TextStyle(
-                                                                                  fontSize: 18,
-                                                                                  fontWeight: FontWeight.bold),
-                                                                            )
-                                                                            
-                                                                        ],
-                                                                      ),
-                                                                  )
-                                                            ],
-                                                          ),
-                                                        ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        _buildConditionalWidgets(context),
-                                      ],
-                                    )
-                                  ],
-                                ),
-                              ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ],
-  ),
-  );
-  }
-
-  Widget _buildConditionalWidgets(BuildContext context) {
-  // Ambil semua nilai boolean dari SpUtil terlebih dahulu
-    final isPulangCepat = SpUtil.getBool('is_PulangCepat') ?? false;
-    final statusPC = SpUtil.getBool('statusPC') ?? false;
-    final isIDLK = SpUtil.getBool('is_IDLK') ?? false;
-    final statusIDLK = SpUtil.getBool('status_idlk') ?? false;
-
-    // Logika utama
-      // if (isPulangCepat) {
-      //   if(statusPC) {
-      //     return Card(
-      //       color: Colors.green,
-      //       child: Padding(
-      //         padding: const EdgeInsets.all(16.0),
-      //         child: Center(
-      //           child: Column(
-      //             children: const [
-      //               Text(
-      //                 'Pulang Cepat sudah di setujui',
-      //                 textAlign: TextAlign.center,
-      //                 style: TextStyle(color: Colors.white),
-      //               ),
-      //             ],
-      //           ),
-      //         ),
-      //       ),
-      //     );
-      //   }else{
-      //     return Card(
-      //       color: Colors.red,
-      //       child: Padding(
-      //         padding: const EdgeInsets.all(16.0),
-      //         child: Center(
-      //           child: Column(
-      //             children: const [
-      //               Text(
-      //                 'Pulang Cepat belum di setujui',
-      //                 textAlign: TextAlign.center,
-      //                 style: TextStyle(color: Colors.white),
-      //               ),
-      //             ],
-      //           ),
-      //         ),
-      //       ),
-      //     );
-      //   }
-      // }
-  
-      if(isPulangCepat == true || isIDLK == true){
-        if(statusPC == true) {
-          return Card(
-            color: Colors.green,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: Column(
-                  children: const [
-                    Text(
-                      'Pulang Cepat sudah di setujui',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white),
+          const Header(), // Assuming Header is a widget
+          
+          Column(
+            children: [
+              SizedBox(height: size.height * 0.15),
+              
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 255, 255, 255),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }else if (statusIDLK == true) {
-            return Card(
-              color: Colors.green,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Center(
-                  child: Column(
-                    children: const [
-                      Text(
-                        'IDLK sudah di setujui \nsilahkan mengambil absen pulang', // Teksnya sama? Saya asumsikan ini kesalahan ketik dan biarkan seperti ini.
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: const Offset(0, -3),
                       ),
                     ],
                   ),
-                ),
-              ),
-            );
-        } else {
-            return ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Dashboard(initialIndex: 3),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 173, 218, 255),
-              ),
-              child: const Text(
-                'Status Pengajuan',
-                style: TextStyle(
-                  color: Color.fromARGB(255, 0, 162, 255),
-                ),
-              ),
-            );
-        }
-      } else{
-        if(isCodeMasuk == true ){
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PulangCepat(),
+                  child: Skeletonizer(
+                    enabled: _enabled,
+                    enableSwitchAnimation: true,
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        const Fitur(),
+                        
+                        // WiFi Status Widget
+                        ValueListenableBuilder<String?>(
+                          valueListenable: _wifiNameNotifier,
+                          builder: (context, wifiNameValue, child) {
+                            final namaSSID = (wifiNameValue?.isNotEmpty ?? false) 
+                                ? wifiNameValue!.replaceAll('"', '') 
+                                : 'Wifi tidak terhubung';
+                            
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: const Color.fromARGB(255, 221, 235, 235),
+                                ),
+                                color: const Color.fromARGB(255, 240, 255, 255),
+                                borderRadius: const BorderRadius.all(Radius.circular(10)),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color.fromARGB(255, 226, 226, 226),
+                                    spreadRadius: 1,
+                                    blurRadius: 1,
+                                  )
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    alignment: Alignment.center,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Skeleton.replace(
+                                        child: Text(
+                                          namaSSID.isNotEmpty ? namaSSID : 'Wifi tidak terhubung',
+                                          style: const TextStyle(
+                                            color: Color.fromARGB(255, 255, 31, 31),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        
+                        // Time and Date Widget
+                        Container(
+                          color: const Color.fromARGB(255, 255, 255, 255),
+                          width: double.infinity,
+                          child: Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(height: 5),
+                                    
+                                    // Time Display
+                                    ValueListenableBuilder<String>(
+                                      valueListenable: _jamSekarangNotifier,
+                                      builder: (context, jamValue, child) {
+                                        return Text(
+                                          jamValue,
+                                          style: const TextStyle(
+                                            fontSize: 30,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color.fromARGB(255, 14, 60, 129),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    
+                                    const SizedBox(height: 5),
+                                    
+                                    // Date Display
+                                    Text(
+                                      DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateTime.now()),
+                                      style: const TextStyle(fontSize: 25),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              
+                              const SizedBox(height: 20),
+                              
+                              // Attendance Buttons
+                              ValueListenableBuilder<bool>(
+                                valueListenable: _isCodeMasukNotifier,
+                                builder: (context, isCodeMasukValue, child) {
+                                  return ValueListenableBuilder<bool>(
+                                    valueListenable: _isCodePulangNotifier,
+                                    builder: (context, isCodePulangValue, child) {
+                                      return ValueListenableBuilder<bool>(
+                                        valueListenable: _isLoadingNotifier,
+                                        builder: (context, isLoadingValue, child) {
+                                          return Column(
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.all(36.0),
+                                                child: Row(
+                                                  children: [
+                                                    // Check-in Button
+                                                    Column(
+                                                      children: [
+                                                        (DateTime.now().toIso8601String().substring(0, 10) ==
+                                                            SpUtil.getString('saved_date') &&
+                                                            isCodeMasukValue)
+                                                            ? Column(
+                                                                children: [
+                                                                  Container(
+                                                                    decoration: BoxDecoration(
+                                                                      color: const Color.fromARGB(255, 173, 218, 255),
+                                                                      borderRadius: BorderRadius.circular(10),
+                                                                    ),
+                                                                    width: 100,
+                                                                    height: 100,
+                                                                    alignment: Alignment.center,
+                                                                    child: Text(
+                                                                      "${SpUtil.getString('masuk')}",
+                                                                      style: const TextStyle(
+                                                                        fontSize: 30,
+                                                                        color: Color.fromARGB(255, 2, 53, 95),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(height: 25),
+                                                                ],
+                                                              )
+                                                            : GestureDetector(
+                                                                onTap: isLoadingValue
+                                                                    ? null
+                                                                    : () async {
+                                                                        setState(() {
+                                                                          _isMasuk = true;
+                                                                        });
+                                                                        
+                                                                        await _initNetworkInfo();
+                                                                        
+                                                                        if (_wifiNameNotifier.value != null &&
+                                                                            wifiBSSID != null &&
+                                                                            _wifiNameNotifier.value!.isNotEmpty &&
+                                                                            wifiBSSID!.isNotEmpty) {
+                                                                          await absenMasuk(
+                                                                              _wifiNameNotifier.value,
+                                                                              wifiBSSID);
+                                                                        } else {
+                                                                          if (mounted) {
+                                                                            Alert.alertwarning(
+                                                                                context,
+                                                                                'Silahkan sambungkan ke Wifi!');
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        setState(() {
+                                                                          _isMasuk = false;
+                                                                        });
+                                                                      },
+                                                                child: Column(
+                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  children: [
+                                                                    _isMasuk
+                                                                        ? const CircularProgressIndicator()
+                                                                        : Skeletonizer(
+                                                                            enabled: _enabled,
+                                                                            child: Column(
+                                                                              children: [
+                                                                                SizedBox(
+                                                                                  width: 100,
+                                                                                  child: Skeleton.replace(
+                                                                                    child: Image.asset('assets/new/masuk.png'),
+                                                                                  ),
+                                                                                ),
+                                                                                const Text(
+                                                                                  "Masuk",
+                                                                                  style: TextStyle(
+                                                                                      fontSize: 18,
+                                                                                      fontWeight: FontWeight.bold),
+                                                                                )
+                                                                              ],
+                                                                            ),
+                                                                          )
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                      ],
+                                                    ),
+                                                    
+                                                    const Spacer(),
+                                                    
+                                                    // Check-out Button
+                                                    Column(
+                                                      children: [
+                                                        (DateTime.now().toIso8601String().substring(0, 10) ==
+                                                            SpUtil.getString('saved_date') &&
+                                                            isCodePulangValue)
+                                                            ? Column(
+                                                                children: [
+                                                                  Container(
+                                                                    decoration: BoxDecoration(
+                                                                      color: const Color.fromARGB(255, 173, 218, 255),
+                                                                      borderRadius: BorderRadius.circular(10),
+                                                                    ),
+                                                                    width: 100,
+                                                                    height: 100,
+                                                                    alignment: Alignment.center,
+                                                                    child: Text(
+                                                                      "${SpUtil.getString('pulang')}",
+                                                                      style: const TextStyle(
+                                                                          fontSize: 30,
+                                                                          color: Color.fromARGB(255, 2, 53, 95)),
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(height: 25),
+                                                                ],
+                                                              )
+                                                            : GestureDetector(
+                                                                onTap: isLoadingValue
+                                                                    ? null
+                                                                    : () async {
+                                                                        setState(() {
+                                                                          _isPulang = true;
+                                                                        });
+                                                                        
+                                                                        if (isCodeMasukValue == false && SpUtil.getString('status_idlk') == '-') {
+                                                                          if (mounted) {
+                                                                            QuickAlert.show(
+                                                                              context: context,
+                                                                              type: QuickAlertType.warning,
+                                                                              text: "Belum mengambil absen masuk!",
+                                                                            );
+                                                                          }
+                                                                        } else {
+                                                                          await _initNetworkInfo();
+                                                                          
+                                                                          if (SpUtil.getString('status_idlk') == 'setujui') {
+                                                                            if (mounted) {
+                                                                              showDialog(
+                                                                                context: context,
+                                                                                builder: (BuildContext context) {
+                                                                                  return AlertDialog(
+                                                                                    title: const Text('Yakin ingin absen pulang Cepat?', style: TextStyle(fontSize: 15)),
+                                                                                    actions: <Widget>[
+                                                                                      TextButton(
+                                                                                        style: TextButton.styleFrom(
+                                                                                          textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                          backgroundColor: Colors.green,
+                                                                                        ),
+                                                                                        child: const Text(
+                                                                                          'Pulang',
+                                                                                          style: TextStyle(color: Colors.white),
+                                                                                        ),
+                                                                                        onPressed: () async {
+                                                                                          Navigator.of(context).pop();
+                                                                                          await absenPulang('IDLK', 'IDLK');
+                                                                                        },
+                                                                                      ),
+                                                                                      TextButton(
+                                                                                        style: TextButton.styleFrom(
+                                                                                            textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                            backgroundColor: Colors.red),
+                                                                                        child: const Text(
+                                                                                          'Batal',
+                                                                                          style: TextStyle(color: Colors.white),
+                                                                                        ),
+                                                                                        onPressed: () {
+                                                                                          Navigator.of(context).pop();
+                                                                                        },
+                                                                                      ),
+                                                                                    ],
+                                                                                  );
+                                                                                },
+                                                                              );
+                                                                            }
+                                                                          } else if (_wifiNameNotifier.value != null &&
+                                                                              wifiBSSID != null &&
+                                                                              _wifiNameNotifier.value!.isNotEmpty &&
+                                                                              wifiBSSID!.isNotEmpty) {
+                                                                            if (mounted) {
+                                                                              showDialog(
+                                                                                context: context,
+                                                                                builder: (BuildContext context) {
+                                                                                  return AlertDialog(
+                                                                                    title: const Text('Yakin ingin absen pulang?', style: TextStyle(fontSize: 15)),
+                                                                                    actions: <Widget>[
+                                                                                      TextButton(
+                                                                                        style: TextButton.styleFrom(
+                                                                                          textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                          backgroundColor: Colors.green,
+                                                                                        ),
+                                                                                        child: const Text(
+                                                                                          'Pulang',
+                                                                                          style: TextStyle(color: Colors.white),
+                                                                                        ),
+                                                                                        onPressed: () async {
+                                                                                          Navigator.of(context).pop();
+                                                                                          await absenPulang(_wifiNameNotifier.value, wifiBSSID);
+                                                                                        },
+                                                                                      ),
+                                                                                      TextButton(
+                                                                                        style: TextButton.styleFrom(
+                                                                                            textStyle: Theme.of(context).textTheme.labelLarge,
+                                                                                            backgroundColor: Colors.red),
+                                                                                        child: const Text(
+                                                                                          'Batal',
+                                                                                          style: TextStyle(color: Colors.white),
+                                                                                        ),
+                                                                                        onPressed: () {
+                                                                                          Navigator.of(context).pop();
+                                                                                        },
+                                                                                      ),
+                                                                                    ],
+                                                                                  );
+                                                                                },
+                                                                              );
+                                                                            }
+                                                                          } else {
+                                                                            if (mounted) {
+                                                                              Alert.alertwarning(
+                                                                                  context,
+                                                                                  'Silahkan sambungkan ke Wifi!');
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        setState(() {
+                                                                          _isPulang = false;
+                                                                        });
+                                                                      },
+                                                                child: Column(
+                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  children: [
+                                                                    _isPulang
+                                                                        ? const CircularProgressIndicator()
+                                                                        : Skeletonizer(
+                                                                            enabled: _enabled,
+                                                                            child: Column(
+                                                                              children: [
+                                                                                SizedBox(
+                                                                                  width: 100,
+                                                                                  child: Skeleton.replace(
+                                                                                    child: Image.asset('assets/new/pulang.png'),
+                                                                                  ),
+                                                                                ),
+                                                                                if (SpUtil.getString('status_idlk') != 'setujui')
+                                                                                  const Text(
+                                                                                    "Pulang",
+                                                                                    style: TextStyle(
+                                                                                        fontSize: 18,
+                                                                                        fontWeight: FontWeight.bold),
+                                                                                  )
+                                                                                else
+                                                                                  const Text(
+                                                                                    "IDLK",
+                                                                                    style: TextStyle(
+                                                                                        fontSize: 18,
+                                                                                        fontWeight: FontWeight.bold),
+                                                                                  )
+                                                                              ],
+                                                                            ),
+                                                                          )
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                              
+                              // Conditional Widgets
+                              ValueListenableBuilder<bool>(
+                                valueListenable: _isPulangCepatNotifier,
+                                builder: (context, isPulangCepatValue, child) {
+                                  return ValueListenableBuilder<bool>(
+                                    valueListenable: _isIDLKNotifier,
+                                    builder: (context, isIDLKValue, child) {
+                                      return ValueListenableBuilder<bool>(
+                                        valueListenable: _isCodeMasukNotifier,
+                                        builder: (context, isCodeMasukValue, child) {
+                                          return ValueListenableBuilder<bool>(
+                                            valueListenable: _isCodePulangNotifier,
+                                            builder: (context, isCodePulangValue, child) {
+                                              return Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  _buildConditionalWidgets(
+                                                    context,
+                                                    isPulangCepatValue,
+                                                    isIDLKValue,
+                                                    isCodeMasukValue,
+                                                    isCodePulangValue,
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                ),
-                child: const Text(
-                  'Pulang Cepat',
-                  style: TextStyle(
-                    color: Colors.white,
                   ),
                 ),
               ),
-            ),
-          );
-        }else{
-          return const SizedBox.shrink();
-        }
-    }
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
+  Widget _buildConditionalWidgets(
+    BuildContext context,
+    bool isPulangCepat,
+    bool isIDLK,
+    bool isCodeMasuk,
+    bool isCodePulang,
+  ) {
+    final statusPC = SpUtil.getString('statusPC');
+
+    if (isPulangCepat || isIDLK) {
+      if (SpUtil.getString('status_idlk') == 'setujui') {
+        return Card(
+          color: Colors.green,
+          child: const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: Text(
+                'IDLK sudah di setujui \nsilahkan mengambil absen pulang',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        );
+      } else {
+        return ElevatedButton(
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(initialIndex: 3),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 173, 218, 255),
+          ),
+          child: const Text(
+            'Status Pengajuan',
+            style: TextStyle(
+              color: Color.fromARGB(255, 0, 162, 255),
+            ),
+          ),
+        );
+      }
+    } else if (statusPC == 'setujui') {
+      return const Card(
+        color: Colors.green,
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Center(
+            child: Text(
+              'Pulang Cepat sudah di setujui',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      );
+    } else if (statusPC == 'tolak') {
+      return const Card(
+        color: Colors.red,
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Center(
+            child: Text(
+              'Pulang Cepat ditolak \n Tetap gunakan absen pulang!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      );
+    } else if (isCodeMasuk && !isCodePulang) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Center(
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PulangCepat(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text(
+              'Pulang Cepat',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
+  }
 }
-
-

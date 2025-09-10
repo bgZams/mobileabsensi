@@ -406,17 +406,14 @@ class _PulangCepatState extends State<PulangCepat> {
       // Kirim permintaan
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      print(response.body);
       if (response.statusCode == 200) {
-        setState(() {
-          SpUtil.putBool('is_PulangCepat', true);
-        });
         final data = jsonDecode(response.body);
         String message = data["message"];
         if (data['status'] == 'success') {
           if(mounted){
             setState(() {
               _currentIndex = 3;
+              SpUtil.putBool('is_PulangCepat', true);
             });
             Navigator.pushReplacement(
               context,

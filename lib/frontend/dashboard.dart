@@ -4,6 +4,7 @@ import 'package:mobileabsensi/frontend/absen/absen.dart';
 import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
 import 'package:mobileabsensi/frontend/izin/izin.dart';
 import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
+import 'package:mobileabsensi/screenshoot.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class Dashboard extends StatefulWidget {
@@ -12,11 +13,15 @@ class Dashboard extends StatefulWidget {
 
   @override
   State<Dashboard> createState() => _DashboardState();
-}
+} 
 
 class _DashboardState extends State<Dashboard> {
+  final GlobalKey _screenshotKey = GlobalKey();
   late final PageController _pageController;
   late int _currentIndex;
+
+  Offset _cameraPosition = Offset.zero;
+  bool _isDragging = false;
 
   final List<Widget> _pages = const [
     Absen(),
@@ -31,7 +36,6 @@ class _DashboardState extends State<Dashboard> {
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
     _requestPermissions();
-    super.initState();
   }
 
   @override
@@ -48,28 +52,28 @@ class _DashboardState extends State<Dashboard> {
 
   // Memeriksa dan meminta izin
   Future<void> _requestPermissions() async {
-  final locationStatus = await Permission.location.request();
-  final wifiStatus = await Permission.locationWhenInUse.request();
-  final camera = await Permission.camera.request();
-  final galleryStatus = await Permission.photos.request();
-  var notificationStatus = await Permission.notification.status;
-  var storage = await Permission.storage.request();
+    final locationStatus = await Permission.location.request();
+    final wifiStatus = await Permission.locationWhenInUse.request();
+    final camera = await Permission.camera.request();
+    final galleryStatus = await Permission.photos.request();
+    var notificationStatus = await Permission.notification.status;
+    var storage = await Permission.storage.request();
 
-  if (notificationStatus.isDenied) {
-    notificationStatus = await Permission.notification.request();
-  }
+    if (notificationStatus.isDenied) {
+      notificationStatus = await Permission.notification.request();
+    }
 
-  if (locationStatus.isGranted &&
-      wifiStatus.isGranted &&
-      camera.isGranted &&
-      galleryStatus.isGranted &&
-      storage.isGranted &&
-      notificationStatus.isGranted) {
-    // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
-  } else {
-    // One or more permissions denied, notify the user or handle accordingly.
+    if (locationStatus.isGranted &&
+        wifiStatus.isGranted &&
+        camera.isGranted &&
+        galleryStatus.isGranted &&
+        storage.isGranted &&
+        notificationStatus.isGranted) {
+      // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
+    } else {
+      // One or more permissions denied, notify the user or handle accordingly.
+    }
   }
-}
 
   void _onNavTapped(int index) {
     _pageController.animateToPage(
@@ -81,13 +85,79 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
+    // Inisialisasi posisi hanya sekali jika masih zero
+    if (_cameraPosition == Offset.zero) {
+      _cameraPosition = Offset(
+        MediaQuery.of(context).size.width - 80, 
+        MediaQuery.of(context).size.height * 0.5 - 30
+      );
+    }
+
     return Scaffold(
-        body: PageView(
-          controller: _pageController,
-          onPageChanged: _onPageChanged,
-          physics: const NeverScrollableScrollPhysics(),
-          children: _pages,
-        ),
+      body: Stack(
+        children: [
+          // Konten utama
+          RepaintBoundary(
+            key: _screenshotKey,
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              physics: const NeverScrollableScrollPhysics(),
+              children: _pages,
+            ),
+          ),
+          
+          // Tombol screenshot yang bisa digeser
+          Positioned(
+            left: _cameraPosition.dx,
+            top: _cameraPosition.dy,
+            child: GestureDetector(
+              onPanStart: (details) {
+                setState(() {
+                  _isDragging = true;
+                });
+              },
+              onPanUpdate: (details) {
+                setState(() {
+                  _cameraPosition += details.delta;
+                  
+                  // Batasi agar tidak keluar dari layar
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final screenHeight = MediaQuery.of(context).size.height;
+                  
+                  if (_cameraPosition.dx < 0) _cameraPosition = Offset(0, _cameraPosition.dy);
+                  if (_cameraPosition.dx > screenWidth - 60) {
+                    _cameraPosition = Offset(screenWidth - 60, _cameraPosition.dy);
+                  }
+                  if (_cameraPosition.dy < 0) _cameraPosition = Offset(_cameraPosition.dx, 0);
+                  if (_cameraPosition.dy > screenHeight - 60) {
+                    _cameraPosition = Offset(_cameraPosition.dx, screenHeight - 60);
+                  }
+                });
+              },
+              onPanEnd: (details) {
+                setState(() {
+                  _isDragging = false;
+                });
+              },
+              child: Opacity(
+                opacity: _isDragging ? 0.8 : 1.0,
+                child: ScreenshotButton(
+                  screenshotKey: _screenshotKey,
+                  onScreenshotTaken: () {
+                    print('Screenshot berhasil diambil dari Dashboard!');
+                  },
+                  onScreenshotSaved: (String? path) {
+                    if (path != null) {
+                      print('Screenshot disimpan di: $path');
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: const Color.fromARGB(255, 229, 229, 229),
         color: const Color.fromARGB(255, 229, 229, 229),

@@ -416,8 +416,6 @@ class LoginState extends State<Login> {
 
   void _navigateToHome() {
     String? idGroups = SpUtil.getString('id_groups');
-    String? idInstansi = SpUtil.getString('id_admin_instansi');
-    
     if (idGroups == "3" || idGroups == "5") {
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else if (idGroups == "2") {

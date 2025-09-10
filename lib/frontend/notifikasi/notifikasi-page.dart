@@ -866,7 +866,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
         final data = jsonDecode(response.body);
         if(statusJenis == '5'){
           SpUtil.putBool('is_IDLK', false);
-          SpUtil.putBool('status_idlk', false);
+          SpUtil.putString('status_idlk', '-');
           SpUtil.putBool('is_PulangCepat', false);
         }
         SpUtil.putBool('is_PulangCepat', false);

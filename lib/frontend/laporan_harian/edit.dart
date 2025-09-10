@@ -11,6 +11,7 @@ import 'package:sp_util/sp_util.dart';
 class EditLaporan extends StatefulWidget {
   final Map<String, dynamic> data;
   final VoidCallback onUpdate; // Callback function
+  
 
   const EditLaporan({super.key, required this.data, required this.onUpdate});
 
@@ -173,6 +174,7 @@ class EditLaporanState extends State<EditLaporan> {
       if (response.statusCode == 200) {
         if (data['status'] == 'success') {
           widget.onUpdate();
+          if (mounted){
           Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -180,7 +182,7 @@ class EditLaporanState extends State<EditLaporan> {
               ),
             );
           Alert.alertsuccess(context, data['message']);
-
+          }
         } else {
           Alert.alertwarning(context, data['message']);
         }

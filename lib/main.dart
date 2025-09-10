@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
@@ -35,32 +36,36 @@ import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
 import 'package:mobileabsensi/singgah.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:flutter/services.dart';
+// Tambahkan import untuk screenshot
+// import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // Global Declarations
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-
 String? globalIdAtasan;
 Map<String, dynamic> globalUpdateData = {};
 String? idUser;
 
 // Screen Recording Control
 const MethodChannel _screenRecordingChannel = MethodChannel('com.mobileabsensi/secure_screen');
-
 Future<void> enableSecureScreen() async {
   if (!Platform.isAndroid) return;
   try {
-    await _screenRecordingChannel.invokeMethod('setSecureScreen', {'enable': true});
+    await _screenRecordingChannel.invokeMethod('setSecureScreen', {
+      'enable': true
+    });
     debugPrint('Screen recording prevention ENABLED.');
   } on PlatformException catch (e) {
     debugPrint("Failed to enable secure screen: '${e.message}'.");
   }
 }
-
 Future<void> disableSecureScreen() async {
   if (!Platform.isAndroid) return;
   try {
-    await _screenRecordingChannel.invokeMethod('setSecureScreen', {'enable': false});
+    await _screenRecordingChannel.invokeMethod('setSecureScreen', {
+      'enable': false
+    });
     debugPrint('Screen recording prevention DISABLED.');
   } on PlatformException catch (e) {
     debugPrint("Failed to disable secure screen: '${e.message}'.");
@@ -71,8 +76,7 @@ Future<void> disableSecureScreen() async {
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+    return super.createHttpClient(context)..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
   }
 }
 
@@ -82,41 +86,33 @@ void main() async {
   await SpUtil.getInstance();
   const initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
   const initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   await NotificationController.initializeLocalNotifications();
   await NotificationController.initializeIsolateReceivePort();
-
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   } catch (e) {
     debugPrint('Error initializing Firebase: $e');
   }
-
   idUser = SpUtil.getString('id_user');
   _checkAndUpdatePreferences();
-  await enableSecureScreen();
-
+  // await enableSecureScreen();
   NotificationController.selectNotificationStream.stream.listen((String? payload) {
     if (payload != null) {
       debugPrint('Payload diterima di main (selectNotificationStream): $payload');
       _handleNotificationPayloadInMain(payload);
     }
   });
-
   if (Platform.isAndroid) {
     try {
-        HttpOverrides.global = MyHttpOverrides();
-        if (kDebugMode) print("HttpOverrides applied for Android API 23.");
+      HttpOverrides.global = MyHttpOverrides();
+      if (kDebugMode) print("HttpOverrides applied for Android API 23.");
     } catch (e) {
       if (kDebugMode) print("Error getting device info: $e");
     }
   }
-
-
   runApp(const MyApp());
 }
- 
 
 // Notification Payload Handler
 void _handleNotificationPayloadInMain(String payload) {
@@ -125,16 +121,19 @@ void _handleNotificationPayloadInMain(String payload) {
     debugPrint('Navigator state is null, cannot navigate from notification payload: $payload');
     return;
   }
-
   if (payload.startsWith('izin_')) {
     final izinId = payload.substring(5);
     if (izinId.isNotEmpty) {
-      navState.pushNamed('/detail-konfirmasi-izin', arguments: {'id_izin': izinId});
+      navState.pushNamed('/detail-konfirmasi-izin', arguments: {
+        'id_izin': izinId
+      });
     }
   } else if (payload.startsWith('laporan_')) {
     final laporanId = payload.substring(8);
     if (laporanId.isNotEmpty) {
-      navState.pushNamed('/status-laporan', arguments: {'id_laporan': laporanId});
+      navState.pushNamed('/status-laporan', arguments: {
+        'id_laporan': laporanId
+      });
     }
   }
 }
@@ -144,7 +143,6 @@ void _checkAndUpdatePreferences() {
   final now = DateTime.now();
   final todayString = DateFormat('yyyy-MM-dd').format(now);
   final savedDate = SpUtil.getString('saved_date');
-
   if (savedDate != todayString) {
     for (final key in [
       'masuk',
@@ -160,9 +158,9 @@ void _checkAndUpdatePreferences() {
     SpUtil.putBool('is_PulangCepat', false);
     SpUtil.putBool('_isMasuk', false);
     SpUtil.putBool('_isPulang', false);
-    SpUtil.putBool('statusPC', false);
+    SpUtil.putString('statusPC', 'pending');
     SpUtil.putBool('is_IDLK', false);
-    SpUtil.putBool('status_idlk', false);
+    SpUtil.putString('status_idlk', 'pending');
     SpUtil.putString('saved_date', todayString);
   }
 }
@@ -171,13 +169,13 @@ void _checkAndUpdatePreferences() {
 Future<void> readData() async {
   final databaseReference = FirebaseDatabase.instance.ref();
   databaseReference.child('izin').onValue.listen(
-    (event) => processSnapshot(event.snapshot, 'izin'),
-    onError: (error) => debugPrint('Terjadi kesalahan pada child izin: $error'),
-  );
+        (event) => processSnapshot(event.snapshot, 'izin'),
+        onError: (error) => debugPrint('Terjadi kesalahan pada child izin: $error'),
+      );
   databaseReference.child('laporan').onValue.listen(
-    (event) => processSnapshot(event.snapshot, 'laporan'),
-    onError: (error) => debugPrint('Terjadi kesalahan pada child laporan: $error'),
-  );
+        (event) => processSnapshot(event.snapshot, 'laporan'),
+        onError: (error) => debugPrint('Terjadi kesalahan pada child laporan: $error'),
+      );
 }
 
 // Firebase Snapshot Processor
@@ -188,33 +186,25 @@ void processSnapshot(DataSnapshot? snapshot, String notificationType) async {
     debugPrint('Data $notificationType tidak ditemukan');
     return;
   }
-
   final now = DateTime.now().millisecondsSinceEpoch;
   final processedKey = 'processed_${notificationType}_ids';
   final processedIds = Set<String>.from(SpUtil.getStringList(processedKey) ?? []);
-
   final validEntries = data.entries.where((entry) {
     if (processedIds.contains(entry.key)) return false;
     final doc = entry.value as Map<dynamic, dynamic>?;
     final timestamp = doc?['timestamp'] as int?;
     final idStatus = doc?['id_status'];
-    return timestamp != null &&
-        timestamp > (now - 300000) &&
-        timestamp <= now &&
-        idStatus == 0;
+    return timestamp != null && timestamp > (now - 300000) && timestamp <= now && idStatus == 0;
   }).toList();
-
   if (validEntries.isEmpty) {
     debugPrint('Tidak ada data $notificationType baru yang perlu diproses');
     return;
   }
-
   validEntries.sort((a, b) {
     final aTimestamp = (a.value as Map<dynamic, dynamic>)['timestamp'] as int;
     final bTimestamp = (b.value as Map<dynamic, dynamic>)['timestamp'] as int;
     return bTimestamp.compareTo(aTimestamp);
   });
-
   final latestEntry = validEntries.first;
   final documentData = latestEntry.value as Map<dynamic, dynamic>;
   final entryKey = latestEntry.key.toString();
@@ -224,7 +214,6 @@ void processSnapshot(DataSnapshot? snapshot, String notificationType) async {
   final user = SpUtil.getString('id_user');
   final userId = int.tryParse(user ?? '');
   final parsedIdAtasan = int.tryParse(idAtasan.toString());
-
   if (userId == parsedIdAtasan) {
     try {
       final databaseReference = FirebaseDatabase.instance.ref();
@@ -238,7 +227,9 @@ void processSnapshot(DataSnapshot? snapshot, String notificationType) async {
             notificationType,
             payloadId: entryKey,
           );
-          await databaseReference.child('izin').child(entryKey).update({'id_status': 2});
+          await databaseReference.child('izin').child(entryKey).update({
+            'id_status': 2
+          });
           break;
         case 'laporan':
           await NotificationController.createNewNotificationLaporan(
@@ -249,7 +240,9 @@ void processSnapshot(DataSnapshot? snapshot, String notificationType) async {
             notificationType,
             payloadId: entryKey,
           );
-          await databaseReference.child('laporan').child(entryKey).update({'id_status': 2});
+          await databaseReference.child('laporan').child(entryKey).update({
+            'id_status': 2
+          });
           break;
       }
       processedIds.add(entryKey);
@@ -266,6 +259,7 @@ void processSnapshot(DataSnapshot? snapshot, String notificationType) async {
 // Main App Widget
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -282,7 +276,7 @@ class _MyAppState extends State<MyApp> {
     });
     // WidgetsBinding.instance.addPostFrameCallback((_) => enableSecureScreen());
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final idGroups = SpUtil.getString('id_groups');
@@ -295,7 +289,6 @@ class _MyAppState extends State<MyApp> {
       SpUtil.clear();
       homeWidget = const Login();
     }
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Mobile Absensi',
@@ -305,7 +298,7 @@ class _MyAppState extends State<MyApp> {
         '/login-first': (context) => const LoginFirst(),
         '/login': (context) => const Login(),
         '/absen': (context) => const Absen(),
-        '/dashboard': (context) => const Dashboard(initialIndex: 0),
+        '/dashboard': (context) => Dashboard(initialIndex: 0),
         '/absen-masuk': (context) => const Absen(),
         '/profil': (context) => const Profile(),
         '/riwayat': (context) => const RiwayatAbsen(),
@@ -329,7 +322,7 @@ class _MyAppState extends State<MyApp> {
         if (uri.pathSegments.length == 3 && uri.pathSegments[0] == 'admin') {
           final idPegawai = uri.pathSegments[2];
           final route = uri.pathSegments[1];
-          Widget? page; 
+          Widget? page;
           switch (route) {
             case 'detail':
               page = DetailPage(idPegawai: idPegawai);
@@ -347,6 +340,7 @@ class _MyAppState extends State<MyApp> {
         }
         return null;
       },
+      
     );
   }
 }

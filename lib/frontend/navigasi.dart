@@ -133,34 +133,6 @@ class _NavigasiState extends State<Navigasi> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const ListWifi()));
-                      },
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Padding(
-                              padding: EdgeInsets.only(left: 10),
-                              child: Text('Daftar Wifi'),
-                            ),
-                          ),
-                          Spacer(),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: Color.fromARGB(255, 3, 53, 139),
-                          ),
-                          SizedBox(
-                            width: 25,
-                          )
-                        ],
-                      ),
-                    ),
                     Container(
                       height: 2,
                       color: const Color.fromARGB(255, 223, 223, 223),
