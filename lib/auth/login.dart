@@ -8,15 +8,12 @@ import 'package:http/http.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:sp_util/sp_util.dart';
 
-// Import your main application widget, assuming it's named MobileAbsensiApp
-// import 'package:mobileabsensi/main_app.dart'; // Example: Adjust this import based on your actual file structure
-
-// Define your colors and text styles if they are not in core.dart or a global file
+// Define your colors and text styles
 const Color textWhiteGrey = Color(0xFFF1F1F1);
 const Color textGrey = Color(0xFFAAAAAA);
 const TextStyle heading6 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
 
-// Dummy root widget for demonstration. Replace with your actual root widget.
+// Dummy root widget for demonstration
 class MobileAbsensiApp extends StatelessWidget {
   const MobileAbsensiApp({super.key});
 
@@ -27,11 +24,11 @@ class MobileAbsensiApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const Login(), // Your Login screen as the initial route
+      home: const Login(),
       routes: {
         '/login': (context) => const Login(),
-        '/dashboard': (context) => const DashboardScreen(), // Assuming you have a DashboardScreen
-        '/admin': (context) => const AdminScreen(), // Assuming you have an AdminScreen
+        '/dashboard': (context) => const DashboardScreen(),
+        '/admin': (context) => const AdminScreen(),
       },
     );
   }
@@ -72,7 +69,8 @@ class Login extends StatefulWidget {
 class LoginState extends State<Login> {
   bool passwordVisible = false;
   bool _isLoading = false;
-  bool _isDeviceInfoReady = false; // Track if device info is ready
+  bool _isDeviceInfoReady = false;
+  bool _deviceInfoError = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController username = TextEditingController();
   final TextEditingController password = TextEditingController();
@@ -83,25 +81,45 @@ class LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    _initializeDeviceInfo();
+    final deviceId = SpUtil.getString('device_id');
+    if (deviceId == null || deviceId.isEmpty) {
+        _initializeApp();
+    }
   }
 
-  // Initialize device info and wait for completion
+  // Initialize app with device info
+  Future<void> _initializeApp() async {
+    // Initialize shared preferences first
+    await SpUtil.getInstance();
+    
+    // Then get device info
+    await _initializeDeviceInfo();
+  }
+
+  // Initialize device info with retry mechanism
   Future<void> _initializeDeviceInfo() async {
     try {
       await initPlatformState();
       if (mounted) {
         setState(() {
           _isDeviceInfoReady = true;
+          _deviceInfoError = false;
         });
       }
     } catch (e) {
       if (kDebugMode) {
         print("Failed to initialize device info: $e");
       }
-      // Retry after 2 seconds if failed
-      Timer(const Duration(seconds: 2), () {
-        if (mounted) {
+      
+      if (mounted) {
+        setState(() {
+          _deviceInfoError = true;
+        });
+      }
+      
+      // Retry after 3 seconds if failed
+      Timer(const Duration(seconds: 3), () {
+        if (mounted && !_isDeviceInfoReady) {
           _initializeDeviceInfo();
         }
       });
@@ -118,66 +136,65 @@ class LoginState extends State<Login> {
     var deviceData = <String, dynamic>{};
 
     try {
-      // Get Android device info
-      final androidInfo = await deviceInfoPlugin.androidInfo;
-      deviceData = _readAndroidBuildData(androidInfo);
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        // Get Android device info
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        deviceData = _readAndroidBuildData(androidInfo);
 
-      // Store device info with validation
-      if (deviceData['id'] != null && deviceData['id'].toString().isNotEmpty) {
-        await SpUtil.putString('device_id', deviceData['id'].toString());
-        if (kDebugMode) {
-          print("Device ID stored: ${deviceData['id']}");
+        // Store device info with proper validation
+        String deviceId = deviceData['id']?.toString() ?? '';
+        if (deviceId.isEmpty) {
+          deviceId = androidInfo.id; // Use androidId as fallback
         }
+        
+        String systemVersion = deviceData['version.release']?.toString() ?? '';
+        if (systemVersion.isEmpty) {
+          systemVersion = androidInfo.version.release ?? 'Unknown';
+        }
+
+        await SpUtil.putString('device_id', deviceId);
+        await SpUtil.putString('system_version', systemVersion);
+
+        if (kDebugMode) {
+          print("Device ID stored: $deviceId");
+          print("System version stored: $systemVersion");
+        }
+
+        // Update internal device data
+        setState(() {
+          _deviceData = deviceData;
+        });
       } else {
-        // Fallback to androidId if id is null
-        final fallbackId = androidInfo.id;
-        await SpUtil.putString('device_id', fallbackId);
-        if (kDebugMode) {
-          print("Using fallback device ID: $fallbackId");
-        }
+        // For non-Android platforms, use fallback values
+        await _setFallbackDeviceInfo();
       }
-
-      if (deviceData['version.release'] != null && deviceData['version.release'].toString().isNotEmpty) {
-        await SpUtil.putString('system_version', deviceData['version.release'].toString());
-        if (kDebugMode) {
-          print("System version stored: ${deviceData['version.release']}");
-        }
-      } else {
-        // Fallback system version
-        await SpUtil.putString('system_version', 'Unknown');
-        if (kDebugMode) {
-          print("Using fallback system version: Unknown");
-        }
-      }
-
-      // Update internal device data
-      setState(() {
-        _deviceData = deviceData;
-      });
 
     } on PlatformException catch (e) {
       if (kDebugMode) {
         print("Platform exception: $e");
       }
-      // Set fallback values on error
-      await SpUtil.putString('device_id', 'fallback_device_${DateTime.now().millisecondsSinceEpoch}');
-      await SpUtil.putString('system_version', 'Unknown');
-      
-      deviceData = <String, dynamic>{
-        'Error:': 'Failed to get platform version: ${e.message}'
-      };
+      await _setFallbackDeviceInfo();
     } catch (e) {
       if (kDebugMode) {
         print("General exception in initPlatformState: $e");
       }
-      // Set fallback values on any error
-      await SpUtil.putString('device_id', 'fallback_device_${DateTime.now().millisecondsSinceEpoch}');
-      await SpUtil.putString('system_version', 'Unknown');
-      
-      deviceData = <String, dynamic>{
-        'Error:': 'Failed to get device information: $e'
-      };
+      await _setFallbackDeviceInfo();
     }
+  }
+
+  // Set fallback device information
+  Future<void> _setFallbackDeviceInfo() async {
+    final fallbackId = 'fallback_device_${DateTime.now().millisecondsSinceEpoch}';
+    await SpUtil.putString('device_id', fallbackId);
+    await SpUtil.putString('system_version', 'Unknown');
+    
+    setState(() {
+      _deviceData = {
+        'Error': 'Using fallback device info',
+        'id': fallbackId,
+        'version.release': 'Unknown'
+      };
+    });
   }
 
   Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
@@ -200,20 +217,16 @@ class LoginState extends State<Login> {
   void _startLoading() async {
     // Check if device info is ready before proceeding
     if (!_isDeviceInfoReady) {
-      if (mounted) {
+      if (_deviceInfoError) {
+        Alert.alerterror(context, 'Gagal mendapatkan informasi perangkat. Mohon restart aplikasi.');
+      } else {
         Alert.alertwarning(context, 'Sedang memuat informasi perangkat, mohon tunggu...');
       }
       return;
     }
 
-    // Validate device info before login
-    final deviceId = SpUtil.getString('device_id');
-    final systemVersion = SpUtil.getString('system_version');
-    
-    if (deviceId == null || deviceId.isEmpty || systemVersion == null || systemVersion.isEmpty) {
-      if (mounted) {
-        Alert.alerterror(context, 'Gagal mendapatkan informasi perangkat. Mohon restart aplikasi.');
-      }
+    // Validate form first
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -221,69 +234,56 @@ class LoginState extends State<Login> {
       _isLoading = true;
     });
 
-    if (_formKey.currentState!.validate()) {
-      try {
-        await _login(username.text, password.text);
-      } catch (error) {
-        if (kDebugMode) {
-          print("Error: $error");
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+    try {
+      await _login(username.text, password.text);
+    } catch (error) {
+      if (kDebugMode) {
+        print("Error: $error");
       }
-    } else {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        Alert.alerterror(context, 'Terjadi kesalahan saat login');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _login(String username, String password) async {
-    // Validate device info again before making API calls
+    // Validate device info
     final deviceId = SpUtil.getString('device_id');
     final systemVersion = SpUtil.getString('system_version');
     
     if (kDebugMode) {
+      print("Login attempt with:");
       print("Device ID: $deviceId");
       print("System Version: $systemVersion");
     }
 
-    if (deviceId == null || deviceId.isEmpty) {
+    if (deviceId == null || deviceId.isEmpty || systemVersion == null || systemVersion.isEmpty) {
       if (mounted) {
-        Alert.alerterror(context, 'Device ID tidak ditemukan. Mohon restart aplikasi.');
+        Alert.alerterror(context, 'Informasi perangkat tidak valid. Mohon restart aplikasi.');
       }
       return;
     }
 
-    if (systemVersion == null || systemVersion.isEmpty) {
-      if (mounted) {
-        Alert.alerterror(context, 'System version tidak ditemukan. Mohon restart aplikasi.');
-      }
-      return;
-    }
- 
-    setState(() {
-      _isLoading = true;
-    });
     try {
       final response = await post(
         Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/api/model_login2.php'),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',
-          'User-Agent': 'Dart/Flutter (mobile app)'
         },
         body: {
           'username': username,
           'password': password,
-          'device_id': SpUtil.getString('device_id'),
-          'system_version': SpUtil.getString('system_version'),
+          'device_id': deviceId,
+          'system_version': systemVersion,
         },
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
 
       final simpel = json.decode(response.body);
       if (response.statusCode == 200) {
@@ -299,23 +299,26 @@ class LoginState extends State<Login> {
             Alert.alertwarning(context, simpel["message"]);
           }
         }
+      } else {
+        if (mounted) {
+          Alert.alerterror(context, 'Server error: ${response.statusCode}');
+        }
+      }
+    } on TimeoutException {
+      if (mounted) {
+        Alert.alerterror(context, 'Timeout terhubung ke server');
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-          Alert.alerterror(context, 'Tidak dapat terhubung ke server, silahkan coba lagi nanti!');
-        });
+        Alert.alerterror(context, 'Tidak dapat terhubung ke server, silahkan coba lagi nanti!');
       }
       if (kDebugMode) {
         print(Exception(e));
       }
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    } 
+    }
   }
+
+  // ... (sisanya dari _handleSuccessfulLogin sampai _navigateToHome tetap sama)
 
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
     try {
@@ -476,24 +479,29 @@ class LoginState extends State<Login> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (!_isDeviceInfoReady) // Show loading indicator
+                      if (!_isDeviceInfoReady) // Show loading/error indicator
                         Padding(
                           padding: EdgeInsets.only(top: 8 * scaleFactor),
                           child: Row(
                             children: [
-                              SizedBox(
-                                width: 16 * scaleFactor,
-                                height: 16 * scaleFactor,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              if (_deviceInfoError)
+                                Icon(Icons.error_outline, color: Colors.orange, size: 16 * scaleFactor)
+                              else
+                                SizedBox(
+                                  width: 16 * scaleFactor,
+                                  height: 16 * scaleFactor,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
                                 ),
-                              ),
                               SizedBox(width: 8 * scaleFactor),
                               Text(
-                                'Memuat informasi perangkat...',
+                                _deviceInfoError 
+                                  ? 'Error mendapatkan info perangkat'
+                                  : 'Memuat informasi perangkat...',
                                 style: TextStyle(
-                                  color: Colors.white70,
+                                  color: _deviceInfoError ? Colors.orange : Colors.white70,
                                   fontSize: 12 * scaleFactor,
                                 ),
                               ),
@@ -536,33 +544,6 @@ class LoginState extends State<Login> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 25 * scaleFactor),
-                  // Debug info (remove in production)
-                  // if (kDebugMode && _isDeviceInfoReady)
-                    // Container(
-                    //   padding: EdgeInsets.all(8 * scaleFactor),
-                    //   decoration: BoxDecoration(
-                    //     color: Colors.black54,
-                    //     borderRadius: BorderRadius.circular(8),
-                    //   ),
-                    //   child: Column(
-                    //     crossAxisAlignment: CrossAxisAlignment.start,
-                    //     children: [
-                    //       Text(
-                    //         'Debug Info:',
-                    //         style: TextStyle(color: Colors.white, fontSize: 12 * scaleFactor, fontWeight: FontWeight.bold),
-                    //       ),
-                    //       Text(
-                    //         'Device ID: ${SpUtil.getString('device_id') ?? 'null'}',
-                    //         style: TextStyle(color: Colors.white, fontSize: 10 * scaleFactor),
-                    //       ),
-                    //       Text(
-                    //         'System Version: ${SpUtil.getString('system_version') ?? 'null'}',
-                    //         style: TextStyle(color: Colors.white, fontSize: 10 * scaleFactor),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
                 ],
               ),
             ),

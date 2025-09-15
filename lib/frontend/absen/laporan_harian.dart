@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
+import 'package:mobileabsensi/screenshoot.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/services/refresh.dart';
 import 'package:mobileabsensi/widget/widget_navbar.dart';
@@ -20,6 +21,7 @@ class LaporanHarian extends StatefulWidget {
 class _LaporanHarianState extends State<LaporanHarian>
     with TickerProviderStateMixin {
         bool _enabled = true;
+  final GlobalKey _screenshotKey = GlobalKey();
 
 
   List<dynamic> riwayatLaporan = [];
@@ -32,7 +34,8 @@ class _LaporanHarianState extends State<LaporanHarian>
   bool value = false;
   List<DataRow> _rows = [];
   bool isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
-
+  Offset _cameraPosition = Offset.zero;
+  bool _isDragging = false;
   void dataChange() {
     setState(() {
       value = true;
@@ -275,6 +278,12 @@ class _LaporanHarianState extends State<LaporanHarian>
   Widget build(BuildContext context) {
         Size size = MediaQuery.of(context).size; 
         var isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
+        if (_cameraPosition == Offset.zero) {
+      _cameraPosition = Offset(
+        MediaQuery.of(context).size.width - 80, 
+        MediaQuery.of(context).size.height * 0.5 - 30
+      );
+    }
     return Scaffold(
   body: Skeletonizer(
                       enabled: _enabled,
@@ -282,147 +291,198 @@ class _LaporanHarianState extends State<LaporanHarian>
     child: Stack(
       children: [
         WidgetNavbar(title: 'Riwayat Laporan Harian',),
-        Column(
-          children: [
-            SizedBox(height: size.height * 0.15),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, -3),
+        RepaintBoundary(
+            key: _screenshotKey,
+          child: Column(
+            children: [
+              SizedBox(height: size.height * 0.15),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
-                  ],
-                ),
-                child: ListView(
-                  padding: EdgeInsets.all(16),
-                  children: [
-                    const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text(
-                              'Riwayat Laporan Harian',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color.fromARGB(255, 50, 50, 50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child: ListView(
+                    padding: EdgeInsets.all(16),
+                    children: [
+                      const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text(
+                                'Riwayat Laporan Harian',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 50, 50, 50),
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                          ),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFF0F4FD),
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(5)),
-                                  ),
-                                  child: DropdownButton<String>(
-                                    value: selectedMonth,
-                                    hint: const Text('Pilih Bulan'),
-                                    onChanged: (newValue) {
-                                      setState(() {
-                                        selectedMonth = newValue!;
-                                      });
-                                    },
-                                    items: [
-                                      'Januari',
-                                      'Februari',
-                                      'Maret',
-                                      'April',
-                                      'Mei',
-                                      'Juni',
-                                      'Juli',
-                                      'Agustus',
-                                      'September',
-                                      'Oktober',
-                                      'November',
-                                      'Desember',
-                                    ].map<DropdownMenuItem<String>>(
-                                        (String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFF0F4FD),
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(5)),
-                                  ),
-                                  child: DropdownButton<String>(
-                                    value: selectedYear,
-                                    hint: const Text('Pilih Tahun'),
-                                    onChanged: (newValue) {
-                                      setState(() {
-                                        selectedYear = newValue!;
-                                      });
-                                    },
-                                    items: _getYearItems(),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color.fromARGB(255, 67, 60, 130),
-                                  ),
-                                  onPressed: () async {
-    
-                                    if (!isLoading) {
-                                      setState(() {
-                                        isLoading = true;
-                                      });
-                                      await Future.delayed(const Duration(seconds: 3));
-                                    searchData(selectedMonth, selectedYear);
-                                    }
-                                  },
-                                  child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                            Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  isLoading
-                                    ? Container(
-                                        width: 16,
-                                        height: 16,
-                                        margin: const EdgeInsets.only(right: 8),
-                                        child: const CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : 
-                                  const Text('Cari',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                    )),
+                                  Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFFF0F4FD),
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(5)),
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: selectedMonth,
+                                      hint: const Text('Pilih Bulan'),
+                                      onChanged: (newValue) {
+                                        setState(() {
+                                          selectedMonth = newValue!;
+                                        });
+                                      },
+                                      items: [
+                                        'Januari',
+                                        'Februari',
+                                        'Maret',
+                                        'April',
+                                        'Mei',
+                                        'Juni',
+                                        'Juli',
+                                        'Agustus',
+                                        'September',
+                                        'Oktober',
+                                        'November',
+                                        'Desember',
+                                      ].map<DropdownMenuItem<String>>(
+                                          (String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFFF0F4FD),
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(5)),
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: selectedYear,
+                                      hint: const Text('Pilih Tahun'),
+                                      onChanged: (newValue) {
+                                        setState(() {
+                                          selectedYear = newValue!;
+                                        });
+                                      },
+                                      items: _getYearItems(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color.fromARGB(255, 67, 60, 130),
+                                    ),
+                                    onPressed: () async {
+              
+                                      if (!isLoading) {
+                                        setState(() {
+                                          isLoading = true;
+                                        });
+                                        await Future.delayed(const Duration(seconds: 3));
+                                      searchData(selectedMonth, selectedYear);
+                                      }
+                                    },
+                                    child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    isLoading
+                                      ? Container(
+                                          width: 16,
+                                          height: 16,
+                                          margin: const EdgeInsets.only(right: 8),
+                                          child: const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : 
+                                    const Text('Cari',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      )),
+                                  ],
+                                ),
+                                  ),
                                 ],
                               ),
-                                ),
-                              ],
-                            ),
-            _buildCards()
-    
-                  ],
+              _buildCards()
+              
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+            left: _cameraPosition.dx,
+            top: _cameraPosition.dy,
+            child: GestureDetector(
+              onPanStart: (details) {
+                setState(() {
+                  _isDragging = true;
+                });
+              },
+              onPanUpdate: (details) {
+                setState(() {
+                  _cameraPosition += details.delta;
+                  
+                  // Batasi agar tidak keluar dari layar
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final screenHeight = MediaQuery.of(context).size.height;
+                  
+                  if (_cameraPosition.dx < 0) _cameraPosition = Offset(0, _cameraPosition.dy);
+                  if (_cameraPosition.dx > screenWidth - 60) {
+                    _cameraPosition = Offset(screenWidth - 60, _cameraPosition.dy);
+                  }
+                  if (_cameraPosition.dy < 0) _cameraPosition = Offset(_cameraPosition.dx, 0);
+                  if (_cameraPosition.dy > screenHeight - 60) {
+                    _cameraPosition = Offset(_cameraPosition.dx, screenHeight - 60);
+                  }
+                });
+              },
+              onPanEnd: (details) {
+                setState(() {
+                  _isDragging = false;
+                });
+              },
+              child: Opacity(
+                opacity: _isDragging ? 0.8 : 1.0,
+                child: ScreenshotButton(
+                  screenshotKey: _screenshotKey,
+                  onScreenshotTaken: () {
+                    print('Screenshot berhasil diambil dari Dashboard!');
+                  },
+                  onScreenshotSaved: (String? path) {
+                    if (path != null) {
+                      print('Screenshot disimpan di: $path');
+                    }
+                  },
                 ),
               ),
             ),
-          ],
-        ),
+          ),
       ],
     ),
   ),

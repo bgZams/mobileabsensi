@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
@@ -33,12 +33,12 @@ import 'package:mobileabsensi/frontend/senam.dart';
 import 'package:mobileabsensi/notifikasi/notification_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
+import 'package:mobileabsensi/services/global_screenshot_button.dart';
 import 'package:mobileabsensi/singgah.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:flutter/services.dart';
 // Tambahkan import untuk screenshot
 // import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 // Global Declarations
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -111,7 +111,40 @@ void main() async {
       if (kDebugMode) print("Error getting device info: $e");
     }
   }
+  // Initialize Shared Preferences
+  await SpUtil.getInstance();
+  
+  // Check if device_id exists
+  String? deviceId = SpUtil.getString('device_id');
+  
+  if (deviceId == null || deviceId.isEmpty) {
+    // Get device info first
+    await _initializeDeviceInfo();
+  }
   runApp(const MyApp());
+}
+
+Future<void> _initializeDeviceInfo() async {
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  
+  try {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final androidInfo = await deviceInfoPlugin.androidInfo;
+      String deviceId = androidInfo.id;
+      String systemVersion = androidInfo.version.release ?? 'Unknown';
+      
+      await SpUtil.putString('device_id', deviceId);
+      await SpUtil.putString('system_version', systemVersion);
+    } else {
+      // For iOS/web/other platforms
+      await SpUtil.putString('device_id', 'fallback_${DateTime.now().millisecondsSinceEpoch}');
+      await SpUtil.putString('system_version', 'Unknown');
+    }
+  } catch (e) {
+    // Fallback if error occurs
+    await SpUtil.putString('device_id', 'fallback_${DateTime.now().millisecondsSinceEpoch}');
+    await SpUtil.putString('system_version', 'Unknown');
+  }
 }
 
 // Notification Payload Handler
@@ -256,6 +289,8 @@ void processSnapshot(DataSnapshot? snapshot, String notificationType) async {
   }
 }
 
+
+
 // Main App Widget
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -265,6 +300,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  //   Timer? _timer;
+  // bool _isDeviceInfoReady = false;
+  // final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  // Map<String, dynamic> _deviceData = <String, dynamic>{};
+  
   @override
   void initState() {
     super.initState();
@@ -273,10 +313,11 @@ class _MyAppState extends State<MyApp> {
       if (payload != null && navigatorKey.currentState != null) {
         _handleNotificationPayloadInMain(payload);
       }
-    });
-    // WidgetsBinding.instance.addPostFrameCallback((_) => enableSecureScreen());
+    }); 
   }
+
   
+
   @override
   Widget build(BuildContext context) {
     final idGroups = SpUtil.getString('id_groups');
@@ -293,29 +334,29 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Mobile Absensi',
       navigatorKey: navigatorKey,
-      home: homeWidget,
+      home: GlobalScreenshot(child: homeWidget),
       routes: {
-        '/login-first': (context) => const LoginFirst(),
-        '/login': (context) => const Login(),
-        '/absen': (context) => const Absen(),
-        '/dashboard': (context) => Dashboard(initialIndex: 0),
-        '/absen-masuk': (context) => const Absen(),
-        '/profil': (context) => const Profile(),
-        '/riwayat': (context) => const RiwayatAbsen(),
-        '/laporan': (context) => const Laporan(),
-        '/create-laporan': (context) => const BuatLaporan(),
-        '/riwayat-laporan': (context) => const LaporanHarian(),
-        '/riwayat-laporan/pengajuan': (context) => const RiwayatPengajuanLhk(),
-        '/status-laporan': (context) => const StatusLaporan(),
-        '/izin': (context) => const Izin(),
-        '/buat_izin': (context) => const BuatIzin(),
-        '/konfirmasi-izin': (context) => const KonfirmasiIzin(),
-        '/detail-konfirmasi-izin': (context) => const DetailKonfirmasiIzinAtasan(),
-        '/apel': (context) => const Apel(),
-        '/senam': (context) => const Senam(),
-        '/pengumuman': (context) => const Pengumuman(),
-        '/wifi/pending': (context) => const WifiPendding(),
-        '/admin': (context) => const Admin(),
+        '/login-first': (context) => GlobalScreenshot(child: const LoginFirst()),
+        '/login': (context) => GlobalScreenshot(child: const Login()),
+        '/absen': (context) => GlobalScreenshot(child: const Absen()),
+        '/dashboard': (context) => GlobalScreenshot(child: Dashboard(initialIndex: 0)),
+        '/absen-masuk': (context) => GlobalScreenshot(child: const Absen()),
+        '/profil': (context) => GlobalScreenshot(child: const Profile()),
+        '/riwayat': (context) => GlobalScreenshot(child: const RiwayatAbsen()),
+        '/laporan': (context) => GlobalScreenshot(child: const Laporan()),
+        '/create-laporan': (context) => GlobalScreenshot(child: const BuatLaporan()),
+        '/riwayat-laporan': (context) => GlobalScreenshot(child: const LaporanHarian()),
+        '/riwayat-laporan/pengajuan': (context) => GlobalScreenshot(child: const RiwayatPengajuanLhk()),
+        '/status-laporan': (context) => GlobalScreenshot(child: const StatusLaporan()),
+        '/izin': (context) => GlobalScreenshot(child: const Izin()),
+        '/buat_izin': (context) => GlobalScreenshot(child: const BuatIzin()),
+        '/konfirmasi-izin': (context) => GlobalScreenshot(child: const KonfirmasiIzin()),
+        '/detail-konfirmasi-izin': (context) => GlobalScreenshot(child: const DetailKonfirmasiIzinAtasan()),
+        '/apel': (context) => GlobalScreenshot(child: const Apel()),
+        '/senam': (context) => GlobalScreenshot(child: const Senam()),
+        '/pengumuman': (context) => GlobalScreenshot(child: const Pengumuman()),
+        '/wifi/pending': (context) => GlobalScreenshot(child: const WifiPendding()),
+        '/admin': (context) => GlobalScreenshot(child: const Admin()),
       },
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name!);
@@ -336,11 +377,10 @@ class _MyAppState extends State<MyApp> {
             default:
               return null;
           }
-          return MaterialPageRoute(builder: (context) => page!);
+          return MaterialPageRoute(builder: (context) => GlobalScreenshot(child: page!));
         }
         return null;
       },
-      
     );
   }
 }
