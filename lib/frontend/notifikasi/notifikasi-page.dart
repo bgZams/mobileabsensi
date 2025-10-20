@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
 import 'package:mobileabsensi/frontend/izin/detail_izin.dart';
 import 'package:mobileabsensi/services/alert.dart';
-import 'package:mobileabsensi/services/refresh.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
 
@@ -101,153 +101,135 @@ class _NotifikasiPageState extends State<NotifikasiPage>
   }
 
   Future<void> _fetchData() async {
-    final idUser = SpUtil.getString("id_user");
-    String selectedMonthNumber = _getMonthNumber(selectedMonth);
-    try {
-      String subUrl = '';
+  final idUser = SpUtil.getString("id_user");
+  String selectedMonthNumber = _getMonthNumber(selectedMonth);
+  try {
+    String subUrl = '';
+    if (selectedIndex == 0) {
+      subUrl = '$url/api/izin/riwayat-izin/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
+    } else {
+      subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
+    }
+    final response = await http.get(
+      Uri.parse(subUrl),
+      headers: {
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+      
       if (selectedIndex == 0) {
-        subUrl = '$url/api/izin/riwayat-izin/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
-      } else {
-        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser';
-      }
-
-      final response = await http.get(
-        Uri.parse(subUrl),
-        headers: {
-          'Content-type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-
-        setState(() {
-          if (selectedIndex == 0) {
-            final List<dynamic> responseData = json.decode(response.body)['data'];
-            
-            if (mounted) {
-              setState(() {
-              _riwayatIzin = responseData;
+        // Logika untuk tab Izin
+        if (jsonData.containsKey('data')) {
+          final responseData = jsonData['data'];
+          if (mounted) {
+            setState(() {
+              _riwayatIzin = responseData.cast<Map<String, dynamic>>();
               _controller?.animateTo(0);
               isLoading = false;
             });
-            }
-            
-            _riwayatIzin = responseData.cast<Map<String, dynamic>>();
-          } else {
-            _riwayatLaporan = jsonData['data'];
-            if (mounted) {
-              setState(() {
-                _riwayatLaporan = jsonData['data'];
-                _controller?.animateTo(1);
-                isLoading = false;
-              });
-            }
-            if (jsonData.containsKey('data')) {
-              final dataList = jsonData['data'] as List<dynamic>;
-
-              setState(() {
-                _rows = dataList.map((data) => DataRow(cells: [
-                      DataCell(Text(data['id'].toString())),
-                      DataCell(Text(data['tgl'] ?? 'N/A')),
-                      DataCell(Text(data['jammulai'] ?? 'N/A')),
-                      DataCell(Text(data['jamselesai'] ?? 'N/A')),
-                      DataCell(Text(data['rincian_kegiatan'] ?? 'N/A')),
-                      DataCell(Text(data['status'] ?? 'N/A')),
-                    ])).toList();
-                isLoading = false;
-              });
-            } else {
-              setState(() {
-                isLoading = false;
-              });
-              throw Exception('Failed to load data');
-            }
           }
-        });
-
-        
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-        throw Exception('HTTP Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-      // print("Error fetching data: $e");
-    }
-  }
-  
-  Future<void> _searchData(selectedMonth, selectedYear) async {
-    final idUser = SpUtil.getString("id_user");
-    String selectedMonthNumber = _getMonthNumber(selectedMonth);
-    try {
-      String subUrl = '';
-      if (selectedIndex == 0) {
-        subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser';
-      } else {
-        subUrl = '$url/api/riwayat-lhk/$idUser/$selectedMonthNumber/$selectedYear';
-      }
-      final response = await http.get(
-        Uri.parse(subUrl),
-        headers: {
-          'Content-type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-
-        setState(() {
-          if (selectedIndex == 0) {
-            _riwayatLaporan = jsonData['data'];
-          } else {
-            _riwayatIzin = jsonData['data'];
-          }
-        });
-
-        if (jsonData.containsKey('data')) {
-          final dataList = jsonData['data'] as List<dynamic>;
-
-          setState(() {
-            _rows = dataList.map((data) => DataRow(cells: [
-                  DataCell(Text(data['id'].toString())),
-                  DataCell(Text(data['tgl'] ?? 'N/A')),
-                  DataCell(Text(data['jammulai'] ?? 'N/A')),
-                  DataCell(Text(data['jamselesai'] ?? 'N/A')),
-                  DataCell(Text(data['rincian_kegiatan'] ?? 'N/A')),
-                  DataCell(Text(data['status'] ?? 'N/A')),
-                ])).toList();
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            isLoading = false;
-          });
-          throw Exception('Failed to load data');
         }
       } else {
-        setState(() {
-          isLoading = false;
-        });
-        throw Exception('HTTP Error: ${response.statusCode}');
+        // Logika untuk tab LHK
+        if (jsonData.containsKey('data')) {
+          final dataList = jsonData['data'] as List<dynamic>;
+          if (mounted) {
+            setState(() {
+              _riwayatLaporan = dataList.cast<Map<String, dynamic>>();
+              _rows = dataList.map((data) => DataRow(cells: [
+                DataCell(Text(data['id'].toString())),
+                DataCell(Text(data['tgl'] ?? 'N/A')),
+                DataCell(Text(data['jammulai'] ?? 'N/A')),
+                DataCell(Text(data['jamselesai'] ?? 'N/A')),
+                DataCell(Text(data['rincian_kegiatan'] ?? 'N/A')),
+                DataCell(Text(data['status'] ?? 'N/A')),
+              ])).toList();
+              _controller?.animateTo(1);
+              isLoading = false;
+            });
+          }
+        }
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-      // print("Error fetching data: $e");
+    } else {
+      // ... (handle error)
     }
+  } catch (e) {
+    // ... (handle error)
   }
+}
+  
+  Future<void> _searchData(selectedIndex, selectedMonth, selectedYear) async {
+  final idUser = SpUtil.getString("id_user");
+  String selectedMonthNumber = _getMonthNumber(selectedMonth);
+  try {
+    String subUrl = '';
+    if (selectedIndex == 0) {
+      subUrl = '$url/api/izin/riwayat-izin/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
+    } else {
+      subUrl = '$url/api/riwayat-lhk/pengajuan/$idUser/$selectedMonthNumber/$selectedYear';
+    }
+    final response = await http.get(
+      Uri.parse(subUrl),
+      headers: {
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (selectedIndex == 0) {
+        // Logika untuk tab Izin
+        if (jsonData.containsKey('data')) {
+          final dataList = jsonData['data'] as List<dynamic>;
+          setState(() {
+            _riwayatIzin = dataList.cast<Map<String, dynamic>>();
+            isLoading = false;
+            // Tampilkan pesan sukses jika perlu
+          });
+        }
+      } else {
+        // Logika untuk tab LHK
+        if (jsonData.containsKey('data')) {
+          final dataList = jsonData['data'] as List<dynamic>;
+          setState(() {
+            _riwayatLaporan = dataList.cast<Map<String, dynamic>>();
+            _rows = dataList.map((data) => DataRow(cells: [
+              DataCell(Text(data['id'].toString())),
+              DataCell(Text(data['tgl'] ?? 'N/A')),
+              DataCell(Text(data['jammulai'] ?? 'N/A')),
+              DataCell(Text(data['jamselesai'] ?? 'N/A')),
+              DataCell(Text(data['rincian_kegiatan'] ?? 'N/A')),
+              DataCell(Text(data['status'] ?? 'N/A')),
+            ])).toList();
+            isLoading = false;
+            // Tampilkan pesan sukses jika perlu
+          });
+        }
+      }
+
+      // Tampilkan SnackBar sukses di sini setelah logika if/else selesai
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data berhasil dimuat'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } else {
+      // ... (handle error)
+    }
+  } catch (e) {
+    // ... (handle error)
+  }
+}
 
   Future<void> _deleteLaporan(String id) async {
     final urlDel = '$url/api/delete-lhk/$id';
@@ -261,7 +243,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
           Alert.alertsuccess(context, message);
           _refreshData();
         }
-      } else {
+      } else { 
         throw Exception('Failed to delete report');
       }
     } catch (error) {
@@ -271,17 +253,13 @@ class _NotifikasiPageState extends State<NotifikasiPage>
     }
   }
 
-  Future<void> _refreshData() async {
-    if (SyncLimiter.canSync()) {
+  Future<void> _refreshData() async { 
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
           _fetchData();
         });
-      }
-    } else {
-      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    }
+      } 
   }
 
   void navigateToEditLaporan(Map<String, dynamic> data) async {
@@ -327,6 +305,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                     ],
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Padding(
                         padding: EdgeInsets.all(16),
@@ -373,7 +352,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                                     ),
                                     SizedBox(width: 8),
                                     Text(
-                                      "Pengajuan",
+                                      "Izin",
                                       style: TextStyle(
                                         color: selectedIndex == 0 ? Colors.white : Colors.black87,
                                       ),
@@ -491,173 +470,189 @@ class _NotifikasiPageState extends State<NotifikasiPage>
                                     isLoading = true;
                                   });
                                   await Future.delayed(const Duration(seconds: 2));
-                                  // _cariData(selectedMonth, selectedYear);
+                                  _searchData(selectedIndex, selectedMonth, selectedYear);
                                 }
                               },
-                              child: const Text('Cari',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                  )),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  isLoading
+                                    ? Container(
+                                        width: 16,
+                                        height: 16,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        child: const CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : 
+                                  const Text('Cari',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    )),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
-                              if(selectedIndex == 0)
-
-                      Expanded(
-                        child: RefreshIndicator(
+                              Expanded(
+  child: selectedIndex == 0 
+    ?  RefreshIndicator(
                           onRefresh: _refreshData,
-                          child: ListView.builder(
-                            itemCount: _riwayatIzin.length,
-                            itemBuilder: (context, index) {
-                              Text jenisStatus;
-                          
-                              switch (_riwayatIzin[index]['jenis_approval'].toString()) {
-                                case '2':
-                                  jenisStatus = const Text('Dinas Luar ',
-                                      style: TextStyle(color: Colors.black));
-                                  break;
-                                case '3':
-                                  jenisStatus = const Text('Izin ',
-                                      style: TextStyle(color: Colors.black));
-                                  break;
-                                case '4':
-                                  jenisStatus = const Text('Sakit ',
-                                      style: TextStyle(color: Colors.black));
-                                  break;
-                                case '5':
-                                  jenisStatus = const Text('IDLK ',
-                                      style: TextStyle(color: Colors.black));
-                                  break;
-                                case '6':
-                                  jenisStatus = const Text('Cuti ',
-                                      style: TextStyle(color: Colors.black));
-                                  break;
-                                default:
-                                  jenisStatus = const Text('Belum Disetujui ',
-                                      style: TextStyle(color: Colors.black));
-                              }
-                          
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 8,right: 8),
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      height: 1,
-                                      color: const Color.fromARGB(255, 215, 215, 215), // Warna border biru
-                                    ),
-                                    ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.start,
+                          color: const Color.fromARGB(255, 67, 60, 130),
+                          backgroundColor: Colors.white,
+                          strokeWidth: 3,
+                          child: Skeletonizer(
+                            enabled: isLoading,
+                            child: ListView.builder(
+                              itemCount: _riwayatIzin.length,
+                              itemBuilder: (context, index) {
+                                Text jenisStatus;
+                            
+                                switch (_riwayatIzin[index]['jenis_approval'].toString()) {
+                                  case '2':
+                                    jenisStatus = const Text('Dinas Luar ',
+                                        style: TextStyle(color: Colors.black));
+                                    break;
+                                  case '3':
+                                    jenisStatus = const Text('Izin ',
+                                        style: TextStyle(color: Colors.black));
+                                    break;
+                                  case '4':
+                                    jenisStatus = const Text('Sakit ',
+                                        style: TextStyle(color: Colors.black));
+                                    break;
+                                  case '5':
+                                    jenisStatus = const Text('IDLK ',
+                                        style: TextStyle(color: Colors.black));
+                                    break;
+                                  case '6':
+                                    jenisStatus = const Text('Cuti ',
+                                        style: TextStyle(color: Colors.black));
+                                    break;
+                                  default:
+                                    jenisStatus = const Text('Belum Disetujui ',
+                                        style: TextStyle(color: Colors.black));
+                                }
+                            
+                                return InkWell(
+                                  onTap: () {
+                                    navigateToDetailPage(
+                                        _riwayatIzin[index],
+                                        (_riwayatIzin[index]['no_urut']));
+                                  },
+                                  splashColor: const Color.fromARGB(60, 179, 2, 218),
+                                  highlightColor: Colors.white10,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 8,right: 8),
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          height: 1,
+                                          color: const Color.fromARGB(255, 215, 215, 215), // Warna border biru
+                                        ),
+                                        ListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Expanded(
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(8.0),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
-                                              .format(DateTime.parse(_riwayatIzin[index]['tgl_group']
-                                                            .toString()))
-                                                        ,
-                                                        style: const TextStyle(
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 16),
-                                                      ),
-                                                      Row(
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(8.0),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment.start,
                                                         children: [
-                                                          jenisStatus,
-                                                          if (_riwayatIzin[index][
-                                                                      'id_keterangan'] !=
-                                                                  null &&
-                                                              _riwayatIzin[index]
-                                                                      ['tgl_absen'] ==
-                                                                  DateTime.now()
-                                                                      .toString())
-                                                            const Chip(
-                                                              padding:
-                                                                  EdgeInsets.all(0),
-                                                              backgroundColor:
-                                                                  Colors.red,
-                                                              label: Text(
-                                                                  'Pulang Cepat',
-                                                                  style: TextStyle(
-                                                                      color: Colors
-                                                                          .white)),
-                                                            ),
+                                                          Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
+                                                  .format(DateTime.parse(_riwayatIzin[index]['tgl_group']
+                                                                .toString()))
+                                                            ,
+                                                            style: const TextStyle(
+                                                                fontWeight: FontWeight.bold,
+                                                                fontSize: 16),
+                                                          ),
+                                                          Row(
+                                                            children: [
+                                                              jenisStatus,
+                                                              if (_riwayatIzin[index][
+                                                                          'id_keterangan'] !=
+                                                                      null &&
+                                                                  _riwayatIzin[index]
+                                                                          ['tgl_group'] ==
+                                                                      DateTime.now()
+                                                                          .toString())
+                                                                const Chip(
+                                                                  padding:
+                                                                      EdgeInsets.all(0),
+                                                                  backgroundColor:
+                                                                      Colors.red,
+                                                                  label: Text(
+                                                                      'Pulang Cepat',
+                                                                      style: TextStyle(
+                                                                          color: Colors
+                                                                              .white)),
+                                                                ),
+                                                            ],
+                                                          ),
+                                                          Text(
+                                                            '${_riwayatIzin[index]['durasi']} Hari',
+                                                            style: const TextStyle(
+                                                                color: Colors.black),
+                                                          )
                                                         ],
                                                       ),
-                                                      Text(
-                                                        '${_riwayatIzin[index]['durasi']} Hari',
-                                                        style: const TextStyle(
-                                                            color: Colors.black),
-                                                      )
+                                                    ),
+                                                  ),
+                                                  Column(
+                                                    children: [
+                                                      if (_riwayatIzin[index]['status_approval'] == 1 || _riwayatIzin[index]['status_approval'] == 5 &&
+                                                          _riwayatIzin[index]['timestamp'] != null &&
+                                                          DateTime.parse(_riwayatIzin[index]['timestamp'] )
+                                                              .isAfter(DateTime.now().subtract(const Duration(days: 1))))
+                                                        IconButton(
+                                                          padding: EdgeInsets.zero,
+                                                          icon: const Icon(
+                                                            Icons.delete,
+                                                            color: Colors.red,
+                                                            size: 30,
+                                                          ),
+                                                          onPressed: (){
+                                                            var id = _riwayatIzin[index]['id_approval'].toString();
+                                                            var statusJenis = _riwayatIzin[index]['jenis_approval'].toString();
+                                                            _confirmDelete(id, statusJenis);
+                                                          },
+                                                        ),
                                                     ],
                                                   ),
-                                                ),
-                                              ),
-                                              Column(
-                                                children: [
-                                                  IconButton(
-                                                    padding: EdgeInsets.zero,
-                                                    icon: Icon(
-                                                      Icons.remove_red_eye,
-                                                      color: Color.fromARGB(255, 67, 60, 130)),
-                                                    onPressed: () =>
-                                                        navigateToDetailPage(
-                                                            _riwayatIzin[index],
-                                                            (_riwayatIzin[index]
-                                                                ['no_urut'])),
-                                                  ),
                                                   const SizedBox(
-                                                    height: 2,
+                                                    width: 8,
                                                   ),
-                                                  if (_riwayatIzin[index]
-                                                              ['status_approval'] ==
-                                                          1 &&
-                                                      DateTime.parse(_riwayatIzin[index]
-                                                              ['timestamp'])
-                                                          .isAfter(DateTime.now()
-                                                              .subtract(const Duration(
-                                                                  days: 1))))
-                                                    IconButton(
-                                                      padding: EdgeInsets.zero,
-                                                      icon: const Icon(
-                                                        Icons.delete,
-                                                        color: Colors.red,
-                                                      ),
-                                                      onPressed: () => _confirmDelete(
-                                                          _riwayatIzin[index]
-                                                              ['id_approval']),
-                                                    ),
                                                 ],
                                               ),
                                               const SizedBox(
-                                                width: 8,
+                                                height: 4,
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(
-                                            height: 4,
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                      )
-                      else
-                      _buildCards(),
+                        )
+                      
+                      : _buildCards(),
+                              ),
+                      
                     ],
                   ),
                 ),
@@ -670,160 +665,172 @@ class _NotifikasiPageState extends State<NotifikasiPage>
   }
 
   Widget _buildCards() {
-    Map<String, List<DataRow>> groupedData = {};
-    for (var dataRow in _rows) {
-      final date = (dataRow.cells[1].child as Text).data!; // Assuming the date is in the second cell
-      groupedData.putIfAbsent(date, () => []).add(dataRow);
-    }
-    List<Widget> cards = groupedData.entries.map((entry) {
-      List<Widget> rowWidgets = entry.value.map((dataRow) {
-        final cells = dataRow.cells;
-        final id = (cells[0].child as Text).data!;
-        final tgl = (cells[1].child as Text).data!;
-        final jammulai = (cells[2].child as Text).data!;
-        final jamselesai = (cells[3].child as Text).data!;
-        final kegiatan = (cells[4].child as Text).data!;
-        final status = (cells[5].child as Text).data!;
-        IconData statusIcon;
-        Color statusColor;
-        switch (status) {
-          case '1':
-            statusIcon = Icons.check;
-            statusColor = Colors.green;
-            break;
-          case '2':
-            statusIcon = Icons.delete;
-            statusColor = Colors.red;
-            break;
-          default:
-            statusIcon = Icons.delete;
-            statusColor = Colors.red;
-        }
+  Map<String, List<DataRow>> groupedData = {};
+  for (var dataRow in _rows) {
+    final date = (dataRow.cells[1].child as Text).data!; // Assuming the date is in the second cell
+    groupedData.putIfAbsent(date, () => []).add(dataRow);
+  }
 
-        IconData delIcon;
-        switch (status) {
-          case '1':
-            delIcon = Icons.delete;
-            break;
-          case '2':
-            delIcon = Icons.delete;
-            break;
-          default:
-            delIcon = Icons.delete;
-        }
+  List<Widget> cards = groupedData.entries.map((entry) {
+    final reportDate = DateFormat('yyyy-MM-dd').parse(entry.key);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day); // Only date part
+    final threeDaysAgo = today.subtract(const Duration(days: 3));
 
-        bool isToday = tgl == DateFormat('yyyy-MM-dd').format(DateTime.now());
-        DateTime jamMasukTime = DateFormat("HH:mm").parse(jammulai);
-        DateTime jamPulangTime = DateFormat("HH:mm").parse(jamselesai);
-        return Column(
+    // Get the last day of the current month
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    // Condition to enable edit/delete
+    // The report date must be greater than or equal to 3 days ago from today AND
+    // the report date must be before or on the last day of the current month.
+    bool canModify = !reportDate.isBefore(threeDaysAgo) && !reportDate.isAfter(lastDayOfMonth);
+
+    Color cardColor = canModify ? Colors.white : Colors.grey[300]!; // Normal or disabled card color
+    Color textColor = canModify ? Colors.black : Colors.grey[600]!; // Normal or disabled text color
+
+    List<Widget> rowWidgets = entry.value.map((dataRow) {
+      final cells = dataRow.cells;
+      final id = (cells[0].child as Text).data!;
+      final tgl = (cells[1].child as Text).data!;
+      final jammulai = (cells[2].child as Text).data!;
+      final jamselesai = (cells[3].child as Text).data!;
+      final kegiatan = (cells[4].child as Text).data!;
+      final status = (cells[5].child as Text).data!;
+
+      DateTime jamMasukTime = DateFormat("HH:mm").parse(jammulai);
+      DateTime jamPulangTime = DateFormat("HH:mm").parse(jamselesai);
+                DateTime tglDateTime = DateFormat('yyyy-MM-dd').parse(tgl);
+
+      return Skeletonizer(
+        enabled: isLoading,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-          Row(
-            children: [
-              const Icon(Icons.access_time, color: Colors.blue),
-              Text(DateFormat("HH:mm").format(jamMasukTime)),
-              SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_outlined),
-              SizedBox(width: 8),
-              Text(DateFormat("HH:mm").format(jamPulangTime)),
-            ],
+                Row(
+                  children: [
+                    Skeleton.replace(child: Icon(Icons.access_time, color: canModify ? Colors.blue : textColor)),
+                    Text(DateFormat("HH:mm").format(jamMasukTime), style: TextStyle(color: textColor)),
+                    const SizedBox(width: 8),
+                    Skeleton.replace(child: Icon(Icons.arrow_forward_outlined, color: canModify ? null : textColor)),
+                    const SizedBox(width: 8),
+                    Text(DateFormat("HH:mm").format(jamPulangTime), style: TextStyle(color: textColor)),
+                  ],
+                ),
+                if (canModify || status == '2')
+        
+        Row(
+          children: [
+            InkWell(
+        onTap: () {
+          if (tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year) {
+            navigateToEditLaporan({
+              'id': id,
+              'tgl': tgl,
+              'jammulai': jammulai,
+              'jamselesai': jamselesai,
+              'kegiatan': kegiatan,
+              'status': status,
+            });
+          }
+        },
+        child: Skeleton.replace(
+          child: CircleAvatar(
+            backgroundColor: tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year ? Colors.green : Colors.red,
+            radius: 15,
+            child: Icon(
+              tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year ? Icons.edit : Icons.close,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
-                if (isToday)
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          navigateToEditLaporan({
-                            'id': id,
-                            'tgl': tgl,
-                            'jammulai': jammulai,
-                            'jamselesai': jamselesai,
-                            'kegiatan': kegiatan,
-                            'status': status,
-                          });
-                        },
-                        child: const CircleAvatar(
-                          backgroundColor: Colors.green,
-                          radius: 15,
-                          child: Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () async {
-                          bool? confirmDelete = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Hapus'),
-                              content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Hapus'),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirmDelete == true) {
-                            _deleteLaporan(id);
-                          }
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.red,
-                          radius: 15,
-                          child: Icon(
-                            delIcon,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+        ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+        onTap: () async {
+          bool? confirmDelete = await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Konfirmasi Hapus'),
+              content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Batal'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Hapus'),
+                ),
+              ],
+            ),
+          );
+        
+          if (confirmDelete == true) {
+            _deleteLaporan(id);
+          }
+        },
+        
+        child: tglDateTime.month == DateTime.now().month && tglDateTime.year == DateTime.now().year
+          ? Skeleton.replace(
+            child: CircleAvatar(
+                    backgroundColor: Colors.red,
+                    radius: 15,
+                    child: Icon(
+            Icons.delete,
+            color: Colors.white,
+            size: 20,
+                    ),
+              ),
+          )
+          : SizedBox.shrink(),
+            ),
+          ],
+        )
               ],
             ),
             Align(
               alignment: Alignment.topLeft,
-              child: Text(kegiatan),
+              child: Text(kegiatan, style: TextStyle(color: textColor)),
             ),
-            const Divider(),
+            Divider(color: textColor.withOpacity(0.5)), // Adjust divider color
           ],
-        );
-      }).toList();
-      var tgl = DateFormat('yyyy-MM-dd').parse(entry.key);
-      var formattedDate = DateFormat('dd/MM/yyyy').format(tgl);
-      return Card(
+        ),
+      );
+    }).toList();
+
+    return Skeletonizer(
+      enabled: isLoading,
+      child: Card(
         margin: const EdgeInsets.all(8),
+        color: cardColor, // Apply card color
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
-                    .format(DateTime.parse(entry.key)),style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold),),
+              Skeleton.replace(
+                child: Text(
+                  DateFormat('EEEE, dd/MM/yyyy', 'id').format(reportDate),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor), // Apply text color
+                ),
+              ),
               ...rowWidgets,
             ],
           ),
         ),
-      );
-    }).toList();
+      ),
+    );
+  }).toList();
 
-    return Column(children: cards);
-  }
+  return ListView(children: cards);
+}
 
   // Fungsi untuk mengkonfirmasi penghapusan data
-  void _confirmDelete(dynamic item) {
+  void _confirmDelete(id, statusJenis) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -840,8 +847,7 @@ class _NotifikasiPageState extends State<NotifikasiPage>
             TextButton(
               child: const Text('Hapus'),
               onPressed: () {
-                // Panggil fungsi untuk menghapus data di sini
-                _deleteItem(item);
+                _deleteItem(id, statusJenis);
                 Navigator.of(context).pop();
               },
             ),
@@ -852,19 +858,26 @@ class _NotifikasiPageState extends State<NotifikasiPage>
   }
 
   // Fungsi untuk menghapus data
-  Future<void> _deleteItem(id) async {
+  Future<void> _deleteItem(id, statusJenis) async {
     final urlDel = '$url/api/izin/hapus-izin/$idUser/$id';
     try {
       final response = await http.get(Uri.parse(urlDel));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if(statusJenis == '5'){
+          SpUtil.putBool('is_IDLK', false);
+          SpUtil.putString('status_idlk', '-');
+          SpUtil.putBool('is_PulangCepat', false);
+        }
         SpUtil.putBool('is_PulangCepat', false);
         String message = json.encode(data["message"]).replaceAll('"', '');
-        // ignore: use_build_context_synchronously
-        Alert.alertsuccess(context, message);
-        setState(() {
-          _refreshData();
-        });
+        if(mounted){
+          setState(() {
+            Alert.alertsuccess(context, message);
+              _refreshData();
+          });
+        }
+        
       } else {
         // ignore: use_build_context_synchronously
         Alert.alerterror(context, 'Gagal menghapus data, silahkan coba lagi!');

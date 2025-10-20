@@ -48,29 +48,29 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
   }
 
   Future<List<Map<String, dynamic>>> fetchData(
-      String month, String year) async {
-        if (mounted) {
+  String month, String year) async {
+  if (mounted) {
     setState(() {
       isLoading = true;
     });
-        }
-    String monthNumber = Bulan().getMonthNumber(month);
-    final idUser = SpUtil.getString("id_user") ?? '';
-    String? link;
-    link = '$url/api/izin/riwayat-izin/$idUser/$monthNumber/$year';
+  }
+  String monthNumber = Bulan().getMonthNumber(month);
+  final idUser = SpUtil.getString("id_user") ?? '';
+  String? link;
+  link = '$url/api/izin/riwayat-izin/$idUser/$monthNumber/$year';
 
+  try {
     final response = await http.get(Uri.parse(link));
 
     if (response.statusCode == 200) {
       final List<dynamic> responseData = json.decode(response.body)['data'];
       if (mounted) {
         setState(() {
-        _riwayatIzin = responseData;
-        _controller?.animateTo(0);
-        isLoading = false;
-      });
+          _riwayatIzin = responseData;
+          _controller?.animateTo(0);
+          isLoading = false;
+        });
       }
-      
       return responseData.cast<Map<String, dynamic>>();
     } else {
       if (mounted) {
@@ -79,9 +79,20 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
           _riwayatIzin = []; // Reset data jika gagal
         });
       }
-      throw Exception('Gagal memuat data izin');
+      // throw Exception('Gagal memuat data izin');
+      return [];
     }
+  } catch (e) {
+    print('Error: $e');
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+        _riwayatIzin = []; // Reset data jika gagal
+      });
+    }
+    return [];
   }
+}
 
   void searchByDate(String month, String year) {
     if (mounted) {
@@ -281,104 +292,96 @@ class _IzinState extends State<Izin> with TickerProviderStateMixin {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.start,
-                                              children: [
-                                                Expanded(
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.all(8.0),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
-                      .format(DateTime.parse(_riwayatIzin[index]['tgl_group']
-                                                              .toString()))
-                                                          ,
-                                                          style: const TextStyle(
-                                                              fontWeight: FontWeight.bold,
-                                                              fontSize: 16),
-                                                        ),
-                                                        Row(
-                                                          children: [
-                                                            jenisStatus,
-                                                            if (_riwayatIzin[index][
-                                                                        'id_keterangan'] !=
-                                                                    null &&
-                                                                _riwayatIzin[index]
-                                                                        ['tgl_absen'] ==
-                                                                    DateTime.now()
-                                                                        .toString())
-                                                              const Chip(
-                                                                padding:
-                                                                    EdgeInsets.all(0),
-                                                                backgroundColor:
-                                                                    Colors.red,
-                                                                label: Text(
-                                                                    'Pulang Cepat',
-                                                                    style: TextStyle(
-                                                                        color: Colors
-                                                                            .white)),
-                                                              ),
-                                                          ],
-                                                        ),
-                                                        Text(
-                                                          '${_riwayatIzin[index]['durasi']} Hari',
-                                                          style: const TextStyle(
-                                                              color: Colors.black),
-                                                        )
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                Column(
-                                                  children: [
-                                                    IconButton(
-                                                      padding: EdgeInsets.zero,
-                                                      icon: Icon(
-                                                        Icons.remove_red_eye,
-                                                        color: Color.fromARGB(255, 67, 60, 130)),
-                                                      onPressed: () =>
-                                                          navigateToDetailPage(
+                                            InkWell(
+                                              onTap: () => navigateToDetailPage(
                                                               _riwayatIzin[index],
                                                               (_riwayatIzin[index]
                                                                   ['no_urut'])),
-                                                    ),
-                                                    const SizedBox(
-                                                      height: 2,
-                                                    ),
-                                                    if (_riwayatIzin[index]
-                                                                ['status_approval'] ==
-                                                            1 &&
-                                                        DateTime.parse(_riwayatIzin[index]
-                                                                ['timestamp'])
-                                                            .isAfter(DateTime.now()
-                                                                .subtract(const Duration(
-                                                                    days: 1))))
-                                                      Container(
-                                                        decoration: BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius.circular(4),
-                                                          color: const Color.fromARGB(
-                                                              255, 255, 168, 162),
-                                                        ),
-                                                        child: IconButton(
-                                                          padding: EdgeInsets.zero,
-                                                          icon: const Icon(
-                                                            Icons.delete,
-                                                            color: Colors.red,
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(8.0),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(DateFormat('EEEE, dd/MM/yyyy', 'id')
+                                                                    .format(DateTime.parse(_riwayatIzin[index]['tgl_group']
+                                                                .toString()))
+                                                            ,
+                                                            style: const TextStyle(
+                                                                fontWeight: FontWeight.bold,
+                                                                fontSize: 16),
                                                           ),
-                                                          onPressed: () => _confirmDelete(
-                                                              _riwayatIzin[index]
-                                                                  ['id_approval']),
-                                                        ),
+                                                          Row(
+                                                            children: [
+                                                              jenisStatus,
+                                                              if (_riwayatIzin[index][
+                                                                          'id_keterangan'] !=
+                                                                      null &&
+                                                                  _riwayatIzin[index]
+                                                                          ['tgl_absen'] ==
+                                                                      DateTime.now()
+                                                                          .toString())
+                                                                const Chip(
+                                                                  padding:
+                                                                      EdgeInsets.all(0),
+                                                                  backgroundColor:
+                                                                      Colors.red,
+                                                                  label: Text(
+                                                                      'Pulang Cepat',
+                                                                      style: TextStyle(
+                                                                          color: Colors
+                                                                              .white)),
+                                                                ),
+                                                            ],
+                                                          ),
+                                                          Text(
+                                                            '${_riwayatIzin[index]['durasi']} Hari',
+                                                            style: const TextStyle(
+                                                                color: Colors.black),
+                                                          )
+                                                        ],
                                                       ),
-                                                  ],
-                                                ),
-                                                const SizedBox(
-                                                  width: 8,
-                                                ),
-                                              ],
+                                                    ),
+                                                  ),
+                                                  Column(
+                                                    children: [
+                                                      if (_riwayatIzin[index]
+                                                                  ['status_approval'] ==
+                                                              1 &&
+                                                          DateTime.parse(_riwayatIzin[index]
+                                                                  ['timestamp'])
+                                                              .isAfter(DateTime.now()
+                                                                  .subtract(const Duration(
+                                                                      days: 1))))
+                                                        Container(
+                                                          decoration: BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius.circular(4),
+                                                            color: const Color.fromARGB(
+                                                                255, 255, 168, 162),
+                                                          ),
+                                                          child: IconButton(
+                                                            padding: EdgeInsets.zero,
+                                                            icon: const Icon(
+                                                              Icons.delete,
+                                                              color: Colors.red,
+                                                            ),
+                                                            onPressed: () => _confirmDelete(
+                                                                _riwayatIzin[index]
+                                                                    ['id_approval']),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(
+                                                    width: 8,
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                             const SizedBox(
                                               height: 4,

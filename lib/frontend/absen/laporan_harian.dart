@@ -3,9 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
-import 'package:mobileabsensi/services/alert.dart';
-import 'package:mobileabsensi/services/refresh.dart';
-import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:mobileabsensi/screenshoot.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:convert';
 import 'package:sp_util/sp_util.dart';
@@ -21,19 +20,19 @@ class _LaporanHarianState extends State<LaporanHarian>
     with TickerProviderStateMixin {
         bool _enabled = true;
 
-  bool _isLoading = true;
 
-  List<dynamic> _riwayatLaporan = [];
-  List<dynamic> _riwayatPengajuan = [];
+  List<dynamic> riwayatLaporan = [];
+  List<dynamic> riwayatPengajuan = [];
   String? url = SpUtil.getString("url");
   String? idUser;
   late String selectedYear;
   late String selectedMonth;
-  bool isLoading = true;
+  bool isLoading = false;
   bool value = false;
   List<DataRow> _rows = [];
   bool isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
-
+  Offset _cameraPosition = Offset.zero;
+  bool _isDragging = false;
   void dataChange() {
     setState(() {
       value = true;
@@ -145,7 +144,7 @@ class _LaporanHarianState extends State<LaporanHarian>
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
 
         setState(() {
-            _riwayatLaporan = jsonData['data'];
+            riwayatLaporan = jsonData['data'];
         });
 
         if (jsonData.containsKey('data')) {
@@ -184,6 +183,9 @@ class _LaporanHarianState extends State<LaporanHarian>
     }
   }
   Future<void> searchData(selectedMonth, selectedYear) async {
+    setState(() {
+      isLoading = true;
+    });
     final idUser = SpUtil.getString("id_user");
     String selectedMonthNumber = _getMonthNumber(selectedMonth);
     try {
@@ -196,12 +198,11 @@ class _LaporanHarianState extends State<LaporanHarian>
           'Accept': 'application/json',
         },
       );
-
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-print(response.body);
+
         setState(() {
-            _riwayatLaporan = jsonData['data'];
+            riwayatLaporan = jsonData['data'];
         });
 
         if (jsonData.containsKey('data')) {
@@ -238,41 +239,24 @@ print(response.body);
       }
       // print("Error fetching data: $e");
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
-  Future<void> _deleteLaporan(String id) async {
-    final urlDel = '$url/api/delete-lhk/$id';
-
-    try {
-      final response = await http.delete(Uri.parse(urlDel));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String message = data["message"] ?? 'Laporan berhasil dihapus';
-        if (mounted) {
-          Alert.alertsuccess(context, message);
-          _refreshData();
-        }
-      } else {
-        throw Exception('Failed to delete report');
-      }
-    } catch (error) {
-      if (mounted) {
-        Alert.alerterror(context, 'Error: $error');
-      }
-    }
-  }
+   
 
   Future<void> _refreshData() async {
-    if (SyncLimiter.canSync()) {
+    // if (SyncLimiter.canSync()) {
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
           _fetchData();
         });
       }
-    } else {
-      Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    }
+    // } else {
+    //   Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
+    // }
   }
 
   void navigateToEditLaporan(Map<String, dynamic> data) async {
@@ -290,22 +274,23 @@ print(response.body);
   @override
   Widget build(BuildContext context) {
         Size size = MediaQuery.of(context).size; 
+        var isCodeMasuk = SpUtil.getBool('is_codeMasuk') ?? false;
+        if (_cameraPosition == Offset.zero) {
+      _cameraPosition = Offset(
+        MediaQuery.of(context).size.width - 80, 
+        MediaQuery.of(context).size.height * 0.5 - 30
+      );
+    }
     return Scaffold(
   body: Skeletonizer(
                       enabled: _enabled,
                       enableSwitchAnimation: true,
     child: Stack(
       children: [
-        // Background header that extends beyond what's visible
-        Header(),
-        
-        // Scrollable content area taking most of the screen
+        WidgetNavbar(title: 'Riwayat Laporan Harian',),
         Column(
           children: [
-            // Spacer to push content down to create overlap
             SizedBox(height: size.height * 0.15),
-            
-            // Content area
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -404,9 +389,8 @@ print(response.body);
                                         const Color.fromARGB(255, 67, 60, 130),
                                   ),
                                   onPressed: () async {
-    
+            
                                     if (!isLoading) {
-    
                                       setState(() {
                                         isLoading = true;
                                       });
@@ -414,39 +398,58 @@ print(response.body);
                                     searchData(selectedMonth, selectedYear);
                                     }
                                   },
-                                  child: const Text('Cari',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                      )),
+                                  child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  isLoading
+                                    ? Container(
+                                        width: 16,
+                                        height: 16,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        child: const CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : 
+                                  const Text('Cari',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    )),
+                                ],
+                              ),
                                 ),
                               ],
                             ),
             _buildCards()
-    
+            
                   ],
                 ),
               ),
             ),
           ],
-        ),
+        ), 
       ],
     ),
   ),
-      floatingActionButton:Transform.translate(
-                  offset: const Offset(0, -20),
-                  child: FloatingActionButton(
-                    onPressed: () async {
-                      final result = await Navigator.pushNamed(context, '/create-laporan');
-                      if (result == true) {
-                        setState(() {
-                          _fetchData();
-                        });
-                      }
-                    },
-                    tooltip: 'Increment',
-                    child: const Icon(Icons.add),
-                  ),
-                )
+      floatingActionButton: isCodeMasuk
+          ? Transform.translate(
+              offset: const Offset(0, -20),
+              child: FloatingActionButton(
+                onPressed: () async {
+                  final result =
+                      await Navigator.pushNamed(context, '/create-laporan');
+                  if (result == true) {
+                    setState(() {
+                      _fetchData();
+                    });
+                  }
+                },
+                tooltip: 'Increment',
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
     );
     //   floatingActionButton: isCodeMasuk
     //           ? Transform.translate(
@@ -511,107 +514,73 @@ print(response.body);
             delIcon = Icons.delete;
         }
 
-        bool isToday = tgl == DateFormat('yyyy-MM-dd').format(DateTime.now());
         DateTime jamMasukTime = DateFormat("HH:mm").parse(jammulai);
         DateTime jamPulangTime = DateFormat("HH:mm").parse(jamselesai);
-        return Column(
+        return Skeletonizer(
+    // Aktifkan atau nonaktifkan efek skeleton berdasarkan variabel isLoading
+    enabled: isLoading,
+    child: Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-          Row(
-            children: [
-              const Icon(Icons.access_time, color: Colors.blue),
-              Text(DateFormat("HH:mm").format(jamMasukTime)),
-              SizedBox(width: 10,),
-              const Icon(Icons.arrow_forward_outlined),
-              SizedBox(width: 10,),
-              Text(DateFormat("HH:mm").format(jamPulangTime)),
-            ],
-          ),
-                if (isToday)
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          navigateToEditLaporan({
-                            'id': id,
-                            'tgl': tgl,
-                            'jammulai': jammulai,
-                            'jamselesai': jamselesai,
-                            'kegiatan': kegiatan,
-                            'status': status,
-                          });
-                        },
-                        child: const CircleAvatar(
-                          backgroundColor: Colors.green,
-                          radius: 15,
-                          child: Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () async {
-                          bool? confirmDelete = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Hapus'),
-                              content: const Text('Apakah Anda yakin ingin menghapus laporan ini?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Hapus'),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirmDelete == true) {
-                            _deleteLaporan(id);
-                          }
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.red,
-                          radius: 15,
-                          child: Icon(
-                            delIcon,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                // Icon akan tetap terlihat, namun teks akan berubah menjadi skeleton
+                const Icon(Icons.access_time, color: Colors.blue),
+                // Teks ini akan menjadi skeleton saat isLoading true
+                Skeleton.replace(child: Text(DateFormat("HH:mm").format(jamMasukTime))),
+                const SizedBox(width: 10),
+                const Icon(Icons.arrow_forward_outlined),
+                const SizedBox(width: 10),
+                // Teks ini juga akan menjadi skeleton
+                Skeleton.replace(child: Text(DateFormat("HH:mm").format(jamPulangTime))),
               ],
             ),
-            Align(
-              alignment: Alignment.topLeft,
-              child: Text(kegiatan),
+            Row(
+              children: [
+                // Avatar ini akan menjadi skeleton, termasuk warnanya
+                Skeleton.replace(
+                  child: CircleAvatar(
+                    backgroundColor: status == '1' ? Colors.green : Colors.blue,
+                    radius: 15,
+                    child: Icon(
+                      status == '1' ? Icons.check : Icons.sync,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const Divider(),
           ],
+        ),
+        const SizedBox(height: 10), // Tambahkan spasi
+        Align(
+          alignment: Alignment.topLeft,
+          // Teks ini juga akan menjadi skeleton
+          child: Skeleton.replace(child: Text(kegiatan)),
+        ),
+        const Divider(),
+      ],
+    )
         );
       }).toList();
       var tgl = DateFormat('yyyy-MM-dd').parse(entry.key);
       var formattedDate = DateFormat('dd/MM/yyyy').format(tgl);
-      return Card(
-        margin: const EdgeInsets.all(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateFormat('dd/MM/yyyy').parse(formattedDate)).toString()),
-              ...rowWidgets,
-            ],
+      return Skeletonizer(
+        enabled: isLoading,
+        child: Card(
+          margin: const EdgeInsets.all(8),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateFormat('dd/MM/yyyy').parse(formattedDate)).toString()),
+                ...rowWidgets,
+              ],
+            ),
           ),
         ),
       );

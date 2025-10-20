@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
 
@@ -79,7 +80,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
     return Scaffold(
       body: Stack(
         children: [
-          Header(),
+          WidgetNavbar(title: 'Buat Laporan Harian'),
           // Scrollable content area taking most of the screen
           Column(
             children: [
@@ -113,18 +114,6 @@ class _BuatLaporanState extends State<BuatLaporan> {
                             key: _formKey,
                             child: Column(
                               children: [
-                                Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'Buat Laporan Harian',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 50, 50, 50),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -223,13 +212,17 @@ class _BuatLaporanState extends State<BuatLaporan> {
                                       labelText: "Masukkan kegiatan",
                                       alignLabelWithHint: true,
                                       labelStyle:
-                                          TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                                          TextStyle(color: Colors.black, fontSize: 18),
                                       border: OutlineInputBorder(),
                                       fillColor: Color.fromARGB(115, 245, 243, 243),
                                       filled: true,
                                       errorStyle:
                                           TextStyle(color: Colors.red),
+                                          hintStyle: TextStyle(
+                                            color: Color.fromARGB(255, 0, 0, 0),
+                                          ),
                                     ),
+                                    
                                   ),
                                 ),
                                 const SizedBox(
@@ -323,7 +316,9 @@ class _BuatLaporanState extends State<BuatLaporan> {
     String? idAdmin = SpUtil.getString('id_admin_instansi');
     String namalengkap = SpUtil.getString("nama_lengkap").toString();
     var now = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
+    if(idPimpinan == null){
+      Alert.alertwarning(context, 'ID Atasan tidak ditemukan');
+    }
     Map<String, dynamic> data = {
       'id_user': idUser,
       'id_atasan': idPimpinan,
@@ -360,22 +355,6 @@ class _BuatLaporanState extends State<BuatLaporan> {
       Alert.alerterror(context, 'Jam tidak boleh kosong');
       return;
     }
-
-    // DateTime jamMulaiTime = DateFormat("HH:mm").parse(mulai);
-    // // DateTime jamSelesaiTime = DateFormat("HH:mm").parse(selesai);
-    // DateTime jamMasukTime = DateFormat("HH:mm").parse(SpUtil.getString('masuk').toString());
-    // // DateTime jamPulangTime = DateFormat("HH:mm").parse(SpUtil.getString('pulang').toString());
-
-    // if (jamMulaiTime.isBefore(jamMasukTime)) {
-    //   Alert.alerterror(
-    //       context, 'Jam mulai tidak boleh lebih kecil dari jam masuk');
-    //   return;
-    // }
-    // if (jamSelesaiTime.isAfter(jamPulangTime)) {
-    //   Alert.alerterror(
-    //       context, 'Jam selesai tidak boleh lebih besar dari jam pulang');
-    //   return;
-    // }
     try {
       http.Response kirimLaporanHarian = await http.post(
         Uri.parse('$url/api/simpan-lhk'),
@@ -406,7 +385,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
       }
     } catch (e) {
       // ignore: use_build_context_synchronously
-      Alert.alerterror(context, 'Terjadi Kesalahan Jaringan!');
+      Alert.alerterror(context, 'Terjadi Kesalahan, Silahkan coba lagi!');
     }
   }
 

@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '2.0.0'
+    ext.kotlin_version = '2.0.0' // Versi Kotlin yang Anda gunakan
     repositories {
         google()
         mavenCentral()
@@ -7,8 +7,8 @@ buildscript {
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "com.android.tools.build:gradle:8.1.0"
-        // classpath 'com.google.gms:google-services:4.3.15'
+        classpath "com.android.tools.build:gradle:8.1.0" // Android Gradle Plugin (AGP) versi 8.1.0
+        // classpath 'com.google.gms:google-services:4.3.15' // Jika ini diperlukan, aktifkan kembali
     }
 }
 
@@ -17,12 +17,29 @@ allprojects {
         google()
         mavenCentral()
     }
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            // options.compilerArgs << "-Xlint:deprecation"
-            options.compilerArgs << "-Xlint:unchecked"
+
+    // Ini adalah blok penting untuk memaksa resolusi dependensi
+    configurations.all {
+        resolutionStrategy {
+            // Paksa penggunaan versi terbaru dan stabil dari core-ktx
+            // Periksa di Maven Central untuk versi terbaru: https://mvnrepository.com/artifact/androidx.core/core-ktx
+            force 'androidx.core:core-ktx:1.12.0' // Update ke versi terbaru yang stabil jika ada
+
+            // Paksa penggunaan versi terbaru dan stabil dari appcompat
+            // Periksa di Maven Central untuk versi terbaru: https://mvnrepository.com/artifact/androidx.appcompat/appcompat
+            force 'androidx.appcompat:appcompat:1.6.1' // Update ke versi terbaru yang stabil jika ada
         }
     }
+
+    // Bagian ini adalah untuk opsi compiler (seperti peringatan deprecated/unchecked)
+    // Biarkan seperti ini jika Anda ingin tetap menampilkan peringatan 'unchecked'
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs << "-Xlint:unchecked"
+            // options.compilerArgs << "-Xlint:deprecation" // Bisa diaktifkan jika ingin melihat peringatan deprecated
+        }
+    }
+    
 }
 
 rootProject.buildDir = '../build'
@@ -30,7 +47,7 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
-    project.evaluationDependsOn(':app')
+    project.evaluationDependsOn(':app') // Pastikan ini ada jika Anda memerlukan urutan evaluasi antar proyek
 }
 
 tasks.register("clean", Delete) {

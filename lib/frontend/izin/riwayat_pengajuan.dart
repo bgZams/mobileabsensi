@@ -393,8 +393,8 @@ var hariIni = DateFormat('yyyy-MM-dd').format(DateTime.now());
             TextButton(
               child: const Text('Hapus'),
               onPressed: () {
-                // Panggil fungsi untuk menghapus data di sini
-                _deleteItem(item);
+                print(item);
+                // _deleteItem(item);
                 Navigator.of(context).pop();
               },
             ),

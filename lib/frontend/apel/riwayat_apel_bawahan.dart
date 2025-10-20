@@ -153,13 +153,6 @@ class _ApelBawahanState extends State<ApelBawahan> {
           'Riwayat Apel Anggota',
           style: TextStyle(color: Colors.white),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
-          onPressed: () {
-            Navigator.pushNamed(context, '/home-page');
-          },
-        ),
       ),
       body: SizedBox(
         height: deviceHeight * 1.2,
@@ -244,82 +237,85 @@ class _ApelBawahanState extends State<ApelBawahan> {
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Card(
-                                        color: const Color.fromARGB(
-                                            255, 253, 247, 247),
-                                        child: DataTable(
-                                          columns: const <DataColumn>[
-                                            DataColumn(label: Text('Foto')),
-                                            DataColumn(label: Text('Tanggal')),
-                                            DataColumn(label: Text('Waktu')),
-                                          ],
-                                          rows: snapshot.data!.map((data) {
-                                            return DataRow(cells: [
-                                              DataCell(GestureDetector(
-                                                onTap: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder:
-                                                        (BuildContext context) {
-                                                      return AlertDialog(
-                                                        title: Column(
-                                                          children: [
-                                                            Text(
-                                                              data['tanggal']
-                                                                  .toString(),
-                                                              style:
-                                                                  const TextStyle(
-                                                                      fontSize:
-                                                                          12),
-                                                            ),
-                                                            IconButton(
-                                                              // Call the method we just created
-                                                              onPressed:
-                                                                  () async {
-                                                                String foto =
-                                                                    '${data['foto']}';
-                                                                // print(foto);
-
-                                                                _saveImage(
-                                                                    context,
-                                                                    foto);
+                                      SizedBox(
+                                        width: MediaQuery.of(context).size.width,
+                                        child: Card(
+                                          color: const Color.fromARGB(
+                                              255, 253, 247, 247),
+                                          child: DataTable(
+                                            columns: const <DataColumn>[
+                                              DataColumn(label: Text('Foto')),
+                                              DataColumn(label: Text('Tanggal')),
+                                              DataColumn(label: Text('Waktu')),
+                                            ],
+                                            rows: snapshot.data!.map((data) {
+                                              return DataRow(cells: [
+                                                DataCell(GestureDetector(
+                                                  onTap: () {
+                                                    showDialog(
+                                                      context: context,
+                                                      builder:
+                                                          (BuildContext context) {
+                                                        return AlertDialog(
+                                                          title: Column(
+                                                            children: [
+                                                              Text(
+                                                                data['tanggal']
+                                                                    .toString(),
+                                                                style:
+                                                                    const TextStyle(
+                                                                        fontSize:
+                                                                            12),
+                                                              ),
+                                                              IconButton(
+                                                                // Call the method we just created
+                                                                onPressed:
+                                                                    () async {
+                                                                  String foto =
+                                                                      '${data['foto']}';
+                                                                  // print(foto);
+                                        
+                                                                  _saveImage(
+                                                                      context,
+                                                                      foto);
+                                                                },
+                                                                icon: const Icon(
+                                                                    Icons.save),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          content: SizedBox(
+                                                              width: 50,
+                                                              child: Image.network(
+                                                                  '$url/${data['file'] ?? '$url/apel/broken.png'}')),
+                                                          actions: <Widget>[
+                                                            TextButton(
+                                                              onPressed: () {
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
                                                               },
-                                                              icon: const Icon(
-                                                                  Icons.save),
+                                                              child: const Text(
+                                                                  'Tutup'),
                                                             ),
                                                           ],
-                                                        ),
-                                                        content: SizedBox(
-                                                            width: 50,
-                                                            child: Image.network(
-                                                                '$url/${data['file'] ?? '$url/apel/broken.png'}')),
-                                                        actions: <Widget>[
-                                                          TextButton(
-                                                            onPressed: () {
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop();
-                                                            },
-                                                            child: const Text(
-                                                                'Tutup'),
-                                                          ),
-                                                        ],
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                                child: SizedBox(
-                                                  width: 50,
-                                                  child: Image.network(
-                                                      '$url/${data['file'] ?? '$url/apel/broken.png'}'),
-                                                ),
-                                              )),
-                                              DataCell(Text(
-                                                  data['tanggal'].toString())),
-                                              DataCell(Text(data['created_at']
-                                                  .toString())),
-                                            ]);
-                                          }).toList(),
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                  child: SizedBox(
+                                                    width: 50,
+                                                    child: Image.network(
+                                                        '$url/${data['file'] ?? '$url/apel/broken.png'}'),
+                                                  ),
+                                                )),
+                                                DataCell(Text(
+                                                    data['tanggal'].toString())),
+                                                DataCell(Text(data['created_at']
+                                                    .toString())),
+                                              ]);
+                                            }).toList(),
+                                          ),
                                         ),
                                       ),
                                     ],

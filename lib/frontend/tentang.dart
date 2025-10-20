@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 
 class Tentang extends StatefulWidget {
   const Tentang({super.key});
@@ -17,22 +18,33 @@ class _TentangState extends State<Tentang> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: const Text(
-          'Tentang Absen Online',
-          style: TextStyle(color: Colors.white),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: const SingleChildScrollView(
+      body: Stack(
+        children: [
+        WidgetNavbar(title: 'Apel',),
+          Column(
+            children: [
+              SizedBox(height: size.height * 0.15),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: ListView(
+               children: [ SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,6 +85,16 @@ class _TentangState extends State<Tentang> {
           ],
         ),
       ),
+        
+                ],
+                  ),
+                ),
+              ),
+            SizedBox(height: size.height * 0.02),
+            ],
+          ),
+        ],  
+        ),
     );
   }
 }

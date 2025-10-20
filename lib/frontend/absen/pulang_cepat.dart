@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:mobileabsensi/frontend/dashboard.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sp_util/sp_util.dart';
@@ -18,6 +19,7 @@ class PulangCepat extends StatefulWidget {
 }
 
 class _PulangCepatState extends State<PulangCepat> {
+  int _currentIndex = 0;
   bool isPulangCepat = false;
   final _formKey = GlobalKey<FormState>();
   bool? sptSementara = false;
@@ -405,17 +407,22 @@ class _PulangCepatState extends State<PulangCepat> {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
       if (response.statusCode == 200) {
-        setState(() {
-          SpUtil.putBool('is_PulangCepat', true);
-        });
         final data = jsonDecode(response.body);
         String message = data["message"];
         if (data['status'] == 'success') {
           if(mounted){
+            setState(() {
+              _currentIndex = 3;
+              SpUtil.putBool('is_PulangCepat', true);
+            });
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(initialIndex: _currentIndex),
+              ),
+            );
             Alert.alertsuccess(context,message);
-            Navigator.pop(context, true);
-            SpUtil.putBool('is_PulangCepat', true);
-            resetState();
+
           }
         } else {
           if(mounted){

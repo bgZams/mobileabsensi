@@ -7,6 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/frontend/apel/riwayat_apel_bawahan.dart';
 import 'package:mobileabsensi/frontend/buat_apel.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:path_provider/path_provider.dart';
 // import 'package:path/path.dart' as path;
 import 'package:sp_util/sp_util.dart';
@@ -149,248 +150,274 @@ class _ApelState extends State<Apel> {
 
   @override
   Widget build(BuildContext context) {
-    double deviceHeight = MediaQuery.of(context).size.height;
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: const Text(
-          'Riwayat Apel',
-          style: TextStyle(color: Colors.white),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: SizedBox(
-        height: deviceHeight * 1.2,
-        child: Container(
-          color: const Color.fromARGB(255, 238, 238, 238),
-          child: RefreshIndicator(
-            onRefresh: _refreshData,
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        //tambah data
-                        Row(
-                          children: [
-                            Container(
-                              clipBehavior: Clip.hardEdge,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.white, width: 2),
-                                color: const Color.fromARGB(255, 67, 60, 130),
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(10),
-                                ),
-                              ),
-                              child: IconButton(
-                                icon: const FaIcon(
-                                  FontAwesomeIcons.plus,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => const BuatApel()),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Container(
-                              clipBehavior: Clip.hardEdge,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.white, width: 2),
-                                color: const Color.fromARGB(255, 67, 60, 130),
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(10),
-                                ),
-                              ),
-                              child: IconButton(
-                                icon: const FaIcon(
-                                  FontAwesomeIcons.userGroup,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => const ApelBawahan()),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            DropdownButton<String>(
-                              value: selectedMonth,
-                              hint: const Text('Pilih Bulan'),
-                              onChanged: (newValue) {
-                                setState(() {
-                                  selectedMonth = newValue!;
-                                });
-                              },
-                              items: [
-                                'Januari',
-                                'Februari',
-                                'Maret',
-                                'April',
-                                'Mei',
-                                'Juni',
-                                'Juli',
-                                'Agustus',
-                                'September',
-                                'Oktober',
-                                'November',
-                                'Desember'
-                              ].map<DropdownMenuItem<String>>((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(width: 16),
-                            // Inputan Tahun
-                            DropdownButton<String>(
-                              value: selectedYear,
-                              hint: const Text('Pilih Tahun'),
-                              onChanged: (newValue) {
-                                setState(() {
-                                  selectedYear = newValue!;
-                                });
-                              },
-                              items: _getYearItems(),
-                            ),
-                            const SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                cariData(selectedMonth, selectedYear);
-                              },
-                              child: const Text('Cari'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        FutureBuilder<List<Map<String, dynamic>>>(
-                          future: _futureData,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            } else if (snapshot.hasError) {
-                              return const Center(
-                                  child: Text('Data tidak ditemukan!'));
-                            } else {
-                              return SingleChildScrollView(
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Card(
-                                        color: const Color.fromARGB(
-                                            255, 253, 247, 247),
-                                        child: DataTable(
-                                          columns: const <DataColumn>[
-                                            DataColumn(label: Text('Foto')),
-                                            DataColumn(label: Text('Tanggal')),
-                                            DataColumn(label: Text('Waktu')),
-                                          ],
-                                          rows: snapshot.data!.map((data) {
-                                            return DataRow(cells: [
-                                              DataCell(GestureDetector(
-                                                onTap: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder:
-                                                        (BuildContext context) {
-                                                      return AlertDialog(
-                                                        title: Column(
-                                                          children: [
-                                                            Text(
-                                                              data['tanggal']
-                                                                  .toString(),
-                                                              style:
-                                                                  const TextStyle(
-                                                                      fontSize:
-                                                                          12),
-                                                            ),
-                                                            IconButton(
-                                                              // Call the method we just created
-                                                              onPressed:
-                                                                  () async {
-                                                                String foto =
-                                                                    '${data['foto']}';
-                                                                // print(foto);
-
-                                                                _saveImage(
-                                                                    context,
-                                                                    foto);
-                                                              },
-                                                              icon: const Icon(
-                                                                  Icons.save),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        content: SizedBox(
-                                                            width: 50,
-                                                            child: Image.network(
-                                                                '$url/${data['file'] ?? '$url/apel/broken.png'}')),
-                                                        actions: <Widget>[
-                                                          TextButton(
-                                                            onPressed: () {
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop();
-                                                            },
-                                                            child: const Text(
-                                                                'Tutup'),
-                                                          ),
-                                                        ],
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                                child: SizedBox(
-                                                  width: 50,
-                                                  child: Image.network(
-                                                      '$url/${data['file'] ?? '$url/apel/broken.png'}'),
-                                                ),
-                                              )),
-                                              DataCell(Text(
-                                                  data['tanggal'].toString())),
-                                              DataCell(Text(data['created_at']
-                                                  .toString())),
-                                            ]);
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+      body: Stack(
+        children: [
+          WidgetNavbar(
+            title: 'Apel',
           ),
-        ),
+          Column(
+            children: [
+              SizedBox(height: size.height * 0.15),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : Padding(
+                          padding: const EdgeInsets.only(
+                              left: 16, right: 16, bottom: 0.0, top: 15),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    clipBehavior: Clip.hardEdge,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
+                                      color: const Color.fromARGB(
+                                          255, 67, 60, 130),
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                    ),
+                                    child: IconButton(
+                                      icon: const FaIcon(
+                                        FontAwesomeIcons.plus,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const BuatApel()),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    clipBehavior: Clip.hardEdge,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
+                                      color: const Color.fromARGB(
+                                          255, 67, 60, 130),
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                    ),
+                                    child: IconButton(
+                                      icon: const FaIcon(
+                                        FontAwesomeIcons.userGroup,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const ApelBawahan()),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  DropdownButton<String>(
+                                    value: selectedMonth,
+                                    hint: const Text('Pilih Bulan'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedMonth = newValue!;
+                                      });
+                                    },
+                                    items: [
+                                      'Januari',
+                                      'Februari',
+                                      'Maret',
+                                      'April',
+                                      'Mei',
+                                      'Juni',
+                                      'Juli',
+                                      'Agustus',
+                                      'September',
+                                      'Oktober',
+                                      'November',
+                                      'Desember'
+                                    ].map<DropdownMenuItem<String>>(
+                                        (String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Inputan Tahun
+                                  DropdownButton<String>(
+                                    value: selectedYear,
+                                    hint: const Text('Pilih Tahun'),
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        selectedYear = newValue!;
+                                      });
+                                    },
+                                    items: _getYearItems(),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      cariData(selectedMonth, selectedYear);
+                                    },
+                                    child: const Text('Cari'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              FutureBuilder<List<Map<String, dynamic>>>(
+                                future: _futureData,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  } else if (snapshot.hasError) {
+                                    return const Center(
+                                        child: Text('Data tidak ditemukan!'));
+                                  } else {
+                                    return SingleChildScrollView(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          SizedBox(
+                                            width: MediaQuery.of(context).size.width,
+                                            child: Card(
+                                              color: const Color.fromARGB(
+                                                  255, 253, 247, 247),
+                                              child: DataTable(
+                                                columns: const <DataColumn>[
+                                                  DataColumn(
+                                                      label: Text('Foto')),
+                                                  DataColumn(
+                                                      label: Text('Tanggal')),
+                                                  DataColumn(
+                                                      label: Text('Waktu')),
+                                                ],
+                                                rows:
+                                                    snapshot.data!.map((data) {
+                                                  return DataRow(cells: [
+                                                    DataCell(GestureDetector(
+                                                      onTap: () {
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (BuildContext
+                                                              context) {
+                                                            return AlertDialog(
+                                                              title: Column(
+                                                                children: [
+                                                                  Text(
+                                                                    data['tanggal']
+                                                                        .toString(),
+                                                                    style: const TextStyle(
+                                                                        fontSize:
+                                                                            12),
+                                                                  ),
+                                                                  IconButton(
+                                                                    // Call the method we just created
+                                                                    onPressed:
+                                                                        () async {
+                                                                      String
+                                                                          foto =
+                                                                          '${data['foto']}';
+                                                                      // print(foto);
+                                                                              
+                                                                      _saveImage(
+                                                                          context,
+                                                                          foto);
+                                                                    },
+                                                                    icon: const Icon(
+                                                                        Icons
+                                                                            .save),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              content: SizedBox(
+                                                                  width: 50,
+                                                                  child: Image
+                                                                      .network(
+                                                                          '$url/${data['file'] ?? '$url/apel/broken.png'}')),
+                                                              actions: <Widget>[
+                                                                TextButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop();
+                                                                  },
+                                                                  child: const Text(
+                                                                      'Tutup'),
+                                                                ),
+                                                              ],
+                                                            );
+                                                          },
+                                                        );
+                                                      },
+                                                      child: SizedBox(
+                                                        width: 50,
+                                                        child: Image.network(
+                                                            '$url/${data['file'] ?? '$url/apel/broken.png'}'),
+                                                      ),
+                                                    )),
+                                                    DataCell(Text(
+                                                        data['tanggal']
+                                                            .toString())),
+                                                    DataCell(Text(
+                                                        data['created_at']
+                                                            .toString())),
+                                                  ]);
+                                                }).toList(),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

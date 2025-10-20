@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert'; // for JSON decoding
 import 'package:http/http.dart' as http;
+import 'package:sp_util/sp_util.dart';
 
 class Pegawai extends StatefulWidget {
   const Pegawai({super.key});
@@ -24,7 +25,7 @@ class _PegawaiState extends State<Pegawai> {
     final response = await http.post(
         Uri.parse(
             'https://simpel.pasamanbaratkab.go.id/api_android/simaya/get_alluserbyadmin.php'),
-        body: {'username': 'admin.diskominfo'});
+        body: {'username': '${SpUtil.getString('username')}'});
 
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);

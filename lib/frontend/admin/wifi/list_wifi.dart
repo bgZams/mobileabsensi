@@ -49,7 +49,9 @@ class _WifiOpdState extends State<WifiOpd> {
   
 
 
+
   Future<void> searchData(String username, String idServer) async {
+
     setState(() {
       isLoading = true;
     });
@@ -63,6 +65,8 @@ class _WifiOpdState extends State<WifiOpd> {
         },
       );
 
+
+      print(dataWifi.body);
       if (dataWifi.statusCode == 200) {
         List<dynamic> wifiDataJson = json.decode(dataWifi.body)['data'];
         setState(() {
@@ -75,7 +79,7 @@ class _WifiOpdState extends State<WifiOpd> {
       }
     } catch (e) {
       if (mounted) {
-        Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi!");
+        Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi! $e");
       }
     }
 

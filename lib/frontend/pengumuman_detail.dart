@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 import 'dart:convert';
 
@@ -48,22 +49,41 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
   @override
   Widget build(BuildContext context) {
         double deviceHeight = MediaQuery.of(context).size.height;
+    Size size = MediaQuery.of(context).size;
+
     return Scaffold(
      
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: const Text('Detail Pengumuman',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
-        elevation: 4,
-         leading: IconButton(
-              icon: const Icon(Icons.arrow_back,color: Colors.white,),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Container(
+       
+      body: Stack(
+        children: [
+          // Background header that extends beyond what's visible
+          WidgetNavbar(title: 'Detail Pengumuman'),
+
+          // Scrollable content area taking most of the screen
+          Column(
+            children: [
+              // Spacer to push content down to create overlap
+              SizedBox(height: size.height * 0.15),
+
+              // Content area
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child:  Container(
                     height: deviceHeight * 1.2,
           color:const Color.fromARGB(255, 240, 239, 239),
           child: FutureBuilder<Map<String, dynamic>>(
@@ -129,6 +149,11 @@ class _DetailPengumumanState extends State<DetailPengumuman> {
           ),
         ),
       ),
+      ),
+            ]
+          )
+        ]
+      )
     );
   }
 }

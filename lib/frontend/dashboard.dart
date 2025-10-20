@@ -4,19 +4,20 @@ import 'package:mobileabsensi/frontend/absen/absen.dart';
 import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
 import 'package:mobileabsensi/frontend/izin/izin.dart';
 import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
-import 'package:mobileabsensi/notifikasi/notification_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+  final int initialIndex;
+  const Dashboard({super.key, required this.initialIndex});
 
   @override
   State<Dashboard> createState() => _DashboardState();
-}
+} 
 
 class _DashboardState extends State<Dashboard> {
-  final PageController _pageController = PageController();
-  int _currentIndex = 0;
+  late final PageController _pageController;
+  late int _currentIndex;
+ 
 
   final List<Widget> _pages = const [
     Absen(),
@@ -28,9 +29,9 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
     _requestPermissions();
-    NotificationController.startListeningNotificationEvents();
-    super.initState();
   }
 
   @override
@@ -47,26 +48,28 @@ class _DashboardState extends State<Dashboard> {
 
   // Memeriksa dan meminta izin
   Future<void> _requestPermissions() async {
-  final locationStatus = await Permission.location.request();
-  final wifiStatus = await Permission.locationWhenInUse.request();
-  final camera = await Permission.camera.request();
-  final galleryStatus = await Permission.photos.request();
-  var notificationStatus = await Permission.notification.status;
+    final locationStatus = await Permission.location.request();
+    final wifiStatus = await Permission.locationWhenInUse.request();
+    final camera = await Permission.camera.request();
+    final galleryStatus = await Permission.photos.request();
+    var notificationStatus = await Permission.notification.status;
+    // var storage = await Permission.storage.request();
 
-  if (notificationStatus.isDenied) {
-    notificationStatus = await Permission.notification.request();
-  }
+    if (notificationStatus.isDenied) {
+      notificationStatus = await Permission.notification.request();
+    }
 
-  if (locationStatus.isGranted &&
-      wifiStatus.isGranted &&
-      camera.isGranted &&
-      galleryStatus.isGranted &&
-      notificationStatus.isGranted) {
-    // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
-  } else {
-    // One or more permissions denied, notify the user or handle accordingly.
+    if (locationStatus.isGranted &&
+        wifiStatus.isGranted &&
+        camera.isGranted &&
+        galleryStatus.isGranted &&
+        // storage.isGranted &&
+        notificationStatus.isGranted) {
+      // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
+    } else {
+      // One or more permissions denied, notify the user or handle accordingly.
+    }
   }
-}
 
   void _onNavTapped(int index) {
     _pageController.animateToPage(
@@ -77,13 +80,19 @@ class _DashboardState extends State<Dashboard> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { 
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const NeverScrollableScrollPhysics(),
-        children: _pages,
+      body: Stack(
+        children: [
+          // Konten utama
+          PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            physics: const NeverScrollableScrollPhysics(),
+            children: _pages,
+          ),
+          
+          ],
       ),
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: const Color.fromARGB(255, 229, 229, 229),

@@ -1,355 +1,274 @@
 import 'dart:async';
 import 'dart:isolate';
-import 'dart:ui'; 
+import 'dart:ui';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:flutter/material.dart'; // Import ini untuk GlobalKey<NavigatorState>
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
-import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/material.dart';
-import 'package:sp_util/sp_util.dart';
+// GlobalKey untuk navigasi dari mana saja (terutama dari background)
+// Pastikan ini adalah navigatorKey yang sama yang digunakan di MaterialApp Anda.
+GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
-import '../main.dart';
+// Stream untuk menangani payload notifikasi saat aplikasi dibuka dari notifikasi
+final BehaviorSubject<String?> selectNotificationStream =
+    BehaviorSubject<String?>();
 
-///  *********************************************
-///     NOTIFICATION CONTROLLER
-///  *********************************************
-///
 class NotificationController {
-  static ReceivedAction? initialAction;
+  static final FlutterLocalNotificationsPlugin
+      _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-  ///  *********************************************
-  ///     INITIALIZATIONS
-  ///  *********************************************
-  ///
   static Future<void> initializeLocalNotifications() async {
-    await AwesomeNotifications().initialize(
-        null,//'resource://assets/images/small_app.png',
-        [
-          NotificationChannel(
-              channelKey: 'alerts',
-              channelName: 'Alerts',
-              channelDescription: 'Notification tests as alerts',
-              playSound: true,
-              onlyAlertOnce: true,
-              groupAlertBehavior: GroupAlertBehavior.Children,
-              importance: NotificationImportance.High,
-              defaultPrivacy: NotificationPrivacy.Private,
-              defaultColor: Colors.deepPurple,
-              ledColor: Colors.deepPurple)
-        ],
-        debug: false);
+    // Inisialisasi pengaturan untuk Android dan iOS
+    // Ganti 'app_icon' dengan nama file ikon notifikasi Anda
+    // Letakkan file ini di android/app/src/main/res/drawable/
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('app_icon');
 
-    // Get initial notification action is optional
-    initialAction = await AwesomeNotifications()
-        .getInitialNotificationAction(removeFromActionEvents: false);
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings();
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+      macOS: initializationSettingsDarwin,
+    );
+
+    await _flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse:
+          _onDidReceiveBackgroundNotificationResponse,
+    );
+
+    // Meminta izin notifikasi (penting untuk Android 13+ dan iOS)
+    _requestPermissions();
   }
 
-  static ReceivePort? receivePort;
-  static Future<void> initializeIsolateReceivePort() async {
-    receivePort = ReceivePort('Notification action port in main isolate')
-      ..listen(
-          (silentData) => onActionReceivedImplementationMethod(silentData));
+  static void _requestPermissions() {
+    _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission(); // Untuk Android 13+
 
-    // This initialization only happens on main isolate
-    IsolateNameServer.registerPortWithName(
-        receivePort!.sendPort, 'notification_action_port');
+    _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
   }
 
-  // Future<void> startListeningNotificationEvents() async {
-  //   AwesomeNotifications()
-  //       .setListeners(onActionReceivedMethod: onActionReceivedMethod);
-  // }
-
-  static Future<void> startListeningNotificationEvents() async {
-    AwesomeNotifications()
-        .setListeners(onActionReceivedMethod: onActionReceivedMethod);
-  }
-
-  void updateFirebase(keyNotif) async {
-    final DatabaseReference izinRef = FirebaseDatabase.instance.ref().child(keyNotif);
-    final idUser = SpUtil.getString('id_user');
-    Query query = izinRef.orderByChild("id_atasan").equalTo(idUser);
-    DatabaseEvent event = await query.once();
-    DataSnapshot snapshot = event.snapshot;
-    if (snapshot.value != null) {
-      Map<dynamic, dynamic> values = snapshot.value as Map<dynamic, dynamic>;
-      values.forEach((key, data) {
-        if (data["id_status"] == 1 && data["key_notif"] == keyNotif) {
-          // Perbarui data jika id_status adalah 1
-          izinRef.child(key).update({"id_status": 0});
-        }
-      });
+  // Dipanggil saat notifikasi diterima saat aplikasi berjalan di foreground (hanya iOS < 10)
+  static void _onDidReceiveLocalNotification(
+      int id, String? title, String? body, String? payload) async {
+    debugPrint('Notifikasi diterima di foreground (iOS < 10): $payload');
+    if (payload != null) {
+      selectNotificationStream.add(payload);
     }
   }
 
+  // Dipanggil saat pengguna mengetuk notifikasi (aplikasi foreground atau background)
+  static void _onDidReceiveNotificationResponse(
+      NotificationResponse notificationResponse) async {
+    debugPrint('Notifikasi diketuk: ${notificationResponse.payload}');
+    switch (notificationResponse.notificationResponseType) {
+      case NotificationResponseType.selectedNotification:
+        selectNotificationStream.add(notificationResponse.payload);
+        break;
+      case NotificationResponseType.selectedNotificationAction:
+        // Handle aksi notifikasi (jika ada)
+        // if (notificationResponse.actionId == 'some_action_id') {
+        //   // Lakukan sesuatu
+        // }
+        break;
+    }
+  }
+
+  // Fungsi callback untuk notifikasi yang diketuk saat aplikasi dihentikan (terminated)
+  // Penting: Harus berupa top-level function atau static method dengan @pragma('vm:entry-point')
   @pragma('vm:entry-point')
-  static  Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
-    final payload = receivedAction.payload ?? {};
-    final navigate = payload["navigate"];
-
-    if (navigate == "izin") {
-      String keyNotif = "izin";
-
-      // updateFirebase(keyNotif);
-      final DatabaseReference izinRef = FirebaseDatabase.instance.ref().child(keyNotif);
-      final idUser = SpUtil.getString('id_user');
-      Query query = izinRef.orderByChild("id_atasan").equalTo(idUser);
-      DatabaseEvent event = await query.once();
-      DataSnapshot snapshot = event.snapshot;
-      if (snapshot.value != null) {
-        Map<dynamic, dynamic> values = snapshot.value as Map<dynamic, dynamic>;
-        values.forEach((key, data) {
-          if (data["id_status"] == 2 && data["key_notif"] == keyNotif) {
-            // Perbarui data jika id_status adalah 1
-            izinRef.child(key).update({"id_status": 1});
-          }
-        });
-      }
-      MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          '/konfirmasi-izin',
-          (route) =>
-              (route.settings.name != '/konfirmasi-izin') || route.isFirst,
-          arguments: receivedAction);
-    } else if (navigate == "laporan") {
-
-      String keyNotif = "laporan";
-
-      // updateFirebase(keyNotif);
-      final DatabaseReference izinRef = FirebaseDatabase.instance.ref().child(keyNotif);
-      final idUser = SpUtil.getString('id_user');
-      Query query = izinRef.orderByChild("id_atasan").equalTo(idUser);
-      DatabaseEvent event = await query.once();
-      DataSnapshot snapshot = event.snapshot;
-      if (snapshot.value != null) {
-        Map<dynamic, dynamic> values = snapshot.value as Map<dynamic, dynamic>;
-        values.forEach((key, data) {
-          if (data["id_status"] == 2 && data["key_notif"] == keyNotif) {
-            // Perbarui data jika id_status adalah 1
-            izinRef.child(key).update({"id_status": 1});
-          }
-        });
-      }
-      MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          '/konfirmasi-izin',
-          (route) =>
-              (route.settings.name != '/konfirmasi-izin') || route.isFirst,
-          arguments: receivedAction);
-    } else if (navigate == "apel") {
-      MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          '/apel', (route) => (route.settings.name != '/apel') || route.isFirst,
-          arguments: receivedAction);
-    } else if (navigate == "senam") {
-      MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil('/senam',
-          (route) => (route.settings.name != '/senam') || route.isFirst,
-          arguments: receivedAction);
+  static void _onDidReceiveBackgroundNotificationResponse(
+      NotificationResponse notificationResponse) {
+    debugPrint('Notifikasi diketuk (background/terminated): ${notificationResponse.payload}');
+    // Menggunakan sendPort untuk mengirim payload ke isolate utama
+    final SendPort? send = IsolateNameServer.lookupPortByName('notification_send_port');
+    if (send != null) {
+      send.send(notificationResponse.payload);
     }
   }
 
-  static Future<void> onActionReceivedImplementationMethod(
-      ReceivedAction receivedAction) async {}
+  // --- Fungsi untuk inisialisasi Isolate Receive Port (untuk background execution) ---
+  static ReceivePort? _receivePort;
 
-  ///  *********************************************
-  ///     REQUESTING NOTIFICATION PERMISSIONS
-  ///  *********************************************
-  ///
-  static Future<bool> displayNotificationRationale() async {
-    bool userAuthorized = false;
-    BuildContext context = MyApp.navigatorKey.currentContext!;
-    await showDialog(
-        context: context,
-        builder: (BuildContext ctx) {
-          return AlertDialog(
-            title: Text('Get Notified!',
-                style: Theme.of(context).textTheme.titleLarge),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Image.asset(
-                        'assets/images/animated-bell.gif',
-                        height: MediaQuery.of(context).size.height * 0.3,
-                        fit: BoxFit.fitWidth,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                    'Allow Awesome Notifications to send you beautiful notifications!'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                  },
-                  child: Text(
-                    'Deny',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(color: Colors.red),
-                  )),
-              TextButton(
-                  onPressed: () async {
-                    userAuthorized = true;
-                    Navigator.of(ctx).pop();
-                  },
-                  child: Text(
-                    'Allow',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(color: Colors.deepPurple),
-                  )),
-            ],
-          );
-        });
-    return userAuthorized &&
-        await AwesomeNotifications().requestPermissionToSendNotifications();
+  static Future<void> initializeIsolateReceivePort() async {
+    _receivePort = ReceivePort();
+    IsolateNameServer.registerPortWithName(
+      _receivePort!.sendPort,
+      'notification_send_port',
+    );
+    _receivePort!.listen((dynamic data) {
+      debugPrint('Data dari isolate (ReceivePort): $data');
+      if (data is String) {
+        // Navigasi ke halaman yang sesuai berdasarkan payload
+        _handleNotificationPayload(data);
+      }
+    });
   }
 
-  ///  *********************************************
-  ///     BACKGROUND TASKS TEST
-  ///  *********************************************
-  // static Future<void> executeLongTaskInBackground() async {
-  //   print("starting long task");
-  //   await Future.delayed(const Duration(seconds: 4));
-  //   final url = Uri.parse("http://google.com");
-  //   final re = await http.get(url);
-  //   print(re.body);
-  //   print("long task done");
-  // }
+  // Fungsi untuk menangani payload notifikasi dan navigasi
+  static void _handleNotificationPayload(String? payload) {
+    if (payload == null) return;
 
-  ///  *********************************************
-  ///     NOTIFICATION CREATION METHODS
-  ///  *********************************************
-  ///
-  ///
+    if (globalNavigatorKey.currentState == null) {
+      debugPrint('Navigator state is null in _handleNotificationPayload. Cannot navigate.');
+      return;
+    }
 
-  static Future<void> createNewNotificationIzin(
-    int countIzin, String idAtasan, String jenisIzin, int idStatus, String keyNotif) async {
-  bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
-  if (!isAllowed) isAllowed = await displayNotificationRationale();
-  if (!isAllowed) return;
-
-  await AwesomeNotifications().createNotification(
-    content: NotificationContent(
-      id: -1, // -1 is replaced by a random number
-      channelKey: 'alerts',
-      // title: SpUtil.getString('nama_lengkap'),
-      title: 'Izin',
-      body: "Terdapat $countIzin pengajuan $keyNotif yang harus di tindaklanjuti!",
-      // bigPicture: 'https://storage.googleapis.com/cms-storage-bucket/d406c736e7c4c57f5f61.png',
-      largeIcon: 'Asset://assets/images/logoapp.png',
-      notificationLayout: NotificationLayout.BigPicture,
-      payload: {
-        'navigate': 'izin',
+    if (payload.startsWith('izin_')) {
+      final izinId = payload.substring(5);
+      if (izinId.isNotEmpty) {
+        globalNavigatorKey.currentState!.pushNamed(
+          '/detail-konfirmasi-izin',
+          arguments: {'id_izin': izinId},
+        );
       }
-    ),
-    actionButtons: [
-      NotificationActionButton(key: 'REDIRECT', label: 'Lihat'),
-      NotificationActionButton(
-        key: 'CLOSE',
-        label: 'Tutup',
-        actionType: ActionType.SilentAction,
-      ),
-    ],
-  );
-}
+    } else if (payload.startsWith('laporan_')) {
+      final laporanId = payload.substring(8);
+      if (laporanId.isNotEmpty) {
+        globalNavigatorKey.currentState!.pushNamed(
+          '/status-laporan',
+          arguments: {'id_laporan': laporanId},
+        );
+      }
+    }
+  }
 
+  // --- Fungsi untuk membuat notifikasi baru ---
+  static Future<void> createNewNotificationIzin(
+    int id,
+    String idAtasan,
+    String? jenisIzin,
+    int? idStatus,
+    String keyNotif, {
+    required String payloadId, // Payload ini WAJIB ada
+  }) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'izin_channel_id', // ID Channel unik
+      'Notifikasi Izin', // Nama Channel yang akan terlihat di pengaturan Android
+      channelDescription: 'Notifikasi untuk pengajuan izin baru',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker', // Teks yang muncul di status bar sebentar
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    String title = "Pengajuan Izin Baru";
+    String body = "Ada pengajuan $jenisIzin baru yang menunggu konfirmasi Anda.";
+
+    await _flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: 'izin_$payloadId', // Format payload untuk navigasi
+    );
+  }
 
   static Future<void> createNewNotificationLaporan(
-      int jlhCountLaporan, idAtasan, jenisIzin, idStatus, keyNotif) async {
-    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
-    if (!isAllowed) isAllowed = await displayNotificationRationale();
-    if (!isAllowed) return;
-    await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: -1, // -1 is replaced by a random number
-            channelKey: 'alerts',
-            // title: SpUtil.getString('nama_lengkap'),
-            title: 'Laporan Harian',
-            body:
-                "Terdapat $jlhCountLaporan pengajuan $keyNotif yang harus di tindaklanjuti!",
-            // bigPicture:
-            //     'https://storage.googleapis.com/cms-storage-bucket/d406c736e7c4c57f5f61.png',
-            largeIcon: 'asset://assets/images/logo.png',
-            notificationLayout: NotificationLayout.BigPicture,
-            payload: {
-              'navigate': 'laporan',
-            }),
-        actionButtons: [
-          NotificationActionButton(key: 'REDIRECT', label: 'Lihat'),
-          NotificationActionButton(
-              key: 'CLOSE',
-              label: 'Tutup',
-              actionType: ActionType.SilentAction),
-        ]);
+    int id,
+    String idAtasan,
+    String? jenisLaporan, // Tidak digunakan untuk laporan, bisa diatur null
+    int? idStatus,
+    String keyNotif, {
+    required String payloadId, // Payload ini WAJIB ada
+  }) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'laporan_channel_id', // ID Channel unik
+      'Notifikasi Laporan Harian', // Nama Channel yang akan terlihat di pengaturan Android
+      channelDescription: 'Notifikasi untuk laporan harian baru',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker',
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    String title = "Laporan Harian Baru";
+    String body = "Ada laporan harian baru yang menunggu konfirmasi Anda.";
+
+    await _flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: 'laporan_$payloadId', // Format payload untuk navigasi
+    );
+  }
+  static Future<void> scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+    String? payload,
+  }) async {
+    // Pastikan timezone sudah diinisialisasi sebelum memanggil zonedSchedule
+    tz.initializeTimeZones();
+    final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
+
+    await _flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tzScheduledDate,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'scheduled_channel_id',
+          'Scheduled Notifications',
+          channelDescription: 'Notifikasi terjadwal',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: payload,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.dateAndTime,
+    );
+  } 
+  static final StreamController<String?> selectNotificationStream = StreamController<String?>.broadcast();
+  // Membatalkan notifikasi berdasarkan ID
+  static Future<void> cancelNotification(int id) async {
+    await _flutterLocalNotificationsPlugin.cancel(id);
   }
 
-  static Future<void> createNewNotificationSenam(
-      int jlhCountSenam, idAtasan, jenisIzin, idStatus, keyNotif) async {
-    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
-    if (!isAllowed) isAllowed = await displayNotificationRationale();
-    if (!isAllowed) return;
-    await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: -1, // -1 is replaced by a random number
-            channelKey: 'alerts',
-            title: SpUtil.getString('nama_lengkap'),
-            body:
-                "Terdapat $jlhCountSenam pengajuan $keyNotif yang harus di tindaklanjuti!",
-            // bigPicture:
-            //     'https://storage.googleapis.com/cms-storage-bucket/d406c736e7c4c57f5f61.png',
-            largeIcon: 'asset://assets/images/logo.png',
-            notificationLayout: NotificationLayout.BigPicture,
-            payload: {
-              'navigate': 'senam',
-            }),
-        actionButtons: [
-          NotificationActionButton(key: 'REDIRECT', label: 'Lihat'),
-          NotificationActionButton(
-              key: 'CLOSE',
-              label: 'Tutup',
-              actionType: ActionType.SilentAction),
-        ]);
-  }
-
-  static Future<void> createNewNotificationApel(
-      int jlhCountApel, idAtasan, jenisIzin, idStatus, keyNotif) async {
-    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
-    if (!isAllowed) isAllowed = await displayNotificationRationale();
-    if (!isAllowed) return;
-    await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: -1, // -1 is replaced by a random number
-            channelKey: 'alerts',
-            title: SpUtil.getString('nama_lengkap'),
-            body:
-                "Terdapat $jlhCountApel pengajuan $keyNotif yang harus di tindaklanjuti!",
-            // bigPicture:
-            //     'https://storage.googleapis.com/cms-storage-bucket/d406c736e7c4c57f5f61.png',
-            largeIcon: 'asset://assets/images/logo.png',
-            notificationLayout: NotificationLayout.BigPicture,
-            payload: {
-              'navigate': 'apel',
-            }),
-        actionButtons: [
-          NotificationActionButton(key: 'REDIRECT', label: 'Lihat'),
-          NotificationActionButton(
-              key: 'CLOSE',
-              label: 'Tutup',
-              actionType: ActionType.SilentAction),
-        ]);
-  }
-
-  static Future<void> resetBadgeCounter() async {
-    await AwesomeNotifications().resetGlobalBadge();
-  }
-
-  static Future<void> cancelNotifications() async {
-    await AwesomeNotifications().cancelAll();
+  // Membatalkan semua notifikasi
+  static Future<void> cancelAllNotifications() async {
+    await _flutterLocalNotificationsPlugin.cancelAll();
   }
 }

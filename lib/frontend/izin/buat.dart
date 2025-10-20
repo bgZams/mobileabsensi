@@ -6,7 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobileabsensi/frontend/dashboard.dart';
 import 'package:mobileabsensi/services/alert.dart';
+import 'package:mobileabsensi/widget/widget_navbar.dart';
 // import 'package:mobileabsensi/core.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sp_util/sp_util.dart';
@@ -35,7 +37,6 @@ class _BuatIzinState extends State<BuatIzin> {
   String? _valJenisIzin;
   String? valueIzin;
   String? valueJenisCuti;
-  String? valueLamaCuti;
   TextEditingController durasi = TextEditingController();
   TextEditingController keterangan = TextEditingController();
   TextEditingController tanggal = TextEditingController();
@@ -149,6 +150,7 @@ class _BuatIzinState extends State<BuatIzin> {
     "Sakit",
     "Cuti",
     "IDLK",
+    "Tugas Belajar",
   ];
 
   final List<String> _jenisCuti = <String>[
@@ -158,353 +160,363 @@ class _BuatIzinState extends State<BuatIzin> {
     "Cuti Besar",
     "Cuti Melahirkan",
     "Cuti Diluar Tanggungan Negara",
+    "Cuti Belajar",
   ];
-
-  final List<String> _lamaCuti = <String>[
-    "HARIAN",
-    "BULANAN",
-    "TAHUNAN",
-  ];
+ 
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { 
+      final size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: const Text('Buat Izin',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
-        elevation: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.white,),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  height: 10,
-                ),
-                InteractiveViewer(
-                  boundaryMargin: const EdgeInsets.all(double.infinity),
-                  minScale: 0.1,
-                  maxScale: 2.0,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: image != null
-                        ? Image.file(
-                            File(image!.path),
-                            fit: BoxFit.cover,
-                            width: 300,
-                            height: 300,
-                          )
-                        : Container(  ),
+      body: Stack(
+        children: [
+        WidgetNavbar(title: 'Buat Izin',),
+          Column(
+            children: [
+              SizedBox(height: size.height * 0.15),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
                   ),
-                ),
-                ElevatedButton.icon(
-                      icon: _isLoadingMedia
-                          ? const CircularProgressIndicator()
-                          : const Icon(Icons.image_search_rounded,size: 20,color: Colors.white,),
-                      label: Text(
-                        _isLoadingMedia ? 'Loading...' : 'Unggah Foto Izin',
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.white, shadows: [
-                          Shadow(
-                              blurRadius: 2,
-                              color: Colors.black,
-                              offset: Offset(1, 1))
-                        ]),
-                      ),
-                      onPressed: _isLoadingMedia ? null : () {
-                        myAlert();
-                      },
-                      clipBehavior: Clip.hardEdge,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 255, 0, 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -3),
                     ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Jenis Izin',
-                          ),
-                          value: _valJenisIzin,
-                          hint: const Text("Pilih jenis izin"),
-                          items: _jenisIzin.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (String? value) {
-                            setState(() {
-                              _valJenisIzin = value;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Tidak boleh kosong';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                    if (_valJenisIzin == 'Dinas Luar')
-                      Padding(
-                        padding: const EdgeInsets.only(left: 65),
-                        child: CheckboxListTile(
-                          value: sptSementara,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              sptSementara = value ?? false;
-                            });
-                          },
-                          title: const Text("SPT Sementara"),
-                        ),
-                      )
-                    else if (_valJenisIzin == 'Cuti')
-                      Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: SizedBox(
-                              width: MediaQuery.of(context).size.width,
-                              child: DropdownButtonFormField<String>(
-                                decoration: const InputDecoration(
-                                  labelText: 'Jenis Cuti',
-                                ),
-                                value: valueJenisCuti,
-                                hint: const Text("Pilih jenis cuti"),
-                                items: _jenisCuti.map((String valjenisCuti) {
-                                  return DropdownMenuItem<String>(
-                                    value: valjenisCuti,
-                                    child: Text(valjenisCuti),
-                                  );
-                                }).toList(),
-                                onChanged: (String? valjenisCuti) {
-                                  setState(() {
-                                    valueJenisCuti = valjenisCuti;
-                                  });
-                                },
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Jenis Cuti tidak boleh kosong';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 300,
-                            child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                labelText:
-                                    'Lama Cuti', // Add a label for clarity.
-                              ),
-                              value: valueLamaCuti,
-                              hint: const Text("Pilih lama cuti"),
-                              items: _lamaCuti.map((String valLamaCuti) {
-                                return DropdownMenuItem<String>(
-                                  value: valLamaCuti,
-                                  child: Text(valLamaCuti),
-                                );
-                              }).toList(),
-                              onChanged: (String? valLamaCuti) {
-                                setState(() {
-                                  valueLamaCuti = valLamaCuti;
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Lama cuti boleh kosong';
-                                }
-                                return null;
-                              },
-                            ),
-                          )
-                        ],
-                      ),
                   ],
                 ),
-                const SizedBox(
-                  height: 20,
-                ),
-                if (_valJenisIzin == 'IDLK')
-                  Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: TextFormField(
-                      enabled: false,
-                      controller: tanggal,
-                      decoration: InputDecoration(
-                        icon: const Icon(Icons.calendar_today), // icon of text field
-                        labelText: tanggal.text.isNotEmpty ? tanggal.text : DateTime.now().toLocal().toString().split(' ')[0], // menampilkan tanggal yang dipilih
-                      ),
-                      onTap: () async {
-                        DateTimeRange? pickedDate = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2100),
-                        );
-
-                        if (pickedDate != null) {
-                          setState(() {
-                            tanggal.text =
-                                '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
-                            durasi.text = (pickedDate.end.difference(pickedDate.start).inDays + 1).toString();
-                          });
-                        }
-                      },
+                child: SingleChildScrollView(
+                  child: Center(
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  InteractiveViewer(
+                    boundaryMargin: const EdgeInsets.all(double.infinity),
+                    minScale: 0.1,
+                    maxScale: 2.0,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: image != null
+                          ? Image.file(
+                              File(image!.path),
+                              fit: BoxFit.cover,
+                              width: 300,
+                              height: 300,
+                            )
+                          : Container(  ),
                     ),
                   ),
-                )
-                else
-
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: TextFormField(
-                      controller: tanggal,
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.calendar_today), // icon of text field
-                        labelText: "Pilih tanggal",
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Tanggal tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                      readOnly: true,
-                      onTap: () async {
-                        DateTimeRange? pickedDate = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2100),
-                        );
-
-                        if (pickedDate != null) {
-                          setState(() {
-                            tanggal.text =
-                                '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
-                            durasi.text = (pickedDate.end.difference(pickedDate.start).inDays + 1).toString();
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                if (_valJenisIzin == 'IDLK')
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: SizedBox(height: 1))
-                else
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: TextFormField(
-                      controller: durasi,
-                      decoration: const InputDecoration.collapsed(
-                        border: UnderlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(6)),
+                  ElevatedButton.icon(
+                        icon: _isLoadingMedia
+                            ? const CircularProgressIndicator()
+                            : const Icon(Icons.image_search_rounded,size: 20,color: Colors.white,),
+                        label: Text(
+                          _isLoadingMedia ? 'Loading...' : 'Unggah Foto Izin',
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.white, shadows: [
+                            Shadow(
+                                blurRadius: 2,
+                                color: Colors.black,
+                                offset: Offset(1, 1))
+                          ]),
                         ),
-                        hintText: 'Durasi',
+                        onPressed: _isLoadingMedia ? null : () {
+                          myAlert();
+                        },
+                        clipBehavior: Clip.hardEdge,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 255, 0, 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10))),
                       ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              labelText: 'Jenis Izin',
+                            ),
+                            value: _valJenisIzin,
+                            hint: const Text("Pilih jenis izin"),
+                            items: _jenisIzin.map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                            onChanged: (String? value) {
+                              setState(() {
+                                _valJenisIzin = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Tidak boleh kosong';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ),
+                      if (_valJenisIzin == 'Dinas Luar')
+                        Padding(
+                          padding: const EdgeInsets.only(left: 65),
+                          child: CheckboxListTile(
+                            value: sptSementara,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                sptSementara = value ?? false;
+                              });
+                            },
+                            title: const Text("SPT Sementara"),
+                          ),
+                        )
+                      else if (_valJenisIzin == 'Cuti')
+                        Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width,
+                                child: DropdownButtonFormField<String>(
+                                  decoration: const InputDecoration(
+                                    labelText: 'Jenis Cuti',
+                                  ),
+                                  value: valueJenisCuti,
+                                  hint: const Text("Pilih jenis cuti"),
+                                  items: _jenisCuti.map((String valjenisCuti) {
+                                    return DropdownMenuItem<String>(
+                                      value: valjenisCuti,
+                                      child: Text(valjenisCuti),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? valjenisCuti) {
+                                    setState(() {
+                                      valueJenisCuti = valjenisCuti;
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Jenis Cuti tidak boleh kosong';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ),
+                            
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  if (_valJenisIzin == 'IDLK')
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: TextFormField(
+        enabled: false,
+        controller: tanggal,
+        decoration: InputDecoration(
+          icon: const Icon(Icons.calendar_today), // icon of text field
+          labelText: tanggal.text.isNotEmpty ? tanggal.text : DateTime.now().toLocal().toString().split(' ')[0], // menampilkan tanggal yang dipilih
+        ),
+        onTap: () async {
+          DateTimeRange? pickedDate = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime.now(),
+            lastDate: DateTime(2100),
+          );
+
+          if (pickedDate != null) {
+            setState(() {
+              tanggal.text =
+                  '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
+              
+              // Hitung durasi dalam hari
+              int days = (pickedDate.end.difference(pickedDate.start).inDays + 1);
+              
+              // Set teks durasi untuk tampilan (misal: "1 Hari")
+              durasi.text = '$days Hari'; 
+            });
+          }
+        },
+      ),
+    ),
+  )
+else
+
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: TextFormField(
+        controller: tanggal,
+        decoration: const InputDecoration(
+          icon: Icon(Icons.calendar_today), // icon of text field
+          labelText: "Pilih tanggal",
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Tanggal tidak boleh kosong';
+          }
+          return null;
+        },
+        readOnly: true,
+        onTap: () async {
+          DateTimeRange? pickedDate = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime.now(),
+            lastDate: DateTime(2100),
+          );
+
+          if (pickedDate != null) {
+            setState(() {
+              tanggal.text =
+                  '${pickedDate.start.toLocal().toString().split(' ')[0]} - ${pickedDate.end.toLocal().toString().split(' ')[0]}';
+              
+              // Hitung durasi dalam hari
+              int days = (pickedDate.end.difference(pickedDate.start).inDays + 1);
+              
+              // Set teks durasi untuk tampilan (misal: "1 Hari")
+              durasi.text = '$days Hari';
+            });
+          }
+        },
+      ),
+    ),
+  ),
+if (_valJenisIzin == 'IDLK')
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(height: 1))
+else
+  Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: TextFormField(
+        controller: durasi,
+        decoration: const InputDecoration.collapsed(
+          border: UnderlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(6)),
+          ),
+          hintText: 'Durasi',
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Durasi tidak boleh kosong';
+          }
+          // Ambil bagian angka dari string "X Hari"
+          final parts = value.split(' ');
+          if (parts.length < 1) { // Periksa jika string kosong atau tidak sesuai format
+              return 'Format durasi tidak valid (contoh: 1 Hari)';
+          }
+          final numberString = parts[0];
+
+          // Validasi apakah bagian pertama adalah angka
+          if (!RegExp(r'^[0-9]+$').hasMatch(numberString)) {
+            return 'Hanya angka yang diperbolehkan';
+          }
+          // Anda juga bisa menambahkan validasi untuk memastikan ada "Hari" jika diinginkan
+          if (parts.length > 1 && parts[1].toLowerCase() != 'hari') {
+              return 'Format durasi tidak valid (contoh: 1 Hari)';
+          }
+          return null;
+        },
+        keyboardType: TextInputType.text, // Ubah ke TextInputType.text karena ada "Hari"
+        enabled: false, // Karena nilainya diatur secara otomatis dari pemilih tanggal
+      ),
+    ),
+  ),
+const SizedBox(
+  height: 40,
+),
+                  
+                  
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    color: const Color.fromARGB(255, 255, 255, 255),
+                    child: TextFormField(
+                      controller: keterangan,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Durasi tidak boleh kosong';
-                        }
-                        if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                          return 'Hanya angka yang diperbolehkan';
+                          return 'Keterangan tidak boleh kosong';
                         }
                         return null;
                       },
-                      keyboardType: TextInputType.number,
-                      enabled: false,
-                    ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 40,
-                ),
-
-
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  color: const Color.fromARGB(255, 255, 255, 255),
-                  child: TextFormField(
-                    controller: keterangan,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Keterangan tidak boleh kosong';
-                      }
-                      return null;
-                    },
-                
-                    maxLines: 6, //or null
-                    decoration: InputDecoration(
-                      labelText: "Masukkan keterangan",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  
+                      maxLines: 6, //or null
+                      decoration: InputDecoration(
+                        labelText: "Masukkan keterangan",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton.icon(
-                      icon: _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Icon(Icons.save_outlined,size: 20,color: Colors.white,),
-                      label: Text(
-                        _isLoading ? 'Loading...' : 'Simpan',
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.white, shadows: [
-                          Shadow(
-                              blurRadius: 2,
-                              color: Colors.black,
-                              offset: Offset(1, 1))
-                        ]),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ElevatedButton.icon(
+                        icon: _isLoading
+                            ? const CircularProgressIndicator()
+                            : const Icon(Icons.save_outlined,size: 20,color: Colors.white,),
+                        label: Text(
+                          _isLoading ? 'Loading...' : 'Simpan',
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.white, shadows: [
+                            Shadow(
+                                blurRadius: 2,
+                                color: Colors.black,
+                                offset: Offset(1, 1))
+                          ]),
+                        ),
+                        onPressed: _isLoading ? null : _startLoading,
+                        clipBehavior: Clip.hardEdge,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 17, 110, 160),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10))),
                       ),
-                      onPressed: _isLoading ? null : _startLoading,
-                      clipBehavior: Clip.hardEdge,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 17, 110, 160),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
                     ),
                   ),
+                  const SizedBox(
+                    height: 40,
+                  )
+                                ],
+                              ),
+                            ),
+                          ),
                 ),
-                const SizedBox(
-                  height: 40,
-                )
-              ],
+      ),
             ),
-          ),
+          ],
         ),
+        ],
       ),
     );
   }
@@ -538,6 +550,7 @@ class _BuatIzinState extends State<BuatIzin> {
       _valJenisIzin = null;
     });
   }
+  int _currentIndex = 0; // Define _currentIndex at the class level
 
   Future<void> kirimizin() async {
 
@@ -546,12 +559,17 @@ class _BuatIzinState extends State<BuatIzin> {
     String tanggalTerpilih = tanggal.text.split(' - ')[0];
     String keteranganValue = keterangan.text;
     String durasiValue = durasi.text;
+    String durasiAngkaString = durasiValue.replaceAll(' Hari', '');
+    // int? durasiAngka = int.tryParse(durasiAngkaString);
 
     // String fileName = imagePath.split('/').last;
     String? idUser = SpUtil.getString("id_user");
     String? idadmininstansi = SpUtil.getString("id_admin_instansi");
     String? jenisIzin = _valJenisIzin;
     String? idAtasan = SpUtil.getString("id_user_pimpinan");
+    if(idAtasan == null){
+      Alert.alertwarning(context, 'ID Atasan tidak ditemukan');
+    }
     String namalengkap = SpUtil.getString("nama_lengkap").toString();
     // Buat multipart request
     var request =
@@ -565,7 +583,7 @@ class _BuatIzinState extends State<BuatIzin> {
     request.fields['id_admin_instansi'] = idadmininstansi!;
     request.fields['keterangan'] = keteranganValue;
     request.fields['status'] = jenisIzin!;
-    request.fields['durasi'] = durasiValue;
+    request.fields['durasi'] = durasiAngkaString;
     request.fields['id_atasan'] = idAtasan!;
     Map<String, dynamic> addFirebaseIzin = {
       'tanggal': tanggalTerpilih,
@@ -574,6 +592,7 @@ class _BuatIzinState extends State<BuatIzin> {
       'id_status': 0,
       'nama_lengkap': namalengkap,
       'jenis_izin': _valJenisIzin,
+      'jenis_cuti': valueJenisCuti ?? '',
       'key_notif': 'izin',
       'timestamp': DateTime.now().millisecondsSinceEpoch,
       // 'timestamp': DateFormat('dd-MM-yyyy HH:mm:ss').format(DateTime.now()),
@@ -584,7 +603,6 @@ class _BuatIzinState extends State<BuatIzin> {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
       if (response.statusCode == 200) {
-        // Jika berhasil
         final DatabaseReference databaseReference =
             FirebaseDatabase.instance.ref();
         databaseReference.child("izin").push().set(addFirebaseIzin);
@@ -592,11 +610,20 @@ class _BuatIzinState extends State<BuatIzin> {
         String message = data["message"];
         if (data['status'] == 'success') {
           if(mounted){
-
-            Navigator.pop(context, true);
+            setState(() {
+              if(jenisIzin == 'IDLK'){
+                SpUtil.putInt('idlk', 1);
+                SpUtil.putBool('is_IDLK', true);
+              }
+              _currentIndex = 3;
+            });
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(initialIndex: _currentIndex),
+              ),
+            );
             Alert.alertsuccess(context,message);
-            SpUtil.putInt('idlk', 1);
-
           }
         } else {
           if(mounted){

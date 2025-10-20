@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/widget/bulan.dart';
+import 'package:sp_util/sp_util.dart';
 
 class LhkPage extends StatefulWidget {
   final String idPegawai;
@@ -46,7 +47,7 @@ class _LhkPageState extends State<LhkPage> {
 
   Future<void> fetchLhk() async {
     final response = await http.get(
-      Uri.parse('http://mobileabsensi1.pasamanbaratkab.go.id/api_android/web/riwayat_lhk.php?nama_bulan=05&id_user=${widget.idPegawai}&tahun=2024'),
+      Uri.parse('http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android/web/riwayat_lhk.php?nama_bulan=05&id_user=${widget.idPegawai}&tahun=2024'),
     );
 
     if (response.statusCode == 200) {
@@ -80,7 +81,7 @@ class _LhkPageState extends State<LhkPage> {
       String selectedMonthNumber = Bulan().getMonthNumber(selectedMonth);
       http.Response response = await http.get(
         Uri.parse(
-          'http://mobileabsensi1.pasamanbaratkab.go.id/api_android/web/riwayat_lhk.php?nama_bulan=$selectedMonthNumber&id_user=${widget.idPegawai}&tahun=$selectedYear',
+          'http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android/web/riwayat_lhk.php?nama_bulan=$selectedMonthNumber&id_user=${widget.idPegawai}&tahun=$selectedYear',
         ),
         headers: {
           'Content-type': 'application/json',
