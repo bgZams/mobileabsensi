@@ -18,7 +18,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final GlobalKey screenshotKey = GlobalKey();
-  bool _isButtonShown = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,38 +36,65 @@ class _MyAppState extends State<MyApp> {
       title: 'Mobile Absensi',
       navigatorKey: navigatorKey,
       
-      home: Builder(
-        builder: (context) {
-          // Gunakan addPostFrameCallback untuk menunda eksekusi
-          if (!_isButtonShown) {
-            _isButtonShown = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              // Kode di dalam sini akan dijalankan setelah frame selesai dibangun
-              OverlayService.showScreenshotButton(
-                context: context,
-                screenshotKey: screenshotKey,
-                onScreenshotTaken: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Screenshot berhasil diambil!')),
-                  );
-                },
-                onScreenshotSaved: (String? path) {
-                  if (path != null) {
-                  }
-                },
-              );
-            });
-          }
-          
-          return RepaintBoundary(
-            key: screenshotKey,
-            child: homeWidget,
-          );
-        },
+      home: _ScreenshotWrapper(
+        screenshotKey: screenshotKey,
+        child: homeWidget,
       ),
       
       routes: appRoutes,
       onGenerateRoute: onGenerateRoute,
+    );
+  }
+}
+
+// Widget wrapper yang menangani screenshot overlay HANYA SEKALI
+class _ScreenshotWrapper extends StatefulWidget {
+  final GlobalKey screenshotKey;
+  final Widget child;
+
+  const _ScreenshotWrapper({
+    required this.screenshotKey,
+    required this.child,
+  });
+
+  @override
+  State<_ScreenshotWrapper> createState() => _ScreenshotWrapperState();
+}
+
+class _ScreenshotWrapperState extends State<_ScreenshotWrapper> {
+  bool _hasInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Tampilkan overlay setelah widget pertama kali di-build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Pastikan hanya dipanggil sekali menggunakan flag lokal
+      if (!_hasInitialized && mounted) {
+        _hasInitialized = true;
+        OverlayService.showScreenshotButton(
+          context: context,
+          screenshotKey: widget.screenshotKey,
+          onScreenshotTaken: () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Screenshot berhasil diambil!')),
+              );
+            }
+          },
+          onScreenshotSaved: (String? path) {
+            // Handle jika perlu
+          },
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      key: widget.screenshotKey,
+      child: widget.child,
     );
   }
 }
