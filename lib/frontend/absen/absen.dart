@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
 import 'package:mobileabsensi/frontend/dashboard.dart';
 import 'package:mobileabsensi/widget/widget_fitur.dart';
-import 'package:mobileabsensi/frontend/izin/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:quickalert/quickalert.dart';
@@ -26,12 +24,10 @@ class Absen extends StatefulWidget {
 }
 
 class _AbsenState extends State<Absen> {
-  final PageController _pageController = PageController(); 
+  final PageController _pageController = PageController();
   bool _enabled = true;
   String? url = SpUtil.getString("url");
-  String _jamSekarang = '';
   List<Map<String, dynamic>> wifiData = [];
-  bool _isLoading = false;
   bool _isMasuk = false;
   bool _isPulang = false;
   String? wifiName;
@@ -54,7 +50,6 @@ class _AbsenState extends State<Absen> {
   String? notif = '0';
   DateTime? lastFetchTime;
   int syncCount = 0;
-  static const platform = MethodChannel('com.mobileabsensi/secure_screen');
 
   // Tambahkan ValueNotifier untuk state yang sering berubah
   final ValueNotifier<String> _jamSekarangNotifier = ValueNotifier('');
@@ -66,37 +61,40 @@ class _AbsenState extends State<Absen> {
   final ValueNotifier<bool> _isIDLKNotifier = ValueNotifier(false);
   final ValueNotifier<String?> _notifNotifier = ValueNotifier('0');
 
-  Future<void> _enableScreenshot() async {
-    await platform.invokeMethod('setSecureScreen', {'enable': false});
-  }
-
-  Future<void> _disableScreenRecording() async {
-    if (Platform.isAndroid) {
-      await platform.invokeMethod('disableScreenRecording');
-    }
-  }
-
   @override
   void initState() {
     super.initState();
     _enabled = false;
     _initNetworkInfo();
-    _startPeriodicCheck();
-    
-    if (SpUtil.getBool('is_PulangCepat') == true || SpUtil.getBool('is_IDLK') == true) {
+    _startPeriodicCheck(); 
+    if (SpUtil.getString('id_type') == "1") {
+      cekDataShift();
+    }
+
+    if (SpUtil.getBool('is_PulangCepat') == true ||
+        SpUtil.getBool('is_IDLK') == true) {
       _checkIdlkandPulangCepat();
     }
     _jamSekarangNotifier.value = _formatDateTime(DateTime.now());
     loadWifiData();
-    
+
     // Inisialisasi notifiers
     _isCodeMasukNotifier.value = SpUtil.getBool('is_codeMasuk') ?? false;
     _isCodePulangNotifier.value = SpUtil.getBool('is_codePulang') ?? false;
     _isPulangCepatNotifier.value = SpUtil.getBool('is_PulangCepat') ?? false;
     _isIDLKNotifier.value = SpUtil.getBool('is_IDLK') ?? false;
-    
+
     _fetchNotif();
     refreshData();
+
+            print(SpUtil.getString('device_id'));
+            // print('status_idlk ${SpUtil.getString("status_idlk")}');
+            // print('is_codeMasuk ${SpUtil.getBool("is_codeMasuk")}');
+            // print('is_codePulang ${SpUtil.getBool("is_codePulang")}');
+            // print('is_PulangCepat ${SpUtil.getBool("is_PulangCepat")}');
+            // print('is_IDLK ${SpUtil.getBool("is_IDLK")}');
+            // print('_isMasuk ${SpUtil.getBool("_isMasuk")}');
+            // print('_isPulang ${SpUtil.getBool("_isPulang")}');
   }
 
   @override
@@ -125,6 +123,24 @@ class _AbsenState extends State<Absen> {
     return DateFormat('HH:mm:ss').format(dateTime);
   }
 
+  Future<void> cekDataShift() async {
+    final dataShift = await http.get(
+      Uri.parse(
+          'http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android_v2/api/jam-kerja/${SpUtil.getString('id_user')}'),
+      headers: {
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (dataShift.statusCode == 200) {
+      final shiftData = json.decode(dataShift.body)['data'];
+      SpUtil.putString('shift_data', json.encode(shiftData));
+    } else {
+      return;
+    }
+  }
+
   Future<void> loadWifiData() async {
     String wifiDataJson = SpUtil.getString("wifi_data") ?? '[]';
     if (wifiDataJson.isNotEmpty) {
@@ -148,12 +164,12 @@ class _AbsenState extends State<Absen> {
     try {
       String? currentWifiName = await _networkInfo.getWifiName();
       String? cleanName = currentWifiName?.replaceAll('"', '');
-      
+
       if (!mounted) return;
-      
+
       if (cleanName != _wifiNameNotifier.value) {
         _wifiNameNotifier.value = cleanName;
-        
+
         // Update other network info
         wifiBSSID = await _networkInfo.getWifiBSSID();
         wifiIPv4 = await _networkInfo.getWifiIP();
@@ -164,13 +180,13 @@ class _AbsenState extends State<Absen> {
       }
     }
   }
-  
+
   Future<void> _initNetworkInfo() async {
     try {
       wifiName = await _networkInfo.getWifiName();
       wifiBSSID = await _networkInfo.getWifiBSSID();
       wifiIPv4 = await _networkInfo.getWifiIP();
-      
+
       if (mounted) {
         _wifiNameNotifier.value = wifiName?.replaceAll('"', '');
       }
@@ -184,19 +200,19 @@ class _AbsenState extends State<Absen> {
 
   Future<void> absenMasuk(String? wifiName, String? wifiBSSID) async {
     if (!mounted) return;
-    
+
     _isLoadingNotifier.value = true;
-    
+
     String connectedSSID = wifiName ?? '';
     String ssID = connectedSSID.replaceAll('"', '');
     String connectedBSSID = wifiBSSID ?? '';
     var listWifiString = SpUtil.getString("wifi_data");
-    
+
     if (listWifiString != null) {
       List<dynamic> listWifi = jsonDecode(listWifiString);
       bool isWifiMatch = listWifi.any(
           (wifi) => wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
-      
+
       if (isWifiMatch) {
         if (SpUtil.getString("id_user") != null) {
           try {
@@ -210,21 +226,24 @@ class _AbsenState extends State<Absen> {
               'bssid': connectedBSSID,
               'versi': '1.4',
               'deviceId': SpUtil.getString('device_id'),
+              'id_type': SpUtil.getString('id_type'),
             };
-            
-            http.Response absenMasuk = await http.post(
-              Uri.parse('$url/api/masuk'),
-              body: datamasuk,
-            ).timeout(const Duration(seconds: 30));
-            
+
+            http.Response absenMasuk = await http
+                .post(
+                  Uri.parse('$url/api/masuk'),
+                  body: datamasuk,
+                )
+                .timeout(const Duration(seconds: 30));
+
             await Future.delayed(const Duration(seconds: 2));
-            
+
             if (!mounted) return;
-            
+
             if (absenMasuk.statusCode == 200) {
               final data = jsonDecode(absenMasuk.body);
               String message = json.encode(data["message"]).replaceAll('"', '');
-              
+
               if (data["code"] == "wifi" ||
                   data["code"] == "versi_app" ||
                   data["code"] == "unknown") {
@@ -238,7 +257,7 @@ class _AbsenState extends State<Absen> {
                 jamMasuk = DateFormat('HH:mm').format(waktuText);
                 SpUtil.putString('masuk', '$jamMasuk');
                 SpUtil.putBool('is_codeMasuk', true);
-                
+
                 if (mounted) {
                   Alert.alertsuccess(context, message);
                   _isCodeMasukNotifier.value = true;
@@ -269,7 +288,8 @@ class _AbsenState extends State<Absen> {
         }
       } else {
         if (mounted) {
-          Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!. ');
+          Alert.alertwarning(
+              context, 'SSID tidak ditemukan dalam daftar WiFi!. ');
           _isLoadingNotifier.value = false;
         }
       }
@@ -283,7 +303,7 @@ class _AbsenState extends State<Absen> {
 
   Future<void> absenPulang(String? wifiName, String? wifiBSSID) async {
     if (!mounted) return;
-    
+
     _isLoadingNotifier.value = true;
     if (SpUtil.getBool('is_PulangCepat') == true &&
         SpUtil.getString('status_idlk') == '-' &&
@@ -295,7 +315,7 @@ class _AbsenState extends State<Absen> {
       }
       return;
     }
-    
+
     if (SpUtil.getString('status_idlk') == 'setujui') {
       try {
         var datapulang = {
@@ -305,8 +325,10 @@ class _AbsenState extends State<Absen> {
           'bssid': 'IDLK',
           'versi': '1.4',
           'deviceId': SpUtil.getString('device_id'),
+          'id_type': SpUtil.getString('id_type'),
+          'timestamp_pulang': DateTime.now().toIso8601String(),
         };
-        
+
         http.Response absenPulang = await http.put(
           Uri.parse('$url/api/pulang/$idUser'),
           body: jsonEncode(datapulang),
@@ -314,22 +336,22 @@ class _AbsenState extends State<Absen> {
             'Content-Type': 'application/json; charset=UTF-8',
           },
         ).timeout(const Duration(seconds: 30));
-        
+
         if (!mounted) return;
-        
+
         final data = jsonDecode(absenPulang.body);
-        
+
         if (absenPulang.statusCode == 200) {
           code = data['code']?.toString();
           String message = json.encode(data["message"]).replaceAll('"', '');
-          
+
           if (data["code"] == "1") {
             SpUtil.putString('code_pulang', code!);
             String waktuJson = data['waktu'];
             DateTime waktuText = DateTime.parse(waktuJson);
             jamPulang = DateFormat('HH:mm').format(waktuText);
             SpUtil.putString('pulang', '$jamPulang');
-            
+
             if (mounted) {
               Alert.alertsuccess(context, message);
               _isCodePulangNotifier.value = true;
@@ -366,21 +388,22 @@ class _AbsenState extends State<Absen> {
       }
       return;
     }
-    
-    if (SpUtil.getString('statusPC') == 'tolak' || SpUtil.getBool('is_codePulang') == false) {
+
+    if (SpUtil.getString('statusPC') == 'tolak' ||
+        SpUtil.getBool('is_codePulang') == false) {
       String connectedSSID = wifiName ?? '';
       String ssID = connectedSSID.replaceAll('"', '');
       String connectedBSSID = wifiBSSID ?? '';
-      
+
       if (SpUtil.getString("id_user") != null) {
         try {
           var listWifiString = SpUtil.getString("wifi_data");
-          
+
           if (listWifiString != null) {
             List<dynamic> listWifi = jsonDecode(listWifiString);
             bool isWifiMatch = listWifi.any((wifi) =>
                 wifi['SSID'] == ssID && wifi['BSSID'] == connectedBSSID);
-            
+
             if (isWifiMatch) {
               var datapulang = {
                 'id_user': idUser,
@@ -393,7 +416,7 @@ class _AbsenState extends State<Absen> {
                 'versi': '1.4',
                 'deviceId': SpUtil.getString('device_id'),
               };
-              
+
               http.Response absenPulang = await http.put(
                 Uri.parse('$url/api/pulang/$idUser'),
                 body: jsonEncode(datapulang),
@@ -401,16 +424,17 @@ class _AbsenState extends State<Absen> {
                   'Content-Type': 'application/json; charset=UTF-8',
                 },
               ).timeout(const Duration(seconds: 30));
-              
+
               if (!mounted) return;
-              
+
               if (absenPulang.statusCode == 200) {
                 final data = jsonDecode(absenPulang.body);
                 code = data['code']?.toString();
                 SpUtil.putString('statusPC', '-');
                 SpUtil.putBool('is_PulangCepat', false);
-                String message = json.encode(data["message"]).replaceAll('"', '');
-                
+                String message =
+                    json.encode(data["message"]).replaceAll('"', '');
+
                 if (data["code"] == "1") {
                   SpUtil.putString('code_pulang', code!);
                   String waktuJson = data['waktu'];
@@ -418,7 +442,7 @@ class _AbsenState extends State<Absen> {
                   jamPulang = DateFormat('HH:mm').format(waktuText);
                   SpUtil.putString('pulang', '$jamPulang');
                   SpUtil.putBool('is_codePulang', true);
-                  
+
                   if (mounted) {
                     Alert.alertsuccess(context, message);
                     _isCodePulangNotifier.value = true;
@@ -432,12 +456,14 @@ class _AbsenState extends State<Absen> {
                 }
               } else {
                 if (mounted) {
-                  Alert.alertwarning(context, 'Tidak dapat terhubung ke server');
+                  Alert.alertwarning(
+                      context, 'Tidak dapat terhubung ke server');
                 }
               }
             } else {
               if (mounted) {
-                Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!');
+                Alert.alertwarning(
+                    context, 'SSID tidak ditemukan dalam daftar WiFi!');
                 _isLoadingNotifier.value = false;
               }
             }
@@ -467,15 +493,14 @@ class _AbsenState extends State<Absen> {
             'Accept': 'application/json',
           },
         ).timeout(const Duration(seconds: 30));
-        
+
         if (!mounted) return;
-        
+
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          print(data);  
           if (data['data'] == 'setujui') {
             SpUtil.putString('status_idlk', 'setujui');
-          }else if (data['data'] == 'tolak') {
+          } else if (data['data'] == 'tolak') {
             SpUtil.putString('status_idlk', 'tolak');
           } else if (data['data'] == 'pending') {
             SpUtil.putString('status_idlk', 'pending');
@@ -492,7 +517,7 @@ class _AbsenState extends State<Absen> {
           throw Exception('Failed to load data');
         }
       }
-      
+
       if (SpUtil.getBool('is_PulangCepat') == true) {
         final responsePc = await http.get(
           Uri.parse('$url/api/cek-pulang-cepat/$idUser'),
@@ -501,9 +526,9 @@ class _AbsenState extends State<Absen> {
             'Accept': 'application/json',
           },
         ).timeout(const Duration(seconds: 30));
-        
+
         if (!mounted) return;
-        
+
         if (responsePc.statusCode == 200) {
           final data = jsonDecode(responsePc.body);
           if (data['data'] == 'setujui') {
@@ -515,7 +540,7 @@ class _AbsenState extends State<Absen> {
             SpUtil.putString('status_idlk', '-');
             SpUtil.putBool('_isMasuk', false);
             SpUtil.putBool('_isPulang', false);
-            
+
             // Update notifiers
             _isCodeMasukNotifier.value = false;
             _isCodePulangNotifier.value = false;
@@ -541,7 +566,7 @@ class _AbsenState extends State<Absen> {
       debugPrint('Error: idUser or url is empty');
       return;
     }
-    
+
     try {
       final responseIzin = await http.get(
         Uri.parse('$url/api/notif/get-notif-count/$idUser'),
@@ -550,9 +575,9 @@ class _AbsenState extends State<Absen> {
           'Accept': 'application/json',
         },
       ).timeout(const Duration(seconds: 30));
-      
+
       if (!mounted) return;
-      
+
       if (responseIzin.statusCode == 200) {
         final data = jsonDecode(responseIzin.body);
         _notifNotifier.value = data["tot_Notif"].toString();
@@ -568,7 +593,7 @@ class _AbsenState extends State<Absen> {
 
   Future<void> refreshData() async {
     if (!mounted) return;
-    
+
     _getCurrentTime();
     await _initNetworkInfo();
     await _fetchNotif();
@@ -578,16 +603,15 @@ class _AbsenState extends State<Absen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       body: Stack(
         children: [
           const Header(), // Assuming Header is a widget
-          
+
           Column(
             children: [
               SizedBox(height: size.height * 0.15),
-              
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -612,24 +636,27 @@ class _AbsenState extends State<Absen> {
                       padding: const EdgeInsets.all(16),
                       children: [
                         const Fitur(),
-                        
+
                         // WiFi Status Widget
                         ValueListenableBuilder<String?>(
                           valueListenable: _wifiNameNotifier,
                           builder: (context, wifiNameValue, child) {
-                            final namaSSID = (wifiNameValue?.isNotEmpty ?? false) 
-                                ? wifiNameValue!.replaceAll('"', '') 
-                                : 'Wifi tidak terhubung';
-                            
+                            final namaSSID =
+                                (wifiNameValue?.isNotEmpty ?? false)
+                                    ? wifiNameValue!.replaceAll('"', '')
+                                    : 'Wifi tidak terhubung';
+
                             return Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(8.0),
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: const Color.fromARGB(255, 221, 235, 235),
+                                  color:
+                                      const Color.fromARGB(255, 221, 235, 235),
                                 ),
                                 color: const Color.fromARGB(255, 240, 255, 255),
-                                borderRadius: const BorderRadius.all(Radius.circular(10)),
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(10)),
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Color.fromARGB(255, 226, 226, 226),
@@ -648,9 +675,12 @@ class _AbsenState extends State<Absen> {
                                       padding: const EdgeInsets.all(8.0),
                                       child: Skeleton.replace(
                                         child: Text(
-                                          namaSSID.isNotEmpty ? namaSSID : 'Wifi tidak terhubung',
+                                          namaSSID.isNotEmpty
+                                              ? namaSSID
+                                              : 'Wifi tidak terhubung',
                                           style: const TextStyle(
-                                            color: Color.fromARGB(255, 255, 31, 31),
+                                            color: Color.fromARGB(
+                                                255, 255, 31, 31),
                                           ),
                                         ),
                                       ),
@@ -661,7 +691,7 @@ class _AbsenState extends State<Absen> {
                             );
                           },
                         ),
-                        
+
                         // Time and Date Widget
                         Container(
                           color: const Color.fromARGB(255, 255, 255, 255),
@@ -674,7 +704,7 @@ class _AbsenState extends State<Absen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     const SizedBox(height: 5),
-                                    
+
                                     // Time Display
                                     ValueListenableBuilder<String>(
                                       valueListenable: _jamSekarangNotifier,
@@ -684,105 +714,275 @@ class _AbsenState extends State<Absen> {
                                           style: const TextStyle(
                                             fontSize: 30,
                                             fontWeight: FontWeight.bold,
-                                            color: Color.fromARGB(255, 14, 60, 129),
+                                            color: Color.fromARGB(
+                                                255, 14, 60, 129),
                                           ),
                                         );
                                       },
                                     ),
-                                    
+
                                     const SizedBox(height: 5),
-                                    
+
                                     // Date Display
                                     Text(
-                                      DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateTime.now()),
+                                      DateFormat('EEEE, dd/MM/yyyy', 'id')
+                                          .format(DateTime.now()),
                                       style: const TextStyle(fontSize: 25),
                                     ),
                                   ],
                                 ),
                               ),
-                              
+
                               const SizedBox(height: 20),
-                              
+
                               // Attendance Buttons
                               ValueListenableBuilder<bool>(
                                 valueListenable: _isCodeMasukNotifier,
                                 builder: (context, isCodeMasukValue, child) {
                                   return ValueListenableBuilder<bool>(
                                     valueListenable: _isCodePulangNotifier,
-                                    builder: (context, isCodePulangValue, child) {
+                                    builder:
+                                        (context, isCodePulangValue, child) {
                                       return ValueListenableBuilder<bool>(
                                         valueListenable: _isLoadingNotifier,
-                                        builder: (context, isLoadingValue, child) {
+                                        builder:
+                                            (context, isLoadingValue, child) {
                                           return Column(
                                             children: [
                                               Padding(
-                                                padding: const EdgeInsets.all(36.0),
+                                                padding:
+                                                    const EdgeInsets.all(36.0),
                                                 child: Row(
                                                   children: [
                                                     // Check-in Button
                                                     Column(
                                                       children: [
-                                                        (DateTime.now().toIso8601String().substring(0, 10) ==
-                                                            SpUtil.getString('saved_date') &&
-                                                            isCodeMasukValue)
+                                                        SpUtil.getBool(
+                                                                    'is_codeMasuk') ==
+                                                                true
                                                             ? Column(
                                                                 children: [
                                                                   Container(
-                                                                    decoration: BoxDecoration(
-                                                                      color: const Color.fromARGB(255, 173, 218, 255),
-                                                                      borderRadius: BorderRadius.circular(10),
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      color: const Color
+                                                                          .fromARGB(
+                                                                          255,
+                                                                          173,
+                                                                          218,
+                                                                          255),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              10),
                                                                     ),
                                                                     width: 100,
                                                                     height: 100,
-                                                                    alignment: Alignment.center,
+                                                                    alignment:
+                                                                        Alignment
+                                                                            .center,
                                                                     child: Text(
                                                                       "${SpUtil.getString('masuk')}",
-                                                                      style: const TextStyle(
-                                                                        fontSize: 30,
-                                                                        color: Color.fromARGB(255, 2, 53, 95),
+                                                                      style:
+                                                                          const TextStyle(
+                                                                        fontSize:
+                                                                            30,
+                                                                        color: Color.fromARGB(
+                                                                            255,
+                                                                            2,
+                                                                            53,
+                                                                            95),
                                                                       ),
                                                                     ),
                                                                   ),
-                                                                  const SizedBox(height: 25),
+                                                                  const SizedBox(
+                                                                      height:
+                                                                          25),
                                                                 ],
                                                               )
                                                             : GestureDetector(
                                                                 onTap: isLoadingValue
                                                                     ? null
                                                                     : () async {
-                                                                        setState(() {
-                                                                          _isMasuk = true;
+                                                                        setState(
+                                                                            () {
+                                                                          _isMasuk =
+                                                                              true;
                                                                         });
-                                                                        
+
                                                                         await _initNetworkInfo();
-                                                                        
+
                                                                         if (_wifiNameNotifier.value != null &&
-                                                                            wifiBSSID != null &&
+                                                                            wifiBSSID !=
+                                                                                null &&
                                                                             _wifiNameNotifier.value!.isNotEmpty &&
                                                                             wifiBSSID!.isNotEmpty) {
-                                                                          await absenMasuk(
-                                                                              _wifiNameNotifier.value,
-                                                                              wifiBSSID);
+                                                                          Map? _findActiveShiftForAttendance(
+                                                                              List shifts,
+                                                                              DateTime now) {
+                                                                            for (final shift
+                                                                                in shifts) {
+                                                                              final tglAwal = DateTime.parse(shift['tgl_awal']);
+                                                                              final tglAkhir = DateTime.parse(shift['tgl_akhir']);
+
+                                                                              final jamMulaiParts = (shift['jam_mulai'] as String).split(':');
+                                                                              final jamSelesaiParts = (shift['jam_selesai'] as String).split(':');
+
+                                                                              final shiftStart = DateTime(
+                                                                                tglAwal.year,
+                                                                                tglAwal.month,
+                                                                                tglAwal.day,
+                                                                                int.parse(jamMulaiParts[0]),
+                                                                                int.parse(jamMulaiParts[1]),
+                                                                              );
+
+                                                                              final shiftEnd = DateTime(
+                                                                                tglAkhir.year,
+                                                                                tglAkhir.month,
+                                                                                tglAkhir.day,
+                                                                                int.parse(jamSelesaiParts[0]),
+                                                                                int.parse(jamSelesaiParts[1]),
+                                                                              );
+
+                                                                              // Toleransi: 5 jam sebelum shift mulai sampai 8 jam setelah shift selesai
+                                                                              final startTolerance = shiftStart.subtract(const Duration(hours: 5));
+                                                                              final endTolerance = shiftEnd.add(const Duration(hours: 8));
+
+                                                                              if (now.isAfter(startTolerance) && now.isBefore(endTolerance)) {
+                                                                                return shift;
+                                                                              }
+                                                                            }
+                                                                            return null;
+                                                                          }
+
+                                                                          if (SpUtil.getString('id_type') ==
+                                                                              '1') {
+                                                                            String?
+                                                                                shiftDataString =
+                                                                                SpUtil.getString('shift_data');
+
+                                                                            if (shiftDataString != null &&
+                                                                                shiftDataString.isNotEmpty) {
+                                                                              try {
+                                                                                List<dynamic> shifts = jsonDecode(shiftDataString);
+                                                                                DateTime now = DateTime.now();
+
+                                                                                // Cari shift yang aktif saat ini
+                                                                                Map? activeShift = _findActiveShiftForAttendance(shifts, now);
+
+                                                                                if (activeShift != null) {
+                                                                                  // Parse jam shift
+                                                                                  final tglAwal = DateTime.parse(activeShift['tgl_awal']);
+                                                                                  final tglAkhir = DateTime.parse(activeShift['tgl_akhir']);
+
+                                                                                  final jamMulaiParts = activeShift['jam_mulai'].split(':');
+                                                                                  final jamSelesaiParts = activeShift['jam_selesai'].split(':');
+
+                                                                                  final shiftStart = DateTime(
+                                                                                    tglAwal.year,
+                                                                                    tglAwal.month,
+                                                                                    tglAwal.day,
+                                                                                    int.parse(jamMulaiParts[0]),
+                                                                                    int.parse(jamMulaiParts[1]),
+                                                                                  );
+
+                                                                                  final shiftEnd = DateTime(
+                                                                                    tglAkhir.year,
+                                                                                    tglAkhir.month,
+                                                                                    tglAkhir.day,
+                                                                                    int.parse(jamSelesaiParts[0]),
+                                                                                    int.parse(jamSelesaiParts[1]),
+                                                                                  );
+
+                                                                                  // Waktu buka absen: 5 jam sebelum jam mulai
+                                                                                  final jamBukaAbsen = shiftStart.subtract(const Duration(hours: 5));
+
+                                                                                  // Cek apakah dalam waktu absen yang diperbolehkan
+                                                                                  if (now.isAfter(jamBukaAbsen) && now.isBefore(shiftEnd)) {
+
+                                                                                    await absenMasuk(_wifiNameNotifier.value, wifiBSSID);
+                                                                                  } else if (now.isBefore(jamBukaAbsen)) {
+                                                                                    // Belum waktunya absen
+                                                                                    String jamBukaAbsenStr = DateFormat('HH:mm').format(jamBukaAbsen);
+                                                                                    String jamSelesaiStr = DateFormat('HH:mm').format(shiftEnd);
+
+                                                                                    if (mounted) {
+                                                                                      Alert.alertwarning(context, 'Waktu absen belum tersedia. Anda bisa absen mulai jam $jamBukaAbsenStr sampai $jamSelesaiStr.');
+                                                                                    }
+                                                                                    setState(() {
+                                                                                      _isMasuk = false;
+                                                                                    });
+                                                                                  } else {
+                                                                                    // Sudah lewat waktu shift, tapi masih dalam periode laporan (8 jam setelah shift)
+                                                                                    final reportDeadline = shiftEnd.add(const Duration(hours: 8));
+
+                                                                                    if (now.isBefore(reportDeadline)) {
+                                                                                      if (mounted) {
+                                                                                        Alert.alertwarning(context, 'Waktu absen sudah berakhir. Anda hanya bisa mengisi laporan harian hingga jam ${DateFormat('HH:mm').format(reportDeadline)}.');
+                                                                                      }
+                                                                                    } else {
+                                                                                      if (mounted) {
+                                                                                        Alert.alertwarning(context, 'Waktu absen dan periode laporan sudah berakhir.');
+                                                                                      }
+                                                                                    }
+                                                                                    setState(() {
+                                                                                      _isMasuk = false;
+                                                                                    });
+                                                                                  }
+                                                                                } else {
+                                                                                  // Tidak ada shift aktif
+                                                                                  if (mounted) {
+                                                                                    Alert.alertwarning(context, 'Tidak ada shift aktif saat ini. Silakan cek jadwal shift Anda.');
+                                                                                  }
+                                                                                  setState(() {
+                                                                                    _isMasuk = false;
+                                                                                  });
+                                                                                }
+                                                                              } catch (e) {
+                                                                                debugPrint('Error parsing shift data: $e');
+                                                                                if (mounted) {
+                                                                                  Alert.alertwarning(context, 'Terjadi kesalahan saat memproses data shift.');
+                                                                                }
+                                                                                setState(() {
+                                                                                  _isMasuk = false;
+                                                                                });
+                                                                              }
+                                                                            } else {
+                                                                              if (mounted) {
+                                                                                Alert.alertwarning(context, 'Jam shift tidak ditemukan.');
+                                                                              }
+                                                                              setState(() {
+                                                                                _isMasuk = false;
+                                                                              });
+                                                                            }
+                                                                          } else {
+                                                                            await absenMasuk(_wifiNameNotifier.value,
+                                                                                wifiBSSID);
+                                                                          }
                                                                         } else {
                                                                           if (mounted) {
-                                                                            Alert.alertwarning(
-                                                                                context,
-                                                                                'Silahkan sambungkan ke Wifi!');
+                                                                            Alert.alertwarning(context,
+                                                                                'Silahkan sambungkan ke WiFi!');
                                                                           }
                                                                         }
-                                                                        
-                                                                        setState(() {
-                                                                          _isMasuk = false;
+
+                                                                        setState(
+                                                                            () {
+                                                                          _isMasuk =
+                                                                              false;
                                                                         });
                                                                       },
                                                                 child: Column(
-                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
                                                                   children: [
                                                                     _isMasuk
                                                                         ? const CircularProgressIndicator()
                                                                         : Skeletonizer(
-                                                                            enabled: _enabled,
-                                                                            child: Column(
+                                                                            enabled:
+                                                                                _enabled,
+                                                                            child:
+                                                                                Column(
                                                                               children: [
                                                                                 SizedBox(
                                                                                   width: 100,
@@ -792,9 +992,7 @@ class _AbsenState extends State<Absen> {
                                                                                 ),
                                                                                 const Text(
                                                                                   "Masuk",
-                                                                                  style: TextStyle(
-                                                                                      fontSize: 18,
-                                                                                      fontWeight: FontWeight.bold),
+                                                                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                                                                 )
                                                                               ],
                                                                             ),
@@ -804,44 +1002,64 @@ class _AbsenState extends State<Absen> {
                                                               ),
                                                       ],
                                                     ),
-                                                    
+
                                                     const Spacer(),
-                                                    
+
                                                     // Check-out Button
                                                     Column(
                                                       children: [
-                                                        (DateTime.now().toIso8601String().substring(0, 10) ==
-                                                            SpUtil.getString('saved_date') &&
-                                                            isCodePulangValue)
+                                                        isCodePulangValue
                                                             ? Column(
                                                                 children: [
                                                                   Container(
-                                                                    decoration: BoxDecoration(
-                                                                      color: const Color.fromARGB(255, 173, 218, 255),
-                                                                      borderRadius: BorderRadius.circular(10),
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      color: const Color
+                                                                          .fromARGB(
+                                                                          255,
+                                                                          173,
+                                                                          218,
+                                                                          255),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              10),
                                                                     ),
                                                                     width: 100,
                                                                     height: 100,
-                                                                    alignment: Alignment.center,
+                                                                    alignment:
+                                                                        Alignment
+                                                                            .center,
                                                                     child: Text(
                                                                       "${SpUtil.getString('pulang')}",
                                                                       style: const TextStyle(
-                                                                          fontSize: 30,
-                                                                          color: Color.fromARGB(255, 2, 53, 95)),
+                                                                          fontSize:
+                                                                              30,
+                                                                          color: Color.fromARGB(
+                                                                              255,
+                                                                              2,
+                                                                              53,
+                                                                              95)),
                                                                     ),
                                                                   ),
-                                                                  const SizedBox(height: 25),
+                                                                  const SizedBox(
+                                                                      height:
+                                                                          25),
                                                                 ],
                                                               )
                                                             : GestureDetector(
                                                                 onTap: isLoadingValue
                                                                     ? null
                                                                     : () async {
-                                                                        setState(() {
-                                                                          _isPulang = true;
+                                                                        setState(
+                                                                            () {
+                                                                          _isPulang =
+                                                                              true;
                                                                         });
-                                                                        
-                                                                        if (isCodeMasukValue == false && SpUtil.getString('status_idlk') == '-') {
+
+                                                                        if (SpUtil.getBool('is_codeMasuk') ==
+                                                                                false &&
+                                                                            SpUtil.getString('status_idlk') ==
+                                                                                '-') {
                                                                           if (mounted) {
                                                                             QuickAlert.show(
                                                                               context: context,
@@ -851,8 +1069,9 @@ class _AbsenState extends State<Absen> {
                                                                           }
                                                                         } else {
                                                                           await _initNetworkInfo();
-                                                                          
-                                                                          if (SpUtil.getString('status_idlk') == 'setujui') {
+
+                                                                          if (SpUtil.getString('status_idlk') ==
+                                                                              'setujui') {
                                                                             if (mounted) {
                                                                               showDialog(
                                                                                 context: context,
@@ -875,9 +1094,7 @@ class _AbsenState extends State<Absen> {
                                                                                         },
                                                                                       ),
                                                                                       TextButton(
-                                                                                        style: TextButton.styleFrom(
-                                                                                            textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                            backgroundColor: Colors.red),
+                                                                                        style: TextButton.styleFrom(textStyle: Theme.of(context).textTheme.labelLarge, backgroundColor: Colors.red),
                                                                                         child: const Text(
                                                                                           'Batal',
                                                                                           style: TextStyle(color: Colors.white),
@@ -917,9 +1134,7 @@ class _AbsenState extends State<Absen> {
                                                                                         },
                                                                                       ),
                                                                                       TextButton(
-                                                                                        style: TextButton.styleFrom(
-                                                                                            textStyle: Theme.of(context).textTheme.labelLarge,
-                                                                                            backgroundColor: Colors.red),
+                                                                                        style: TextButton.styleFrom(textStyle: Theme.of(context).textTheme.labelLarge, backgroundColor: Colors.red),
                                                                                         child: const Text(
                                                                                           'Batal',
                                                                                           style: TextStyle(color: Colors.white),
@@ -935,25 +1150,29 @@ class _AbsenState extends State<Absen> {
                                                                             }
                                                                           } else {
                                                                             if (mounted) {
-                                                                              Alert.alertwarning(
-                                                                                  context,
-                                                                                  'Silahkan sambungkan ke Wifi!');
+                                                                              Alert.alertwarning(context, 'Silahkan sambungkan ke Wifi!');
                                                                             }
                                                                           }
                                                                         }
-                                                                        
-                                                                        setState(() {
-                                                                          _isPulang = false;
+
+                                                                        setState(
+                                                                            () {
+                                                                          _isPulang =
+                                                                              false;
                                                                         });
                                                                       },
                                                                 child: Column(
-                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
                                                                   children: [
                                                                     _isPulang
                                                                         ? const CircularProgressIndicator()
                                                                         : Skeletonizer(
-                                                                            enabled: _enabled,
-                                                                            child: Column(
+                                                                            enabled:
+                                                                                _enabled,
+                                                                            child:
+                                                                                Column(
                                                                               children: [
                                                                                 SizedBox(
                                                                                   width: 100,
@@ -964,16 +1183,12 @@ class _AbsenState extends State<Absen> {
                                                                                 if (SpUtil.getString('status_idlk') != 'setujui')
                                                                                   const Text(
                                                                                     "Pulang",
-                                                                                    style: TextStyle(
-                                                                                        fontSize: 18,
-                                                                                        fontWeight: FontWeight.bold),
+                                                                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                                                                   )
                                                                                 else
                                                                                   const Text(
                                                                                     "IDLK",
-                                                                                    style: TextStyle(
-                                                                                        fontSize: 18,
-                                                                                        fontWeight: FontWeight.bold),
+                                                                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                                                                   )
                                                                               ],
                                                                             ),
@@ -994,7 +1209,7 @@ class _AbsenState extends State<Absen> {
                                   );
                                 },
                               ),
-                              
+
                               // Conditional Widgets
                               ValueListenableBuilder<bool>(
                                 valueListenable: _isPulangCepatNotifier,
@@ -1004,12 +1219,16 @@ class _AbsenState extends State<Absen> {
                                     builder: (context, isIDLKValue, child) {
                                       return ValueListenableBuilder<bool>(
                                         valueListenable: _isCodeMasukNotifier,
-                                        builder: (context, isCodeMasukValue, child) {
+                                        builder:
+                                            (context, isCodeMasukValue, child) {
                                           return ValueListenableBuilder<bool>(
-                                            valueListenable: _isCodePulangNotifier,
-                                            builder: (context, isCodePulangValue, child) {
+                                            valueListenable:
+                                                _isCodePulangNotifier,
+                                            builder: (context,
+                                                isCodePulangValue, child) {
                                               return Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   _buildConditionalWidgets(
                                                     context,

@@ -3,12 +3,10 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobileabsensi/frontend/apel.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/list_wifi.dart';
-import 'package:mobileabsensi/frontend/pengumuman.dart';
 import 'package:mobileabsensi/frontend/statistik.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sp_util/sp_util.dart';
@@ -294,24 +292,17 @@ class _FiturState extends State<Fitur> {
                       ),
                     ),
                     child: IconButton(
-                      icon: const FaIcon(
-                        FontAwesomeIcons.bullhorn,
-                        color: Colors.white,
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const Pengumuman()),
-                        );
-                      },
+                      icon:   Icon(Icons.grid_view_rounded, color: Colors.white,),
+                      onPressed: () async {
+                            _showGridMenu(context);
+                      }
                     ),
                   ),
                   const SizedBox(
                     height: 2,
                   ),
                   const Text(
-                    'Info',
+                    'Lain',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.black,
@@ -325,5 +316,112 @@ class _FiturState extends State<Fitur> {
         ),
       ),
     );
+  }
+
+   // Fungsi untuk menampilkan menu Grid
+  void _showGridMenu(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Data untuk menu, agar kode lebih rapi
+        final List<Map<String, dynamic>> menuItems = [
+          {'icon': Icons.access_time_sharp, 'label': 'Shift', 'value': 'fitur_1'},
+          {'icon': Icons.calendar_today_outlined, 'label': 'Libur', 'value': 'fitur_2'},
+        ];
+
+        return Dialog(
+          // Menghapus shape default agar bisa full width
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              // Membuat lebar dialog mengikuti lebar layar dengan sedikit margin
+              width: MediaQuery.of(context).size.width,
+              height: 250,
+              child: Column(
+                children: [
+                  Text(
+                'Menu Lainnya',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              Container(
+
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                height: 2.0,
+                width: MediaQuery.of(context).size.width,
+                color: Theme.of(context).primaryColor,
+              ),
+                  GridView.builder(
+                    // Agar grid tidak menyebabkan dialog membesar tak terbatas
+                    shrinkWrap: true,
+                    // Jumlah item per baris
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount( // Diperbaiki: Gunakan properti gridDelegate
+                      crossAxisCount: 4,
+                      // Jarak antar item secara horizontal
+                      crossAxisSpacing: 16.0,
+                      // Jarak antar item secara vertikal
+                      mainAxisSpacing: 16.0,
+                    ),
+                    // Total item yang akan dibangun
+                    itemCount: menuItems.length,
+                    // Mencegah grid dari scrollable jika item sedikit
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (BuildContext context, int index) {
+                      final item = menuItems[index];
+                      return InkWell(
+                        onTap: () {
+                          // Tutup dialog
+                          Navigator.of(context).pop();
+                          // Eksekusi aksi berdasarkan nilai
+                          _handleMenuSelection(item['value']);
+                        },
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              item['icon'],
+                              size: 32,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              item['label'],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Fungsi untuk menangani seleksi menu
+  void _handleMenuSelection(String? value) {
+    if (value == null) return;
+
+    // Gunakan print untuk contoh.
+
+    switch (value) {
+      case 'fitur_1':
+        Navigator.pushNamed(context, '/shift');
+        break;
+      case 'fitur_2':
+        break;
+    }
   }
 }

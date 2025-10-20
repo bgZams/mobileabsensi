@@ -24,8 +24,8 @@ class _MenuFooterState extends State<MenuFooter> {
 
   @override
   void initState() {
-    super.initState();
-    _requestPermissions();
+    // super.initState();
+    // _requestPermissions();
     super.initState();
   }
 
@@ -36,27 +36,27 @@ class _MenuFooterState extends State<MenuFooter> {
   }
 
   // Memeriksa dan meminta izin
-  Future<void> _requestPermissions() async {
-  final locationStatus = await Permission.location.request();
-  final wifiStatus = await Permission.locationWhenInUse.request();
-  final camera = await Permission.camera.request();
-  final galleryStatus = await Permission.photos.request();
-  var notificationStatus = await Permission.notification.status;
+//   Future<void> _requestPermissions() async {
+//   final locationStatus = await Permission.location.request();
+//   final wifiStatus = await Permission.locationWhenInUse.request();
+//   final camera = await Permission.camera.request();
+//   final galleryStatus = await Permission.photos.request();
+//   var notificationStatus = await Permission.notification.status;
 
-  if (notificationStatus.isDenied) {
-    notificationStatus = await Permission.notification.request();
-  }
+//   if (notificationStatus.isDenied) {
+//     notificationStatus = await Permission.notification.request();
+//   }
 
-  if (locationStatus.isGranted &&
-      wifiStatus.isGranted &&
-      camera.isGranted &&
-      galleryStatus.isGranted &&
-      notificationStatus.isGranted) {
-    // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
-  } else {
-    // One or more permissions denied, notify the user or handle accordingly.
-  }
-}
+//   if (locationStatus.isGranted &&
+//       wifiStatus.isGranted &&
+//       camera.isGranted &&
+//       galleryStatus.isGranted &&
+//       notificationStatus.isGranted) {
+//     // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
+//   } else {
+//     // One or more permissions denied, notify the user or handle accordingly.
+//   }
+// }
 
   @override
   Widget build(BuildContext context) {

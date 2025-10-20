@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobileabsensi/services/alert.dart';
-import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:sp_util/sp_util.dart';
@@ -212,7 +211,6 @@ class _ListWifiState extends State<ListWifi> {
       }
       return;
     }
-
     try {
       http.Response dataWifi = await http.get(
         Uri.parse('$url/api/wifi/$userAdmin'),

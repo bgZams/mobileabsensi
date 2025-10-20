@@ -310,12 +310,13 @@ class _ApelState extends State<Apel> {
                                         child: Text('Data tidak ditemukan!'));
                                   } else {
                                     return SingleChildScrollView(
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Card(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          SizedBox(
+                                            width: MediaQuery.of(context).size.width,
+                                            child: Card(
                                               color: const Color.fromARGB(
                                                   255, 253, 247, 247),
                                               child: DataTable(
@@ -354,7 +355,7 @@ class _ApelState extends State<Apel> {
                                                                           foto =
                                                                           '${data['foto']}';
                                                                       // print(foto);
-
+                                                                              
                                                                       _saveImage(
                                                                           context,
                                                                           foto);
@@ -402,8 +403,8 @@ class _ApelState extends State<Apel> {
                                                 }).toList(),
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
                                     );
                                   }

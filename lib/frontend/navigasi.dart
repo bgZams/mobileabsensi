@@ -16,6 +16,13 @@ class Navigasi extends StatefulWidget {
 }
 
 class _NavigasiState extends State<Navigasi> {
+
+  Widget _infoTile(String title, String subtitle) {
+    return ListTile(
+      title: Center(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w100, fontSize: 11),)),
+      subtitle: Text(subtitle.isEmpty ? '' : subtitle),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     String namaLengkap = SpUtil.getString('nama_lengkap') ?? '';
@@ -288,13 +295,8 @@ Container()
                 ),
               ),
               
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text(
-                  'Versi Aplikasi 1.1.0',
-                  style: TextStyle(color: Colors.blue),
-                ),
-              ),
+                                 _infoTile('App version 1.0.10', ''),
+
               SizedBox(
                 width: MediaQuery.of(context).size.width,
                 height: 70,
@@ -320,12 +322,12 @@ Container()
                       ),
                     ),
                     onPressed: () {
-  SpUtil.clear();
-  Navigator.pushNamedAndRemoveUntil(
-    context,
-    '/login',
-    (Route<dynamic> route) => false,
-  );
+                    SpUtil.putBool('is_login', false);
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login', 
+                      (Route<dynamic> route) => false,
+                    );
 
                     },
                     clipBehavior: Clip.hardEdge,

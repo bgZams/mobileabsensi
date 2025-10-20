@@ -24,7 +24,7 @@ class _AdminState extends State<Admin> {
           children: [
             Container(
                 decoration: const BoxDecoration(
-                                image: DecorationImage(image: AssetImage('assets/images/admin/bg.png'),
+                                image: DecorationImage(image: AssetImage('assets/new/home-header-bg.png'),
                                 fit: BoxFit.cover,),
                               ),
             ),

@@ -10,7 +10,6 @@ import 'package:intl/intl.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
 import 'package:mobileabsensi/frontend/dashboard.dart';
 import 'package:mobileabsensi/widget/widget_fitur.dart';
-import 'package:mobileabsensi/frontend/izin/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:quickalert/quickalert.dart';

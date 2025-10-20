@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:quickalert/models/quickalert_type.dart';
@@ -18,10 +21,22 @@ class _ProfileState extends State<Profile> {
   bool _isLoading = false;
   var idUser = SpUtil.getString("id_user");
   DateTime? lastFetchTime;
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  bool _isDeviceInfoReady = false;
+  bool _deviceInfoError = false;
+  Timer? _timer;
+  bool get isDeviceInfoReady => _isDeviceInfoReady;
+  bool get deviceInfoError => _deviceInfoError;
+  
+
 
   @override
   void initState() {
     super.initState();
+    final deviceId = SpUtil.getString('device_id');
+    if (deviceId == null || deviceId.isEmpty) {
+        _initializeApp();
+    }
   }
 
   void _syncData() async {
@@ -47,6 +62,131 @@ class _ProfileState extends State<Profile> {
         _isLoading = false;
       });
     }
+  }
+
+
+  Map<String, dynamic> _deviceData = <String, dynamic>{};
+ 
+
+  // Initialize app with device info
+  Future<void> _initializeApp() async {
+    // Initialize shared preferences first
+    await SpUtil.getInstance();
+    
+    // Then get device info
+    await _initializeDeviceInfo();
+  }
+
+  // Initialize device info with retry mechanism
+  Future<void> _initializeDeviceInfo() async {
+    try {
+      await initPlatformState();
+      if (mounted) {
+        setState(() {
+          _isDeviceInfoReady = true;
+          _deviceInfoError = false;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Failed to initialize device info: $e");
+      }
+      
+      if (mounted) {
+        setState(() {
+          _deviceInfoError = true;
+        });
+      }
+      
+      // Retry after 3 seconds if failed
+      Timer(const Duration(seconds: 3), () {
+        if (mounted && !_isDeviceInfoReady) {
+          _initializeDeviceInfo();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> initPlatformState() async {
+    var deviceData = <String, dynamic>{};
+
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        // Get Android device info
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        deviceData = _readAndroidBuildData(androidInfo);
+
+        // Store device info with proper validation
+        String deviceId = deviceData['id']?.toString() ?? '';
+        if (deviceId.isEmpty) {
+          deviceId = androidInfo.id; // Use androidId as fallback
+        }
+        
+        String systemVersion = deviceData['version.release']?.toString() ?? '';
+        if (systemVersion.isEmpty) {
+          systemVersion = androidInfo.version.release ?? 'Unknown';
+        }
+
+        await SpUtil.putString('device_id', deviceId);
+        await SpUtil.putString('system_version', systemVersion);
+
+        if (kDebugMode) {
+          // print("Device ID stored: $deviceId");
+          // print("System version stored: $systemVersion");
+        }
+
+        // Update internal device data
+        setState(() {
+          _deviceData = deviceData;
+        });
+      } else {
+        // For non-Android platforms, use fallback values
+        await _setFallbackDeviceInfo();
+      }
+
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        print("Platform exception: $e");
+      }
+      await _setFallbackDeviceInfo();
+    } catch (e) {
+      if (kDebugMode) {
+        print("General exception in initPlatformState: $e");
+      }
+      await _setFallbackDeviceInfo();
+    }
+  }
+
+  // Set fallback device information
+  Future<void> _setFallbackDeviceInfo() async {
+    final fallbackId = 'fallback_device_${DateTime.now().millisecondsSinceEpoch}';
+    await SpUtil.putString('device_id', fallbackId);
+    await SpUtil.putString('system_version', 'Unknown');
+    
+    setState(() {
+      _deviceData = {
+        'Error': 'Using fallback device info',
+        'id': fallbackId,
+        'version.release': 'Unknown'
+      };
+    });
+  }
+
+  Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
+    return {
+      'version.release': build.version.release,
+      'id': build.id,
+      'androidId': build.id,
+      'fingerprint': build.fingerprint,
+      'model': build.model,
+      'manufacturer': build.manufacturer,
+    };
   }
 
   @override
@@ -291,6 +431,7 @@ class _ProfileState extends State<Profile> {
           SpUtil.putString('nip_atasan', user['nip_atasan'] ?? '');
           SpUtil.putString('jabatan_atasan', user['jabatan_atasan'] ?? '');
           SpUtil.putString('url', user['url'] ?? '');
+          initPlatformState();
 
           lastFetchTime = DateTime.now();
 

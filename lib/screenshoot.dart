@@ -221,7 +221,7 @@ if (mounted) {
                           ),
                         )
                       : const Icon(
-                          Icons.camera_alt,
+                          Icons.screenshot,
                           color: Colors.white,
                           size: 28,
                         ),
