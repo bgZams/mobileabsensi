@@ -1,4 +1,5 @@
-package com.example.mobileabsensi // Ganti dengan nama paket Anda
+package com.example.mobileabsensi // Pastikan nama package sesuai proyek Anda
+
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.BitmapFactory
@@ -7,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.provider.Settings // <--- Wajib ada untuk Android ID
 import android.view.WindowManager
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
@@ -15,11 +17,15 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.OutputStream
 
 class MainActivity: FlutterActivity() {
+    
+    // 1. Channel Lama (Jangan Diubah)
     private val CHANNEL = "com.example.mobileabsensi/gallery_saver"
+    
+    // 2. Channel Baru (Untuk Device ID)
+    private val CHANNEL_DEVICE = "com.example.app/device_id"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Set secure flag by default
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -28,15 +34,17 @@ class MainActivity: FlutterActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Ensure secure flag is set when app is resumed
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
         )
     }
 
+    // --- BAGIAN INI SAYA GABUNGKAN (HANYA BOLEH ADA SATU) ---
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // A. Setup untuk Gallery Saver (Kode Lama Anda)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler {
             call, result ->
             if (call.method == "saveImage") {
@@ -51,8 +59,26 @@ class MainActivity: FlutterActivity() {
                 result.notImplemented()
             }
         }
+
+        // B. Setup untuk Android ID (Kode Baru)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_DEVICE).setMethodCallHandler {
+            call, result ->
+            if (call.method == "getAndroidID") {
+                // Logika mengambil ID
+                val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+                
+                if (androidId != null) {
+                    result.success(androidId)
+                } else {
+                    result.error("UNAVAILABLE", "ID tidak ditemukan.", null)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
     }
 
+    // --- FUNGSI SAVE IMAGE (TIDAK SAYA UBAH SAMA SEKALI) ---
     private fun saveImageToGallery(context: Context, bytes: ByteArray, name: String, result: MethodChannel.Result) {
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         val resolver = context.contentResolver

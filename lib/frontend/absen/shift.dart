@@ -30,6 +30,7 @@ class _ShiftState extends State<Shift> {
 
     try {
       final shiftDataString = SpUtil.getString('shift_data');
+      print(shiftDataString);
       if (shiftDataString != null && shiftDataString.isNotEmpty) {
         final dynamic decoded = json.decode(shiftDataString);
         List<dynamic> dataList = [];

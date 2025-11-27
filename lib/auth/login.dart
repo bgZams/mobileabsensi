@@ -4,14 +4,132 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http; // Use 'as http' for clarity
 import 'package:mobileabsensi/services/alert.dart';
+import 'package:mobileabsensi/services/get_uuid.dart';
 import 'package:sp_util/sp_util.dart';
 
-// Define your colors and text styles
+// --- CONSTANTS ---
+// Moved all hardcoded strings to central classes for easy maintenance.
+
+class AppConstants {
+  // Base URLs
+  static const String simpelBaseUrl = 'https://simpel.pasamanbaratkab.go.id/api_android/simaya';
+  static const String localApiBaseUrl = 'http://192.168.184.46:8000'; // Development URL
+
+  // API Endpoints
+  static const String loginEndpoint = '$simpelBaseUrl/api/model_login2.php';
+  static const String pegawaiEndpoint = '$simpelBaseUrl/getByIdUser.php';
+  
+  static const String deviceEndpoint = '$localApiBaseUrl/api/getDevice';
+  static const String deviceCheckEndpoint = '$localApiBaseUrl/api/cek-device';
+  static const String wifiEndpoint = '$localApiBaseUrl/api/wifi';
+  static const String shiftEndpoint = '$localApiBaseUrl/api/jam-kerja';
+}
+
+class StorageKeys {
+  static const String isLogin = 'is_login';
+  static const String deviceId = 'device_id';
+  static const String systemVersion = 'system_version';
+  static const String idServer = 'id_server';
+  static const String idUser = 'id_user';
+  static const String idType = 'id_type';
+  static const String idInstansi = 'id_instansi';
+  static const String idGroups = 'id_groups';
+  static const String idUserPimpinan = 'id_user_pimpinan';
+  static const String idAdminInstansi = 'id_admin_instansi';
+  static const String idPimpinan = 'id_pimpinan';
+  static const String username = 'username';
+  static const String usernameAdmin = 'username_admin';
+  static const String namaLengkap = 'nama_lengkap';
+  static const String namaInstansi = 'nama_instansi';
+  static const String namaAtasan = 'nama_atasan';
+  static const String nipAtasan = 'nip_atasan';
+  static const String jabatanAtasan = 'jabatan_atasan';
+  static const String url = 'url';
+  static const String wifiData = 'wifi_data';
+  static const String shiftData = 'shift_data';
+}
+
+// --- STYLES ---
 const Color textWhiteGrey = Color(0xFFF1F1F1);
 const Color textGrey = Color(0xFFAAAAAA);
 const TextStyle heading6 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
+
+// --- API SERVICE ---
+// All network logic is now in one place.
+class ApiService {
+  final http.Client _client = http.Client();
+  final Duration _timeoutDuration = const Duration(seconds: 15);
+
+  Map<String, String> get _jsonHeaders => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  Map<String, String> get _formHeaders => {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json',
+  };
+
+  Future<Map<String, dynamic>> login(String username, String password, String deviceId, String systemVersion) async {
+    final response = await _client.post(
+      Uri.parse(AppConstants.loginEndpoint),
+      headers: _formHeaders,
+      body: {
+        'username': username,
+        'password': password,
+        'device_id': deviceId,
+        'system_version': systemVersion,
+      },
+    ).timeout(_timeoutDuration);
+    
+    return json.decode(response.body);
+  }
+  static const platformDevice = MethodChannel('com.example.app/device_id');
+  Future<Map<String, dynamic>> getDevice(Map<String, dynamic> body) async {
+    final response = await _client.post(
+      Uri.parse(AppConstants.deviceEndpoint),
+      headers: _jsonHeaders,
+      body: json.encode(body),
+    ).timeout(_timeoutDuration);
+
+    return json.decode(response.body);
+  }
+  Future<Map<String, dynamic>> cekDevice() async {
+    final response = await _client.get(
+      Uri.parse('${AppConstants.deviceCheckEndpoint}/${SpUtil.getString(StorageKeys.idUser)}/${SpUtil.getString(StorageKeys.deviceId)}'),
+      headers: _jsonHeaders,
+    ).timeout(_timeoutDuration);
+    return json.decode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getWifiData(String usernameAdmin) async {
+    final response = await _client.get(
+      Uri.parse('${AppConstants.wifiEndpoint}/${SpUtil.getString("username_admin")}'),
+      headers: _jsonHeaders,
+    );
+    return json.decode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getShiftData(String idUser) async {
+    final response = await _client.get(
+      Uri.parse('${AppConstants.shiftEndpoint}/$idUser'),
+      headers: _jsonHeaders,
+    );
+    return json.decode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getPegawaiData(String idUser) async {
+    final response = await _client.get(
+      Uri.parse('${AppConstants.pegawaiEndpoint}?id_user=$idUser'),
+      headers: _jsonHeaders,
+    );
+    return json.decode(response.body);
+  }
+}
+
+// --- LOGIN WIDGET ---
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -20,55 +138,58 @@ class Login extends StatefulWidget {
 }
 
 class LoginState extends State<Login> {
-  bool passwordVisible = false;
+  // Services
+  final ApiService _apiService = ApiService();
+  final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
+
+  // State
+  bool _passwordVisible = false;
   bool _isLoading = false;
   bool _isDeviceInfoReady = false;
   bool _deviceInfoError = false;
+  Map<String, dynamic> _deviceData = <String, dynamic>{};
+  Timer? _deviceInfoRetryTimer;
+  String _udid = 'Unknown';
+
+  // Form & Controllers
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController username = TextEditingController();
-  final TextEditingController password = TextEditingController();
-  Timer? _timer;
-  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-  Map<String, dynamic> deviceData = <String, dynamic>{};
-  
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
-    final deviceId = SpUtil.getString('device_id');
-    if(SpUtil.getBool('is_login') == true){
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      });
-    }else{
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _initializeApp();
-      });
-    }
-    if (deviceId == null || deviceId.isEmpty) {
-        _initializeApp();
-    } 
+    // Use WidgetsBinding to safely interact with context/navigation after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLoginStatusAndInitialize();
+    });
   }
- 
 
-  Widget _infoTile(String title, String subtitle) {
-    return ListTile(
-      title: Center(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w100, fontSize: 11),)),
-      subtitle: Text(subtitle.isEmpty ? '' : subtitle),
-    );
+  @override
+  void dispose() {
+    _deviceInfoRetryTimer?.cancel();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
-  // Initialize app with device info
-  Future<void> _initializeApp() async {
-    // Initialize shared preferences first
+
+  /// Checks if user is already logged in. If so, navigates to dashboard.
+  /// Otherwise, starts the app initialization.
+  Future<void> _checkLoginStatusAndInitialize() async {
+    // Initialize SharedPreferences
     await SpUtil.getInstance();
-    
-    // Then get device info
-    await _initializeDeviceInfo();
+
+    if (SpUtil.getBool(StorageKeys.isLogin) == true) {
+      _navigateToHome();
+    } else {
+      _initializeApp();
+    }
   }
 
-  // Initialize device info with retry mechanism
-  Future<void> _initializeDeviceInfo() async {
+  /// Initializes device info with a retry mechanism.
+  Future<void> _initializeApp() async {
     try {
-      await initPlatformState();
+      await _initializeDeviceInfo();
       if (mounted) {
         setState(() {
           _isDeviceInfoReady = true;
@@ -79,7 +200,6 @@ class LoginState extends State<Login> {
       if (kDebugMode) {
         print("Failed to initialize device info: $e");
       }
-      
       if (mounted) {
         setState(() {
           _deviceInfoError = true;
@@ -87,83 +207,50 @@ class LoginState extends State<Login> {
       }
       
       // Retry after 3 seconds if failed
-      Timer(const Duration(seconds: 3), () {
+      _deviceInfoRetryTimer = Timer(const Duration(seconds: 3), () {
         if (mounted && !_isDeviceInfoReady) {
-          _initializeDeviceInfo();
+          _initializeApp(); // Retry initialization
         }
       });
     }
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> initPlatformState() async {
-    var deviceData = <String, dynamic>{};
-
+  /// Fetches and stores platform-specific device information.
+  Future<void> _initializeDeviceInfo() async {
     try {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        // Get Android device info
-        final androidInfo = await deviceInfoPlugin.androidInfo;
-        deviceData = _readAndroidBuildData(androidInfo);
+        final androidInfo = await _deviceInfoPlugin.androidInfo;
+        _deviceData = _readAndroidBuildData(androidInfo); 
 
-        // Store device info with proper validation
-        String deviceId = deviceData['id']?.toString() ?? '';
-        if (deviceId.isEmpty) {
-          deviceId = androidInfo.id; // Use androidId as fallback
-        }
-        
-        String systemVersion = deviceData['version.release']?.toString() ?? '';
-        if (systemVersion.isEmpty) {
-          systemVersion = androidInfo.version.release;
-        }
+        String systemVersion = _deviceData['version.release']?.toString() ?? androidInfo.version.release;
 
-        await SpUtil.putString('device_id', deviceId);
-        await SpUtil.putString('system_version', systemVersion);
-
-        if (kDebugMode) {
-          // print("Device ID stored: $deviceId");
-          // print("System version stored: $systemVersion");
-        }
-
-        // Update internal device data
-        setState(() {
-          deviceData = deviceData;
-        });
+        await SpUtil.putString(StorageKeys.systemVersion, systemVersion);
       } else {
-        // For non-Android platforms, use fallback values
         await _setFallbackDeviceInfo();
       }
-
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print("Platform exception: $e");
-      }
+      if (kDebugMode) print("Platform exception getting device info: $e");
       await _setFallbackDeviceInfo();
     } catch (e) {
-      if (kDebugMode) {
-        print("General exception in initPlatformState: $e");
-      }
+      if (kDebugMode) print("General exception getting device info: $e");
       await _setFallbackDeviceInfo();
     }
   }
 
-  // Set fallback device information
+  /// Sets fallback device info if platform is not Android or an error occurs.
   Future<void> _setFallbackDeviceInfo() async {
     final fallbackId = 'fallback_device_${DateTime.now().millisecondsSinceEpoch}';
-    await SpUtil.putString('device_id', fallbackId);
-    await SpUtil.putString('system_version', 'Unknown');
+    await SpUtil.putString(StorageKeys.systemVersion, 'Unknown');
     
-    setState(() {
-      deviceData = {
-        'Error': 'Using fallback device info',
-        'id': fallbackId,
-        'version.release': 'Unknown'
-      };
-    });
+    if(mounted) {
+      setState(() {
+        _deviceData = {
+          'Error': 'Using fallback device info',
+          'id': fallbackId,
+          'version.release': 'Unknown'
+        };
+      });
+    }
   }
 
   Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
@@ -177,14 +264,17 @@ class LoginState extends State<Login> {
     };
   }
 
-  void togglePassword() {
+  void _togglePasswordVisibility() {
     setState(() {
-      passwordVisible = !passwordVisible;
+      _passwordVisible = !_passwordVisible;
     });
   }
 
-  void _startLoading() async {
-    // Check if device info is ready before proceeding
+  /// Starts the login process.
+  Future<void> _startLoading() async {
+    String? id = await DeviceUtil.getAndroidId();
+    SpUtil.putString(StorageKeys.deviceId, id ?? 'unknown_device_id');
+    // Check device info readiness
     if (!_isDeviceInfoReady) {
       if (_deviceInfoError) {
         Alert.alerterror(context, 'Gagal mendapatkan informasi perangkat. Mohon restart aplikasi.');
@@ -194,7 +284,7 @@ class LoginState extends State<Login> {
       return;
     }
 
-    // Validate form first
+    // Validate form
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -204,13 +294,17 @@ class LoginState extends State<Login> {
     });
 
     try {
-      await _login(username.text, password.text);
-    } catch (error) {
-      if (kDebugMode) {
-        print("Error: $error");
-      }
+      await _login(_usernameController.text, _passwordController.text);
+    } catch (e) {
+      if (kDebugMode) print("Login Error: $e");
       if (mounted) {
-        Alert.alerterror(context, 'Terjadi kesalahan saat login');
+        String errorMessage = 'Terjadi kesalahan. Silakan coba lagi.';
+        if (e is TimeoutException) {
+          errorMessage = 'Timeout terhubung ke server.';
+        } else if (e.toString().contains('SocketException') || e.toString().contains('ClientException')) {
+          errorMessage = 'Tidak dapat terhubung ke server.';
+        }
+        Alert.alerterror(context, errorMessage);
       }
     } finally {
       if (mounted) {
@@ -221,172 +315,96 @@ class LoginState extends State<Login> {
     }
   }
 
+  /// Handles the core login API call and response.
   Future<void> _login(String username, String password) async {
-    // await _initializeApp();
-    // Validate device info 
-    // print(SpUtil.getString('device_id'));
-    // if (kDebugMode) {
-    //   print("Login attempt with:");
-    //   print("Device ID: $deviceId");
-    //   print("System Version: $systemVersion");
-    // }
-
-    if (SpUtil.getString('device_id') == null || SpUtil.getString('system_version') == null) {
-      if (mounted) {
-        Alert.alerterror(context, 'Informasi perangkat tidak valid. Mohon restart aplikasi.');
-      }
+    final deviceId = SpUtil.getString(StorageKeys.deviceId);
+    final systemVersion = SpUtil.getString(StorageKeys.systemVersion);
+    if (deviceId == null || deviceId.isEmpty || systemVersion == null) {
+      Alert.alerterror(context, 'Informasi perangkat tidak valid. Mohon restart aplikasi.');
       return;
     }
 
-    try {
-      final response = await post(
-        Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/api/model_login2.php'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-        },
-        body: {
-          'username': username,
-          'password': password,
-          'device_id': SpUtil.getString('device_id'),
-          'system_version': SpUtil.getString('system_version'),
-        },
-      ).timeout(const Duration(seconds: 15));
+    final simpel = await _apiService.login(username, password, deviceId, systemVersion);
 
-      final simpel = json.decode(response.body);
-      if (response.statusCode == 200) {
-        if (simpel["success"] == 1) {
-          SpUtil.putString('id_server', simpel['id_server'].toString());
-          if (simpel["id_groups"] == 2) {
-            await _syncUserData(simpel);
-          } else {
-            if(simpel["id_user"] != SpUtil.getString('id_user')){
-              SpUtil.clear();
-              await _handleSuccessfulLogin(simpel);
-            }else{
-              await _handleSuccessfulLogin(simpel);
-            }
-          }
-        } else {
-          if (mounted) {
-            Alert.alertwarning(context, simpel["message"]);
-          }
-        }
-      } else {
-        if (mounted) {
-          Alert.alerterror(context, 'Server error: ${response.statusCode}');
-        }
-      }
-    } on TimeoutException {
-      if (mounted) {
-        Alert.alerterror(context, 'Timeout terhubung ke server');
-      }
-    } catch (e) {
-      if (mounted) {
-        Alert.alerterror(context, 'Tidak dapat terhubung ke server, silahkan coba lagi nanti!');
-      }
-      if (kDebugMode) {
-        print(Exception(e));
-      }
+    if (mounted && simpel["success"] == 1) {
+      await _handleLoginSuccess(simpel, username);
+    } else if (mounted) {
+      Alert.alertwarning(context, simpel["message"] ?? 'Username atau password salah.');
     }
   }
+
+  /// Handles the logic *after* a successful login response is received.
+  Future<void> _handleLoginSuccess(Map<String, dynamic> simpel, String username) async {
+    SpUtil.putString(StorageKeys.idServer, simpel['id_server'].toString());
+    // Group 2 (Admin) just syncs and navigates
+    if (simpel["id_groups"] == 2) {
+      await _syncAndStoreUserData(simpel);
+      _navigateToHome();
+      return;
+    }
+ 
  
 
-  Future<void> _handleSuccessfulLogin(Map<String, dynamic> simpel) async {
-    try {
-      if(simpel['id_groups'] == "2"){
-        await _syncUserData(simpel);
-      }else{
-        final getDeviceResponse = await post(
-        Uri.parse('http://192.168.10.46:8000/api/getDevice'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'id_user': simpel['id_user'].toString(),
-          'device_id': SpUtil.getString('device_id'),
-          'username': simpel['username'],
-          'versiApp': SpUtil.getString('system_version'),
-        }),
-      ).timeout(const Duration(seconds: 15));
-      
-      final deviceData = json.decode(getDeviceResponse.body);
-        if (deviceData['status'] == true) {
-          if(simpel['id_user'].toString() == SpUtil.getString('id_user')){
-            if (mounted) {
-              Navigator.pushReplacementNamed(context, '/dashboard');
-            } 
-          }else{
-            await _syncUserData(simpel);
-          }
-        } else {
-          if (mounted) {
-            Alert.alertwarning(context, deviceData["message"]);
-          }
-        }
+    if (mounted && simpel['success'] == 1) {
+      if(simpel["id_user"] != SpUtil.getString(StorageKeys.idUser)){
+        SpUtil.clear();
+        await _initializeApp();
       }
       
-    } catch (e) {
-      if (mounted) {
-        Alert.alerterror(context, 'Gagal mendapatkan data perangkat');
+
+      final deviceData = await _apiService.getDevice({
+        'id_user': simpel['id_user'].toString(),
+        'device_id': SpUtil.getString(StorageKeys.deviceId),
+        'username': simpel['username'],
+        'versiApp': SpUtil.getString(StorageKeys.systemVersion),
+        'id_type': simpel['id_type'],
+      });
+
+  
+
+      if (mounted && deviceData['status'] == true) {
+        await _syncAndStoreUserData(simpel);
+        _navigateToHome();
+      } else if (mounted) {
+        Alert.alertwarning(context, deviceData["message"]);
       }
-      if (kDebugMode) {
-        print(Exception(e));
-      }
+    } else {
+         Alert.alertwarning(context, simpel["message"]);
+      
     }
   }
 
-  Future<void> _syncUserData(Map<String, dynamic> body) async {
+  /// Fetches and stores all necessary user data from multiple endpoints.
+  Future<void> _syncAndStoreUserData(Map<String, dynamic> body) async {
     try {
-      final dataWifiResponse = await get(
-        // Uri.parse('http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android_v2/api/wifi/${body['username_admin']}'),
-        Uri.parse('http://192.168.10.46:8000/api/wifi/${body['username_admin']}'),
-        headers: {
-          'Content-type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-      final dataShift = await get(
-        // Uri.parse('http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android_v2/api/jam-kerja/${body['id_user']}'),
-        Uri.parse('http://192.168.10.46:8000/api/jam-kerja/${body['id_user']}'),
-        headers: {
-          'Content-type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-      final dataPegawaiResponse = await get(
-        Uri.parse('https://simpel.pasamanbaratkab.go.id/api_android/simaya/getByIdUser.php?id_user=${body['id_user']}'),
-        headers: {
-          'Content-type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      // Run data fetching in parallel
+      final responses = await Future.wait([
+        _apiService.getWifiData(body['username_admin']),
+        _apiService.getShiftData(body['id_user']),
+        _apiService.getPegawaiData(body['id_user']),
+      ]);
 
-      final responseData = json.decode(dataPegawaiResponse.body);
-      final user = responseData['data'];
+      // Process responses
+      final wifiData = responses[0];
+      final shiftData = responses[1];
+      final pegawaiData = responses[2];
 
-      for (var userData in user) {
-        _storeUserData(userData);
+      if (wifiData['data'] != null) {
+        SpUtil.putString(StorageKeys.wifiData, json.encode(wifiData['data']));
+      } else if (mounted) {
+         Alert.alertwarning(context, 'Gagal menyingkronkan data wifi.');
+      }
+      
+      if (shiftData['data'] != null) {
+        SpUtil.putString(StorageKeys.shiftData, json.encode(shiftData['data']));
+      } else if (mounted) {
+         Alert.alertwarning(context, 'Gagal menyingkronkan data jam kerja.');
       }
 
-      if (dataWifiResponse.statusCode == 200) {
-        final wifiData = json.decode(dataWifiResponse.body)['data'];
-        SpUtil.putString('wifi_data', json.encode(wifiData));
-        _navigateToHome();
-      } else {
-        if (mounted) {
-          Alert.alerterror(context, 'Gagal menyingkronkan wifi, silahkan login ulang');
-        }
-      }
-      if (dataShift.statusCode == 200) {
-        final shiftData = json.decode(dataShift.body)['data'];
-        SpUtil.putString('shift_data', json.encode(shiftData));
-        _navigateToHome();
-      } else {
-        // if (mounted) {
-        //   Alert.alerterror(context, 'Gagal mendapatkan jam kerja, silahkan login ulang');
-        // }
-        return;
+      if (pegawaiData['data'] != null && (pegawaiData['data'] as List).isNotEmpty) {
+        _storeUserData(pegawaiData['data'][0]);
+      } else if (mounted) {
+         Alert.alertwarning(context, 'Gagal menyingkronkan data pegawai.');
       }
 
     } catch (e) {
@@ -396,44 +414,45 @@ class LoginState extends State<Login> {
       if (kDebugMode) {
         print(Exception(e));
       }
+      // Rethrow to be caught by _startLoading
+      rethrow;
     }
   }
 
+  /// Saves user data to SharedPreferences.
   void _storeUserData(Map<String, dynamic> userData) {
-    SpUtil.putString('id_server', userData['id_server'].toString());
-    SpUtil.putString('id_user', userData['id_user'].toString());
-    SpUtil.putString('id_type', userData['id_type'].toString());
-    SpUtil.putString('id_instansi', userData['id_instansi'].toString());
-    SpUtil.putString('id_groups', userData['id_groups']?.toString() ?? '');
-    SpUtil.putString('id_user_pimpinan', userData['id_user_parent']?.toString() ?? '');
-    SpUtil.putString('id_admin_instansi', userData['id_admin_instansi']?.toString() ?? '');
-    SpUtil.putString('id_pimpinan', userData['id_pimpinan']?.toString() ?? '');
-    SpUtil.putString('username', userData['username'].replaceAll('"', ''));
-    SpUtil.putString('username_admin', userData['username_admin'].replaceAll('"', ''));
-    SpUtil.putString('nama_lengkap', userData['nama_lengkap'].replaceAll('"', ''));
-    SpUtil.putString('nama_instansi', userData['nama_instansi']?.toString() ?? '');
-    SpUtil.putString('nama_atasan', userData['nama_atasan']?.toString() ?? '');
-    SpUtil.putString('nip_atasan', userData['nip_atasan']?.toString() ?? '');
-    SpUtil.putString('jabatan_atasan', userData['jabatan_atasan']?.toString() ?? '');
-    // SpUtil.putString('url', 'http://mobileabsensi${int.tryParse(SpUtil.getString('id_server') ?? '0')}.pasamanbaratkab.go.id/api_android_v2');
-    SpUtil.putString('url', 'http://192.168.10.46:8000');
+    SpUtil.putString(StorageKeys.idServer, userData['id_server']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idUser, userData['id_user']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idType, userData['id_type']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idInstansi, userData['id_instansi']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idGroups, userData['id_groups']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idUserPimpinan, userData['id_user_parent']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idAdminInstansi, userData['id_admin_instansi']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idPimpinan, userData['id_pimpinan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.username, (userData['username'] ?? '').replaceAll('"', ''));
+    SpUtil.putString(StorageKeys.usernameAdmin, (userData['username_admin'] ?? '').replaceAll('"', ''));
+    SpUtil.putString(StorageKeys.namaLengkap, (userData['nama_lengkap'] ?? '').replaceAll('"', ''));
+    SpUtil.putString(StorageKeys.namaInstansi, userData['nama_instansi']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.namaAtasan, userData['nama_atasan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.nipAtasan, userData['nip_atasan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.jabatanAtasan, userData['jabatan_atasan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.url, AppConstants.localApiBaseUrl);
   }
 
+  /// Navigates to the correct home screen based on user group.
   void _navigateToHome() {
-    String? idGroups = SpUtil.getString('id_groups');
+    if (!mounted) return;
+
+    String? idGroups = SpUtil.getString(StorageKeys.idGroups);
+    
     if (idGroups == "3" || idGroups == "5") {
-      // if(SpUtil.getString('id_user') == '9024'){
-        SpUtil.putBool('is_login', true);
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      // }else{
-      //   SpUtil.clear();
-      //   Navigator.pushReplacementNamed(context, '/login');
-      //   return;
-      // }
+      SpUtil.putBool(StorageKeys.isLogin, true);
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } else if (idGroups == "2") {
+      SpUtil.putBool(StorageKeys.isLogin, true); // Assuming admin should also be marked as logged in
       Navigator.pushReplacementNamed(context, '/admin');
     } else {
-      SpUtil.clear();
+      SpUtil.clear(); // Clear storage if group is unknown
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
@@ -442,7 +461,6 @@ class LoginState extends State<Login> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
     const double referenceWidth = 381.0;
     final double scaleFactor = screenWidth / referenceWidth;
 
@@ -480,6 +498,7 @@ class LoginState extends State<Login> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text('Running on: $_udid\n'),
                       Text(
                         'Hi, Selamat Datang',
                         style: TextStyle(
@@ -488,35 +507,35 @@ class LoginState extends State<Login> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      // if (!_isDeviceInfoReady)
-                      //   Padding(
-                      //     padding: EdgeInsets.only(top: 8 * scaleFactor),
-                      //     child: Row(
-                      //       children: [
-                      //         if (_deviceInfoError)
-                      //           Icon(Icons.error_outline, color: Colors.orange, size: 16 * scaleFactor)
-                      //         else
-                      //           SizedBox(
-                      //             width: 16 * scaleFactor,
-                      //             height: 16 * scaleFactor,
-                      //             child: const CircularProgressIndicator(
-                      //               strokeWidth: 2,
-                      //               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      //             ),
-                      //           ),
-                      //         SizedBox(width: 8 * scaleFactor),
-                      //         Text(
-                      //           _deviceInfoError 
-                      //             ? 'Error mendapatkan info perangkat'
-                      //             : 'Memuat informasi perangkat...',
-                      //           style: TextStyle(
-                      //             color: _deviceInfoError ? Colors.orange : Colors.white70,
-                      //             fontSize: 12 * scaleFactor,
-                      //           ),
-                      //         ),
-                      //       ],
-                      //     ),
-                      //   ),
+                      if (!_isDeviceInfoReady)
+                        Padding(
+                          padding: EdgeInsets.only(top: 8 * scaleFactor),
+                          child: Row(
+                            children: [
+                              if (_deviceInfoError)
+                                Icon(Icons.error_outline, color: Colors.orange, size: 16 * scaleFactor)
+                              else
+                                SizedBox(
+                                  width: 16 * scaleFactor,
+                                  height: 16 * scaleFactor,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                ),
+                              SizedBox(width: 8 * scaleFactor),
+                              Text(
+                                _deviceInfoError
+                                    ? 'Error mendapatkan info perangkat'
+                                    : 'Memuat informasi perangkat...',
+                                style: TextStyle(
+                                  color: _deviceInfoError ? Colors.orange : Colors.white70,
+                                  fontSize: 12 * scaleFactor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                   SizedBox(height: 25 * scaleFactor),
@@ -524,9 +543,9 @@ class LoginState extends State<Login> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        _buildTextField(username, ' Username', false),
+                        _buildTextField(_usernameController, ' Username', false),
                         SizedBox(height: 25 * scaleFactor),
-                        _buildTextField(password, ' Password', true),
+                        _buildTextField(_passwordController, ' Password', true),
                       ],
                     ),
                   ),
@@ -553,7 +572,15 @@ class LoginState extends State<Login> {
                       ),
                     ),
                   ),
-                   _infoTile('App version 1.0.10', ''),
+                  ListTile(
+                    title: const Center(
+                      child: Text(
+                        'App version 1.0.10',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w100, fontSize: 11),
+                      ),
+                    ),
+                    subtitle: const Text(''), // Subtitle kept as empty string as in original
+                  ),
                 ],
               ),
             ),
@@ -571,7 +598,7 @@ class LoginState extends State<Login> {
       ),
       child: TextFormField(
         controller: controller,
-        obscureText: isPassword && !passwordVisible,
+        obscureText: isPassword && !_passwordVisible,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: heading6.copyWith(color: textGrey),
@@ -579,15 +606,15 @@ class LoginState extends State<Login> {
               ? IconButton(
                   color: textGrey,
                   splashRadius: 1,
-                  icon: Icon(passwordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                  onPressed: togglePassword,
+                  icon: Icon(_passwordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: _togglePasswordVisibility,
                 )
               : null,
           border: const OutlineInputBorder(borderSide: BorderSide.none),
         ),
         validator: (value) {
-          if (value!.isEmpty) {
-            return 'Please enter your $hintText';
+          if (value == null || value.isEmpty) {
+            return 'Mohon masukkan $hintText'.trim();
           }
           return null;
         },

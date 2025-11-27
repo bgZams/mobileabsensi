@@ -73,6 +73,8 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
         if (riwayatAbsen.statusCode == 200) {
           final jsonData =
               jsonDecode(riwayatAbsen.body) as Map<String, dynamic>;
+            print(jsonData);
+
           if (jsonData.containsKey('data')) {
             final dataList = jsonData['data'] as List<dynamic>;
 
@@ -277,10 +279,8 @@ void detailDataAbsen(idAbsen) async {
         if (responseJson['data'] != null) {
           final Map<String, dynamic> data = responseJson['data'] as Map<String, dynamic>;
 
-          // final idAbsenStr = data['id_absen']?.toString() ?? 'N/A';
+
           final tanggalAbsen = data['tgl_absen']?.toString() ?? 'N/A';
-          // final username = data['username']?.toString() ?? 'N/A';
-          // final namaLengkap = data['nama_lengkap']?.toString() ?? 'N/A';
           final hari = data['hari']?.toString() ?? 'N/A';
 
           String jamMasuk = 'N/A';
@@ -289,7 +289,7 @@ void detailDataAbsen(idAbsen) async {
               DateTime parsedTime = DateTime.parse(data['timestamp_masuk']);
               jamMasuk = DateFormat('HH:mm').format(parsedTime);
             } catch (e) {
-              print('Error parsing timestamp_masuk: $e');
+              // print('Error parsing timestamp_masuk: $e');
             }
           }
 
@@ -299,19 +299,12 @@ void detailDataAbsen(idAbsen) async {
               DateTime parsedTime = DateTime.parse(data['timestamp_pulang']);
               jamPulang = DateFormat('HH:mm').format(parsedTime);
             } catch (e) {
-              print('Error parsing timestamp_pulang: $e');
+              // print('Error parsing timestamp_pulang: $e');
             }
           }
 
           final ssidMasuk = data['SSID']?.toString() ?? 'Tidak ada data';
           final ssidPulang = data['SSID_pulang']?.toString() ?? 'Tidak ada data';
-          // final statusAbsen = data['status']?.toString() ?? 'N/A';
-          // final keterangan = data['keterangan']?.toString() ?? '-';
-          // final file = data['file']?.toString() ?? 'Tidak ada';
-          
-          // Data baru dari perhitungan
-          final jamMasukStandar = data['jam_masuk_standar']?.toString() ?? 'N/A';
-          final jamPulangStandar = data['jam_pulang_standar']?.toString() ?? 'N/A';
           final totalJamKerja = data['total_jam_kerja']?.toString() ?? '0';
           final totalTerlambat = data['total_terlambat']?.toString() ?? '0';
           final totalPulangCepat = data['total_pulang_cepat']?.toString() ?? '0';
@@ -479,9 +472,8 @@ Widget _buildCalculationRow(String label, String value) {
     final file = (cells[5].child as Text).data;
     final idAbsen = (cells[6].child as Text).data;
     String? jamPulangOk;
-    if (jamPulang == 'Belum Pulang' &&
-        tanggal != DateTime.now().toString().substring(0, 10)) {
-      jamPulangOk = 'TAP';
+    if (jamPulang == 'Belum Pulang' && tanggal != DateTime.now().toString().substring(0, 10) && SpUtil.getString('id_type') != '1') {
+        jamPulangOk = 'TAP';
     } else {
       jamPulangOk = (cells[2].child as Text).data;
     }

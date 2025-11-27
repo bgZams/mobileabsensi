@@ -16,8 +16,7 @@ class ListWifi extends StatefulWidget {
 
 class _ListWifiState extends State<ListWifi> {
   List<Map<String, dynamic>> wifiData = [];
-  bool _isLoading = false;
-  var userAdmin = SpUtil.getString("username_admin");
+  bool _isLoading = false; // Status loading dikontrol di sini
   var url = SpUtil.getString("url");
   DateTime? lastFetchTime;
   DateTime? refrFetchTime;
@@ -30,6 +29,8 @@ class _ListWifiState extends State<ListWifi> {
 
   Future<void> loadWifiData() async {
     String wifiDataJson = SpUtil.getString("wifi_data") ?? '[]';
+    
+    // Logika throttle untuk refresh (sudah benar)
     if (refrFetchTime != null &&
         DateTime.now().difference(refrFetchTime!) <
             const Duration(seconds: 30)) {
@@ -44,29 +45,33 @@ class _ListWifiState extends State<ListWifi> {
         text: "Refresh minimal 30 detik sekali!",
       );
     }
+    
     if (wifiDataJson.isNotEmpty) {
       List<dynamic> decodedData = json.decode(wifiDataJson);
       wifiData = List<Map<String, dynamic>>.from(decodedData);
       refrFetchTime = DateTime.now();
     }
+    
     if (mounted) {
       setState(() {});
     }
   }
 
+  // FUNGSI INI BERTANGGUNG JAWAB ATAS _isLoading
   void _startLoading() async {
     if (mounted) {
       setState(() {
-        _isLoading = true;
+        _isLoading = true; // 1. Set loading jadi true
       });
     }
     try {
-      await ambildata();
+      await ambildata(); // 2. Panggil fungsi pengambil data
     } catch (error) {
       if (kDebugMode) {
         print("Error: $error");
       }
     } finally {
+      // 3. SELALU set loading jadi false setelah selesai (baik sukses atau error)
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -75,145 +80,20 @@ class _ListWifiState extends State<ListWifi> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-        Size size = MediaQuery.of(context).size;
-    return Scaffold(
-  body: Stack(
-    children: [
-      WidgetNavbar(title: 'List Wifi'),
-      Column(
-        children: [
-          SizedBox(height: size.height * 0.15),
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -3),
-                  ),
-                ],
-              ),
-              child: ListView(
-                padding: EdgeInsets.all(16),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            const Icon(
-                              Icons.wifi,
-                              color: Colors.black,
-                              size: 24.0,
-                              semanticLabel:
-                                  'Daftar Wifi',
-                            ),
-                            Container(
-                              alignment: Alignment.center,
-                              child: Text(' Daftar Wifi',
-                                  style: TextStyle(color: Colors.black,fontSize: 20),),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: wifiData.length,
-                            itemBuilder: (context, index) {
-                              var wifi = wifiData[index];
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0, horizontal: 16.0),
-                                margin: const EdgeInsets.symmetric(vertical: 4.0),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFF0F4FD),
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.5),
-                                      spreadRadius: 1,
-                                      blurRadius: 3,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.wifi, color: Colors.blue),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        wifi['SSID'],
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton.icon(
-                      icon: _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Icon(Icons.sync_rounded,color: Colors.white),
-                      label: Text(
-                        _isLoading ? 'Loading...' : 'Syncron Wifi',
-                        style: const TextStyle(fontSize: 16,color: Colors.white),
-                      ),
-                      onPressed: _isLoading ? null : _startLoading,
-                      style: ElevatedButton.styleFrom(
-                        fixedSize: const Size(140, 50),
-                        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-                      ),
-                    ),
-                  ),
-                  // Add more content elements here
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    ],
-  ),
-); 
-  }
-
+  // FUNGSI INI FOKUS HANYA MENGAMBIL DATA DAN UPDATE wifiData
   Future<void> ambildata() async {
     if (lastFetchTime != null &&
         DateTime.now().difference(lastFetchTime!) <
             const Duration(minutes: 1)) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        // HAPUS setState loading dari sini
         Alert.alertinfo(context, "Syncron data minimal 1 menit sekali!");
       }
-      return;
+      return; // Langsung keluar
     }
     try {
       http.Response dataWifi = await http.get(
-        Uri.parse('$url/api/wifi/$userAdmin'),
+        Uri.parse('$url/api/wifi/${SpUtil.getString("username_admin")}'),
         headers: {
           'Content-type': 'application/json',
           'Accept': 'application/json'
@@ -222,11 +102,13 @@ class _ListWifiState extends State<ListWifi> {
 
       if (dataWifi.statusCode == 200) {
         List<dynamic> newWifiData = json.decode(dataWifi.body)['data'];
+        
         // Simpan ke SharedPreferences
         SpUtil.putString('wifi_data', json.encode(newWifiData));
 
         // Update state dengan data baru
         if (mounted) {
+          // Ini adalah SATU-SATUNYA setState di dalam blok try-catch
           setState(() {
             wifiData = List<Map<String, dynamic>>.from(newWifiData);
           });
@@ -245,10 +127,134 @@ class _ListWifiState extends State<ListWifi> {
       }
     }
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    // HAPUS setState loading dari sini
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    Size size = MediaQuery.of(context).size;
+    return Scaffold(
+      body: Stack(
+        children: [
+          WidgetNavbar(title: 'List Wifi'),
+          Column(
+            children: [
+              SizedBox(height: size.height * 0.15),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child: ListView(
+                    padding: EdgeInsets.all(16),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                const Icon(
+                                  Icons.wifi,
+                                  color: Colors.black,
+                                  size: 24.0,
+                                  semanticLabel: 'Daftar Wifi',
+                                ),
+                                Container(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    ' Daftar Wifi',
+                                    style: TextStyle(color: Colors.black, fontSize: 20),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: wifiData.length,
+                                itemBuilder: (context, index) {
+                                  var wifi = wifiData[index];
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0, horizontal: 16.0),
+                                    margin: const EdgeInsets.symmetric(vertical: 4.0),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFFF0F4FD),
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.5),
+                                          spreadRadius: 1,
+                                          blurRadius: 3,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.wifi, color: Colors.blue),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            wifi['ssid'] ?? '',
+                                            style: const TextStyle(fontSize: 16),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ElevatedButton.icon(
+                          icon: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white, // Agar terlihat di tombol
+                                  strokeWidth: 2,
+                                )
+                              : const Icon(Icons.sync_rounded, color: Colors.white),
+                          label: Text(
+                            _isLoading ? 'Loading...' : 'Syncron Wifi',
+                            style: const TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                          onPressed: _isLoading ? null : _startLoading, // Panggil _startLoading
+                          style: ElevatedButton.styleFrom(
+                            fixedSize: const Size(140, 50),
+                            backgroundColor: const Color.fromARGB(255, 67, 60, 130),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

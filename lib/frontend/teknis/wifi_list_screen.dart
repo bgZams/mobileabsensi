@@ -116,8 +116,8 @@ class _WifiListScreenState extends State<WifiListScreen> {
           'Accept': 'application/json',
         },
         body: json.encode({
-          'SSID': wifiName?.replaceAll('"', ''),
-          'BSSID': wifiBSSID,
+          'ssid': wifiName?.replaceAll('"', ''),
+          'bssid': wifiBSSID,
           'ip_address': wifiIPv4,
           'admin': widget.opdUsername,
           'id_admin_instansi': SpUtil.getString('id_admin_instansi'),
@@ -126,6 +126,7 @@ class _WifiListScreenState extends State<WifiListScreen> {
       );
 
       var data = json.decode(dataWifi.body);
+
       if (dataWifi.statusCode == 200) {
         if (mounted) {
           Alert.alertsuccess(context, data['message']);
@@ -138,7 +139,7 @@ class _WifiListScreenState extends State<WifiListScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi!");
+        Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi! $e ");
       }
     }
 
@@ -200,13 +201,13 @@ class _WifiListScreenState extends State<WifiListScreen> {
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
       child: ListTile(
         title: Text(
-          wifi['SSID'] ?? 'Nama WiFi tidak diketahui',
+          wifi['ssid'] ?? 'Nama WiFi tidak diketahui',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('BSSID: ${wifi['BSSID']}'),
+            Text('bssid: ${wifi['bssid']}'),
             Text('IP: ${wifi['ip_address']}'),
           ],
         ),

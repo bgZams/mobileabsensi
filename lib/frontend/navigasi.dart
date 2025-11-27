@@ -325,7 +325,7 @@ Container()
                     SpUtil.putBool('is_login', false);
                     Navigator.pushNamedAndRemoveUntil(
                       context,
-                      '/login', 
+                      '/login',
                       (Route<dynamic> route) => false,
                     );
 
