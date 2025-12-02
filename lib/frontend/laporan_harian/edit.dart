@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core/constants/app_constants.dart';
 import 'package:mobileabsensi/frontend/dashboard.dart';
-import 'package:mobileabsensi/main.dart';
 import 'package:mobileabsensi/services/alert.dart';
 import 'dart:convert';
 
@@ -11,8 +10,7 @@ import 'package:sp_util/sp_util.dart';
 
 class EditLaporan extends StatefulWidget {
   final Map<String, dynamic> data;
-  final VoidCallback onUpdate; // Callback function
-  
+  final VoidCallback onUpdate;
 
   const EditLaporan({super.key, required this.data, required this.onUpdate});
 
@@ -29,16 +27,13 @@ class EditLaporanState extends State<EditLaporan> {
   late TextEditingController kegiatanController;
   final bool _isLoading = false;
 
-  // Helper function untuk parsing waktu yang aman
   String parseTimeToHHMM(String timeString) {
     try {
       if (timeString.isEmpty) {
         return '00:00';
       }
-      
-      // Jika sudah dalam format HH:mm
+
       if (timeString.length == 5 && timeString.contains(':')) {
-        // Validasi format HH:mm
         List<String> parts = timeString.split(':');
         if (parts.length == 2) {
           int hour = int.parse(parts[0]);
@@ -48,22 +43,18 @@ class EditLaporanState extends State<EditLaporan> {
           }
         }
       }
-      
-      // Jika dalam format HH:mm:ss
+
       if (timeString.length == 8 && timeString.split(':').length == 3) {
         DateTime parsedTime = DateFormat('HH:mm:ss').parse(timeString);
         return DateFormat('HH:mm').format(parsedTime);
       }
-      
-      // Jika dalam format HH:mm
+
       if (timeString.length == 5 && timeString.split(':').length == 2) {
         DateTime parsedTime = DateFormat('HH:mm').parse(timeString);
         return DateFormat('HH:mm').format(parsedTime);
       }
-      
-      // Jika format tidak dikenali, return default
+
       return '00:00';
-      
     } catch (e) {
       return '00:00';
     }
@@ -74,15 +65,13 @@ class EditLaporanState extends State<EditLaporan> {
     super.initState();
     idController = TextEditingController(text: widget.data['id'].toString());
     tglController = TextEditingController(text: widget.data['tgl'].toString());
-    
-    // Parse waktu dengan aman
+
     String jammulaiText = parseTimeToHHMM(widget.data['jammulai'].toString());
     String jamselesaiText = parseTimeToHHMM(widget.data['jamselesai'].toString());
-    
+
     jammulaiController = TextEditingController(text: jammulaiText);
     jamselesaiController = TextEditingController(text: jamselesaiText);
-    kegiatanController = TextEditingController(text: widget.data['kegiatan'].toString());
-     
+    kegiatanController = TextEditingController(text: widget.data['rincian_kegiatan'].toString());
   }
 
   @override
@@ -96,10 +85,11 @@ class EditLaporanState extends State<EditLaporan> {
   }
 
   Future<void> _saveChanges() async {
-    final sendUrl = '$url/api/update-lhk/${widget.data['id']}';
-    final headers = {'Content-Type': 'application/json'};
-
-    // Validasi input waktu
+    final sendUrl = '$url/api/update-lhk/${SpUtil.getString('id_user')}/${widget.data['id']}';
+    final headers = {
+      'Content-Type': 'application/json'
+    };
+print(sendUrl);
     String jammulaiText = jammulaiController.text.trim();
     String jamselesaiText = jamselesaiController.text.trim();
 
@@ -108,7 +98,6 @@ class EditLaporanState extends State<EditLaporan> {
       return;
     }
 
-    // Validasi format waktu HH:mm
     RegExp timeRegex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
     if (!timeRegex.hasMatch(jammulaiText) || !timeRegex.hasMatch(jamselesaiText)) {
       Alert.alerterror(context, 'Format waktu harus HH:mm (contoh: 14:30)');
@@ -116,45 +105,7 @@ class EditLaporanState extends State<EditLaporan> {
     }
 
     try {
-      // Parse waktu untuk validasi
-      DateTime jamMulaiTime = DateFormat("HH:mm").parse(jammulaiText);
-      DateTime jamSelesaiTime = DateFormat("HH:mm").parse(jamselesaiText);
-      
-      // Validasi jam mulai tidak boleh lebih besar dari jam selesai
-      if (jamMulaiTime.isAfter(jamSelesaiTime) || jamMulaiTime.isAtSameMomentAs(jamSelesaiTime)) {
-        Alert.alerterror(context, 'Jam mulai harus lebih kecil dari jam selesai');
-        return;
-      }
 
-      // Validasi dengan jam kerja (jika ada)
-      String? jamMasukStr = SpUtil.getString('masuk');
-      String? jamPulangStr = SpUtil.getString('pulang');
-      
-      if (jamMasukStr != null && jamMasukStr.isNotEmpty) {
-        try {
-          DateTime jamMasukTime = DateFormat("HH:mm").parse(jamMasukStr);
-          if (jamMulaiTime.isBefore(jamMasukTime)) {
-            Alert.alerterror(context, 'Jam mulai tidak boleh lebih kecil dari jam masuk ($jamMasukStr)');
-            return;
-          }
-        } catch (e) {
-          print('Error parsing jam masuk: $e');
-        }
-      }
-
-      if (jamPulangStr != null && jamPulangStr.isNotEmpty) {
-        try {
-          DateTime jamPulangTime = DateFormat("HH:mm").parse(jamPulangStr);
-          if (jamSelesaiTime.isAfter(jamPulangTime)) {
-            Alert.alerterror(context, 'Jam selesai tidak boleh lebih besar dari jam pulang ($jamPulangStr)');
-            return;
-          }
-        } catch (e) {
-          print('Error parsing jam pulang: $e');
-        }
-      }
-
-      // Mempersiapkan body request
       final body = json.encode({
         'id': widget.data['id'],
         'tgl': tglController.text,
@@ -165,24 +116,21 @@ class EditLaporanState extends State<EditLaporan> {
         'status': widget.data['status'],
       });
 
-      // print('Sending data: $body');
-
       final response = await http.put(Uri.parse(sendUrl), headers: headers, body: body);
 
       var data = jsonDecode(response.body);
-      // print('Response: $data');
-      
+      print(data);
       if (response.statusCode == 200) {
         if (data['status'] == 'success') {
           widget.onUpdate();
-          if (mounted){
-          Navigator.pushReplacement(
+          if (mounted) {
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => Dashboard(initialIndex: 3),
               ),
             );
-          Alert.alertsuccess(context, data['message']);
+            Alert.alertsuccess(context, data['message']);
           }
         } else {
           Alert.alertwarning(context, data['message']);
@@ -198,6 +146,7 @@ class EditLaporanState extends State<EditLaporan> {
 
   @override
   Widget build(BuildContext context) {
+    final Color primaryBlue = const Color(0xFF1565C0);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 67, 60, 130),
@@ -213,200 +162,194 @@ class EditLaporanState extends State<EditLaporan> {
         ),
       ),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Form(
-              child: Column(
-                children: [
-                  const SizedBox(height: 50),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 140,
-                        child: TextField(
-                          controller: jammulaiController,
-                          decoration: const InputDecoration(
-                            icon: Icon(Icons.timer),
-                            labelText: "Jam Mulai",
-                            border: OutlineInputBorder(),
-                            fillColor: Colors.white,
-                            filled: true,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Form(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 30),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTimeField(
+                            context: context,
+                            controller: jammulaiController,
+                            label: "Jam Mulai",
+                            icon: Icons.timer,
                           ),
-                          readOnly: true,
-                          onTap: () async {
-                            // Parse current time untuk initial value
-                            TimeOfDay initialTime = TimeOfDay.now();
-                            try {
-                              if (jammulaiController.text.isNotEmpty) {
-                                List<String> parts = jammulaiController.text.split(':');
-                                if (parts.length == 2) {
-                                  initialTime = TimeOfDay(
-                                    hour: int.parse(parts[0]),
-                                    minute: int.parse(parts[1]),
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              print('Error parsing initial time: $e');
-                            }
-
-                            TimeOfDay? pickedTime = await showTimePicker(
-                              initialTime: initialTime,
-                              context: context,
-                            );
-
-                            if (pickedTime != null) {
-                              String formattedTime =
-                                  "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                              setState(() {
-                                jammulaiController.text = formattedTime;
-                              });
-                            }
-                          },
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      SizedBox(
-                        width: 140,
-                        child: TextField(
-                          controller: jamselesaiController,
-                          decoration: const InputDecoration(
-                            icon: Icon(Icons.timer),
-                            labelText: "Jam Selesai",
-                            border: OutlineInputBorder(),
-                            fillColor: Colors.white,
-                            filled: true,
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _buildTimeField(
+                            context: context,
+                            controller: jamselesaiController,
+                            label: "Jam Selesai",
+                            icon: Icons.timer,
                           ),
-                          readOnly: true,
-                          onTap: () async {
-                            // Parse current time untuk initial value
-                            TimeOfDay initialTime = TimeOfDay.now();
-                            try {
-                              if (jamselesaiController.text.isNotEmpty) {
-                                List<String> parts = jamselesaiController.text.split(':');
-                                if (parts.length == 2) {
-                                  initialTime = TimeOfDay(
-                                    hour: int.parse(parts[0]),
-                                    minute: int.parse(parts[1]),
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              print('Error parsing initial time: $e');
-                            }
-
-                            TimeOfDay? pickedTime = await showTimePicker(
-                              initialTime: initialTime,
-                              context: context,
-                            );
-
-                            if (pickedTime != null) {
-                              String formattedTime =
-                                  "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                              setState(() {
-                                jamselesaiController.text = formattedTime;
-                              });
-                            }
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Container(
-                      color: Colors.black45,
-                      child: TextFormField(
-                        controller: kegiatanController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kegiatan tidak boleh kosong';
-                          }
-                          return null;
-                        },
-                        maxLines: 10,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          labelText: "Masukkan kegiatan",
-                          labelStyle: TextStyle(color: Colors.white),
-                          border: OutlineInputBorder(),
-                          fillColor: Colors.black45,
-                          filled: true,
-                          errorStyle: TextStyle(color: Colors.red),
+                      ],
+                    ),
+                    const SizedBox(height: 25),
+                    TextFormField(
+                      controller: kegiatanController,
+                      validator: (value) => (value == null || value.isEmpty) ? 'Kegiatan wajib diisi' : null,
+                      maxLines: 5,
+                      style: const TextStyle(color: Colors.black87),
+                      decoration: InputDecoration(
+                        labelText: "Deskripsi Kegiatan",
+                        alignLabelWithHint: true,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(bottom: 80),
+                          child: Icon(Icons.assignment_outlined, color: primaryBlue),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: primaryBlue, width: 2),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
                       child: ElevatedButton.icon(
-                        icon: _isLoading
-                            ? const CircularProgressIndicator()
-                            : const Icon(
-                                Icons.save_outlined,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                        label: Text(
-                          _isLoading ? 'Loading...' : 'Simpan',
-                          style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                    blurRadius: 2,
-                                    color: Colors.black,
-                                    offset: Offset(1, 1))
-                              ]),
-                        ),
                         onPressed: _isLoading ? null : _saveChanges,
-                        clipBehavior: Clip.hardEdge,
+                        icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.save_rounded, color: Colors.white),
+                        label: Text(
+                          _isLoading ? 'Menyimpan...' : 'SIMPAN LAPORAN',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 17, 110, 160),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5))),
+                          backgroundColor: primaryBlue,
+                          elevation: 4,
+                          shadowColor: primaryBlue.withOpacity(0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width,
-                child: Container(
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    color: const Color.fromARGB(255, 255, 204, 51),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Info',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
-                      Text('2. Jam mulai tidak lebih besar dari jam selesai'),
-                      Text('3. Format waktu harus HH:mm (contoh: 14:30)'),
-                    ],
-                  ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-            )
-          ],
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5),
+                      color: const Color.fromARGB(255, 255, 204, 51),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Info',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
+                        Text('2. Jam mulai tidak lebih besar dari jam selesai'),
+                        Text('3. Format waktu harus HH:mm (contoh: 14:30)'),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTimeField({
+    required BuildContext context,
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    final Color primaryBlue = const Color(0xFF1565C0);
+    final Color lightBlueBg = const Color(0xFFE3F2FD);
+
+    return TextFormField(
+      controller: controller,
+      readOnly: true,
+      style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: primaryBlue),
+        filled: true,
+        fillColor: lightBlueBg,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primaryBlue, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+      ),
+      onTap: () async {
+        TimeOfDay initialTime = TimeOfDay.now();
+        try {
+          if (controller.text.isNotEmpty) {
+            List<String> parts = controller.text.split(':');
+            if (parts.length == 2) {
+              initialTime = TimeOfDay(
+                hour: int.parse(parts[0]),
+                minute: int.parse(parts[1]),
+              );
+            }
+          }
+        } catch (e) {
+          debugPrint('Error parsing time: $e');
+        }
+
+        TimeOfDay? pickedTime = await showTimePicker(
+          context: context,
+          initialTime: initialTime,
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: primaryBlue,
+                  onPrimary: Colors.white,
+                  onSurface: Colors.black87,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+
+        if (pickedTime != null) {
+          String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+
+          controller.text = formattedTime;
+        }
+      },
     );
   }
 }

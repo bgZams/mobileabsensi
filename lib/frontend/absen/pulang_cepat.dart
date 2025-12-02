@@ -164,189 +164,255 @@ class _PulangCepatState extends State<PulangCepat> {
   //     return;
   //   }
   // }
-
+     final Color primaryBlue = const Color(0xFF1565C0);
+  final Color lightBlueBg = const Color(0xFFE3F2FD);
+  final Color redAccent = const Color(0xFFD32F2F);
+InputDecoration cleanDecoration({
+    required String label,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: primaryBlue),
+      filled: true,
+      fillColor: lightBlueBg,
+      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: primaryBlue, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: redAccent, width: 1),
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
+ 
     return Scaffold(
+      backgroundColor: primaryBlue, // Background biru agar card menonjol
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-        title: const Text('Pulang Cepat',style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
-        elevation: 4,
+        backgroundColor: Colors.transparent, // Transparan agar menyatu
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Pulang Cepat',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.white,),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    height: 20,
+      body: Column(
+        children: [
+          const SizedBox(height: 10), // Spacer sedikit dari AppBar
+          
+          // === CARD UTAMA ===
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, -5),
                   ),
-                  InteractiveViewer(
-                    boundaryMargin: const EdgeInsets.all(double.infinity),
-                    minScale: 0.1, // Skala minimum (zoom out)
-                    maxScale: 2.0, // Skala maksimum (zoom in)
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: image != null
-                          ? Image.file(
-                              File(image!.path),
-                              fit: BoxFit.cover,
-                              width: 300,
-                              height: 300,
-                            )
-                          : Container(), // You can replace this with a placeholder widget or null widget
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                      icon: const Icon(Icons.image_search_rounded,size: 20,color: Colors.white,),
-                      label: Text(
-                        _isLoading ? 'Loading...' : 'Unggah Foto',
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.white, shadows: [
-                          Shadow(
-                              blurRadius: 2,
-                              color: Colors.black,
-                              offset: Offset(1, 1))
-                        ]),
-                      ),
-                      onPressed: _isLoading ? null : () {
-                        myAlert();
-                      },
-                      clipBehavior: Clip.hardEdge,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 255, 0, 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
-                    ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  TextFormField(
-                    controller: TextEditingController(
-                        text:
-                            DateFormat('dd/MM/yyyy').format(DateTime.now())),
-                    enabled: false, // Mengatur agar tidak dapat diedit
-                    decoration: const InputDecoration(
-                      labelText: 'Tanggal',
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                ],
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText:
-                                'Jenis Pulang Cepat', // Add a label for clarity.
-                          ),
-                          value: _valJenisIzin,
-                          hint: const Text("Jenis Pulang Cepat"),
-                          items: _jenisIzin.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (String? value) {
-                            setState(() {
-                              _valJenisIzin = value;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Tidak boleh kosong';
-                            }
-                            return null;
-                          },
+                      
+                      // 1. AREA UPLOAD FOTO
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey.shade50,
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          children: [
+                            if (image != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: InteractiveViewer(
+                                  child: Image.file(
+                                    File(image!.path),
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: 200,
+                                  ),
+                                ),
+                              )
+                            else
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 30),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined, 
+                                         size: 40, color: Colors.grey.shade400),
+                                    const SizedBox(height: 5),
+                                    Text("Foto Bukti Pulang Cepat", 
+                                         style: TextStyle(color: Colors.grey.shade500)),
+                                  ],
+                                ),
+                              ),
+                            
+                            const SizedBox(height: 12),
+                            
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: _isLoading
+                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : const Icon(Icons.camera_alt_rounded, color: Colors.white),
+                                label: Text(
+                                  _isLoading ? 'Memproses...' : (image == null ? 'Ambil Foto' : 'Ganti Foto'),
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: _isLoading ? null : () => myAlert(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: redAccent,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+
+                      const SizedBox(height: 25),
+
+                      // 2. INPUT TANGGAL (READONLY)
+                      TextFormField(
+                        controller: TextEditingController(text:DateFormat('dd/MM/yyyy').format(DateTime.now())), // Pastikan controller ini diisi di initState
+                        enabled: false, // Tetap false, tapi styling dipercantik
+                        style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                        decoration: cleanDecoration(
+                          label: 'Tanggal Hari Ini', 
+                          icon: Icons.calendar_today_rounded
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // 3. DROPDOWN JENIS PULANG CEPAT
+                      DropdownButtonFormField<String>(
+                        value: _valJenisIzin,
+                        decoration: cleanDecoration(
+                          label: 'Alasan Pulang Cepat', 
+                          icon: Icons.category_outlined
+                        ),
+                        hint: const Text("Pilih Alasan"),
+                        items: _jenisIzin.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (String? value) {
+                          setState(() {
+                            _valJenisIzin = value;
+                          });
+                        },
+                        validator: (value) => (value == null || value.isEmpty) ? 'Wajib dipilih' : null,
+                      ),
+
+                      // Checkbox Khusus Dinas Luar
                       if (_valJenisIzin == 'Dinas Luar')
                         Padding(
-                          padding: const EdgeInsets.only(left: 65),
+                          padding: const EdgeInsets.only(top: 10, left: 5),
                           child: CheckboxListTile(
                             value: sptSementara,
+                            activeColor: primaryBlue,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            tileColor: Colors.white,
+                            title: const Text("SPT Sementara", style: TextStyle(fontWeight: FontWeight.w600)),
                             controlAffinity: ListTileControlAffinity.leading,
                             onChanged: (bool? value) {
                               setState(() {
                                 sptSementara = value ?? false;
                               });
                             },
-                            title: const Text("SPT Sementara"),
                           ),
-                        )
+                        ),
+
+                      const SizedBox(height: 20),
+
+                      // 4. KETERANGAN
+                      TextFormField(
+                        controller: keterangan,
+                        maxLines: 3,
+                        decoration: cleanDecoration(
+                          label: 'Keterangan Tambahan', 
+                          icon: Icons.edit_note_rounded
+                        ).copyWith(alignLabelWithHint: true),
+                        validator: (value) => (value == null || value.isEmpty) ? 'Keterangan wajib diisi' : null,
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // 5. TOMBOL SIMPAN
+                      SizedBox(
+                        height: 55,
+                        child: ElevatedButton.icon(
+                          icon: _isLoading
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Icon(Icons.save_rounded, color: Colors.white),
+                          label: Text(
+                            _isLoading ? 'Menyimpan...' : 'AJUKAN PULANG CEPAT',
+                            style: const TextStyle(
+                              fontSize: 16, 
+                              fontWeight: FontWeight.bold, 
+                              color: Colors.white,
+                              letterSpacing: 1
+                            ),
+                          ),
+                          onPressed: _isLoading ? null : _startLoading,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryBlue,
+                            elevation: 5,
+                            shadowColor: primaryBlue.withOpacity(0.4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 40), // Bottom padding
                     ],
                   ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  TextFormField(
-                    controller: keterangan,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Keterangan tidak boleh kosong';
-                      }
-                      return null;
-                    },
-                                  
-                    maxLines: 2, //or null
-                    decoration: InputDecoration(
-                      labelText: "Masukkan keterangan",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: ElevatedButton.icon(
-                      icon: _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Icon(Icons.save_outlined,size: 20,color: Colors.white,),
-                      label: Text(
-                        _isLoading ? 'Loading...' : 'Simpan',
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.white, shadows: [
-                          Shadow(
-                              blurRadius: 2,
-                              color: Colors.black,
-                              offset: Offset(1, 1))
-                        ]),
-                      ),
-                      onPressed: _isLoading ? null : _startLoading,
-                      clipBehavior: Clip.hardEdge,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 17, 110, 160),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 40,
-                  )
-                ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -412,7 +478,7 @@ class _PulangCepatState extends State<PulangCepat> {
         if (data['status'] == 'success') {
           if(mounted){
             setState(() {
-              _currentIndex = 3;
+              _currentIndex = 0;
               SpUtil.putBool('is_PulangCepat', true);
             });
             Navigator.pushReplacement(

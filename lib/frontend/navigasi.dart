@@ -323,6 +323,7 @@ Container()
                     ),
                     onPressed: () {
                     SpUtil.putBool('is_login', false);
+                    SpUtil.clear();
                     Navigator.pushNamedAndRemoveUntil(
                       context,
                       '/login',

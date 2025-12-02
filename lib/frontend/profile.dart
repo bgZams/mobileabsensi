@@ -417,12 +417,12 @@ class _ProfileState extends State<Profile> {
           
           SpUtil.putString('id_server', user['id_server']?.toString() ?? '');
           SpUtil.putString('id_user', user['id_user']?.toString() ?? '');
+          SpUtil.putString('id_type', user['id_type']?.toString() ?? '');
           SpUtil.putString('id_instansi', user['id_instansi']?.toString() ?? '');
           SpUtil.putString('id_groups', user['id_groups']?.toString() ?? '');
           SpUtil.putString('id_user_pimpinan', user['id_user_parent']?.toString() ?? '');
           SpUtil.putString('id_admin_instansi', user['id_admin_instansi']?.toString() ?? '');
           SpUtil.putString('id_pimpinan', user['id_pimpinan']?.toString() ?? '');
-          
           SpUtil.putString('username', (user['username'] as String?)?.replaceAll('"', '') ?? '');
           SpUtil.putString('username_admin', (user['username_admin'] as String?)?.replaceAll('"', '') ?? '');
           SpUtil.putString('nama_lengkap', (user['nama_lengkap'] as String?)?.replaceAll('"', '') ?? '');

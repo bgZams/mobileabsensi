@@ -69,11 +69,9 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
             'Accept': 'application/json'
           },
         );
-
         if (riwayatAbsen.statusCode == 200) {
           final jsonData =
               jsonDecode(riwayatAbsen.body) as Map<String, dynamic>;
-            print(jsonData);
 
           if (jsonData.containsKey('data')) {
             final dataList = jsonData['data'] as List<dynamic>;
@@ -81,17 +79,17 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
             setState(() {
               _rows = dataList.map((data) {
                   return DataRow(
-                    cells: [
-                      DataCell(Text(data['tanggal_absen'])),
-                      DataCell(Text(data['jam_masuk'])),
-                      DataCell(Text(data['jam_pulang'].toString())),
-                      DataCell(Text(data['status_absen'])),
-                      DataCell(Text(data['keterangan'].toString())),
-                      DataCell(Text(data['file'].toString())),
-                      DataCell(Text(data['id_absen'].toString())),
-                    ],
-                  );
-              }).whereType<DataRow>().toList();
+                  cells: [
+                    DataCell(Text(data['tanggal_absen']?.toString() ?? '-')),
+                    DataCell(Text(data['jam_masuk']?.toString() ?? '-')),
+                    DataCell(Text(data['jam_pulang']?.toString() ?? 'Belum Pulang')),
+                    DataCell(Text(data['status_absen']?.toString() ?? '0')), // Penting: status_absen sering int
+                    DataCell(Text(data['keterangan']?.toString() ?? '')),
+                    DataCell(Text(data['file']?.toString() ?? '')),
+                    DataCell(Text(data['id_absen']?.toString() ?? '0')),
+                  ],
+                );
+              }).toList();
               _isLoading = false;
             });
           } else {
@@ -127,6 +125,7 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
           'Accept': 'application/json',
         },
       );
+      print(riwayatAbsen.body);
 
       if (riwayatAbsen.statusCode == 200) {
         final jsonData = jsonDecode(riwayatAbsen.body) as Map<String, dynamic>;
@@ -137,16 +136,15 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
             _rows = dataList.map((data) {
               return DataRow(
                 cells: [
-                  DataCell(Text(data['tanggal_absen'])),
-                  DataCell(Text(data['jam_masuk'])),
-                  DataCell(Text(data['jam_pulang'].toString())),
-                  DataCell(Text(data['status_absen'])),
-                  DataCell(Text(data['keterangan'].toString())),
-                  DataCell(Text(data['file'].toString())),
-                  DataCell(Text(data['id_absen'].toString())),
-                ],
-              );
-            }).toList();
+                    DataCell(Text(data['tanggal_absen']?.toString() ?? '-')),
+                    DataCell(Text(data['jam_masuk']?.toString() ?? '-')),
+                    DataCell(Text(data['jam_pulang']?.toString() ?? 'Belum Pulang')),
+                    DataCell(Text(data['status_absen']?.toString() ?? '0')), 
+                    DataCell(Text(data['keterangan']?.toString() ?? '')),
+                    DataCell(Text(data['file']?.toString() ?? '')),
+                    DataCell(Text(data['id_absen']?.toString() ?? '0')),
+                ],);
+              }).toList();
             _isLoading = false;
           });
         } else {
@@ -888,6 +886,7 @@ Widget _buildCalculationRow(String label, String value) {
                                     physics: const NeverScrollableScrollPhysics(),
                                     itemCount: _rows.length,
                                     itemBuilder: (context, index) {
+
                                       return Padding(
                                         padding: const EdgeInsets.only(
                                             left: 8, right: 8),

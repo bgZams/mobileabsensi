@@ -1,16 +1,17 @@
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mobileabsensi/core/services/attendance_manager.dart';
-import 'package:mobileabsensi/core/services/device_info_service.dart';
 import 'package:mobileabsensi/core/services/firebase_service.dart';
 import 'package:mobileabsensi/core/services/notification_service.dart';
 import 'package:mobileabsensi/core/utils/http_overrides.dart';
 import 'package:mobileabsensi/firebase_options.dart';
 import 'package:mobileabsensi/notifikasi/notification_controller.dart';
 import 'package:mobileabsensi/core/constants/app_constants.dart';
+import 'package:mobileabsensi/services/get_uuid.dart';
 import 'package:sp_util/sp_util.dart';
 import 'dart:io';
 
@@ -23,6 +24,15 @@ Future<void> initializeApp() async {
   
   // Inisialisasi paket-paket penting
   await SpUtil.getInstance();
+  try {
+    String? id = await DeviceUtil.getAndroidId();
+    if (id != null) {
+      await SpUtil.putString('device_id', id);
+      print("✅ Device ID berhasil disimpan otomatis: $id");
+    }
+  } catch (e) {
+    print("⚠️ Gagal auto-save ID: $e");
+  }
   await initializeDateFormatting('id_ID', null);
   
   // Inisialisasi notifikasi
@@ -45,7 +55,7 @@ Future<void> initializeApp() async {
   readData();
   
   // Simpan ID user dari SPUtil ke variabel global
-  idUser = SpUtil.getString('id_user');
+  idUser = SpUtil.getString('id_user'); 
   
   // Cek dan perbarui preferensi absen
   checkAndUpdatePreferences();
@@ -54,12 +64,6 @@ Future<void> initializeApp() async {
   if (Platform.isAndroid) {
     HttpOverrides.global = MyHttpOverrides();
     if (kDebugMode) print("HttpOverrides applied for Android API 23.");
-  }
-  
-  // Inisialisasi info perangkat jika belum ada
-  String? deviceId = SpUtil.getString('device_id');
-  if (deviceId == null || deviceId.isEmpty) {
-    await initializeDeviceInfo();
   }
   
   // Aktifkan secure screen (jika diperlukan)

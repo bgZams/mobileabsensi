@@ -2,6 +2,8 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:mobileabsensi/frontend/absen/absen.dart';
 import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
+import 'package:mobileabsensi/frontend/halaman/izin.dart';
+import 'package:mobileabsensi/frontend/halaman/lhk.dart';
 import 'package:mobileabsensi/frontend/izin/izin.dart';
 import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,18 +14,23 @@ class Dashboard extends StatefulWidget {
 
   @override
   State<Dashboard> createState() => _DashboardState();
-} 
+}
 
 class _DashboardState extends State<Dashboard> {
   late final PageController _pageController;
   late int _currentIndex;
- 
+
+  // Warna Tema (Bisa disesuaikan dengan branding kampus/kantor)
+  final Color _mainColor = const Color(0xFF4C6EF5); // Contoh: Royal Blue
+  final Color _navBarColor = Colors.white;
+  final Color _iconActiveColor = Colors.white;
+  final Color _iconInactiveColor = Colors.grey.shade400;
 
   final List<Widget> _pages = const [
     Absen(),
     RiwayatAbsen(),
-    Izin(),
-    NotifikasiPage(),
+    IzinFront(),
+    LhkFront(),
   ];
 
   @override
@@ -46,106 +53,93 @@ class _DashboardState extends State<Dashboard> {
     });
   }
 
-  // Memeriksa dan meminta izin
   Future<void> _requestPermissions() async {
-    final locationStatus = await Permission.location.request();
-    final wifiStatus = await Permission.locationWhenInUse.request();
-    final camera = await Permission.camera.request();
-    final galleryStatus = await Permission.photos.request();
-    var notificationStatus = await Permission.notification.status;
-    // var storage = await Permission.storage.request();
-
-    if (notificationStatus.isDenied) {
-      notificationStatus = await Permission.notification.request();
-    }
-
-    if (locationStatus.isGranted &&
-        wifiStatus.isGranted &&
-        camera.isGranted &&
-        galleryStatus.isGranted &&
-        // storage.isGranted &&
-        notificationStatus.isGranted) {
-      // All permissions granted, you can access location, Wi-Fi, camera, photos, and notifications.
-    } else {
-      // One or more permissions denied, notify the user or handle accordingly.
-    }
+    // ... (Kode permission tetap sama)
+    await [
+      Permission.location,
+      Permission.locationWhenInUse,
+      Permission.camera,
+      Permission.photos,
+      Permission.notification
+    ].request();
   }
 
   void _onNavTapped(int index) {
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.linearToEaseOut,
-    );
+    _pageController.jumpToPage(index); 
+    // Menggunakan jumpToPage lebih responsif untuk curved nav bar
+    // daripada animateToPage yang kadang bentrok dengan animasi curve
   }
 
   @override
-  Widget build(BuildContext context) { 
+  Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Konten utama
-          PageView(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
-            physics: const NeverScrollableScrollPhysics(),
-            children: _pages,
-          ),
-          
-          ],
+      // [PENTING] Ini membuat konten menyatu di belakang navbar
+      extendBody: true, 
+      backgroundColor: Colors.grey.shade100, // Warna background body
+      
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const NeverScrollableScrollPhysics(),
+        children: _pages,
       ),
-      bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 229, 229, 229),
-        color: const Color.fromARGB(255, 229, 229, 229),
-        height: 65,
-        index: _currentIndex,
-        onTap: _onNavTapped,
-        items: [
-          _buildIconWithText(Icons.home, "Home", 0),
-          _buildIconWithText(Icons.timer, "Riwayat", 1),
-          _buildIconWithText(Icons.mail, "Izin", 2),
-          _buildIconWithText(Icons.upload, "Pengajuan", 3),
-        ],
+
+      bottomNavigationBar: Theme(
+        // Menghilangkan highlight effect default yang mengganggu
+        data: Theme.of(context).copyWith(
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        child: CurvedNavigationBar(
+          // Kunci agar terlihat floating
+          backgroundColor: Colors.transparent, 
+          // Warna batang navigasi
+          color: _navBarColor, 
+          // Warna bola yang melayang (Active)
+          buttonBackgroundColor: _mainColor, 
+          height: 60,
+          animationDuration: const Duration(milliseconds: 300),
+          animationCurve: Curves.easeInOut,
+          index: _currentIndex,
+          onTap: _onNavTapped,
+          items: [
+            _buildNavItem(Icons.home_rounded, "Home", 0),
+            _buildNavItem(Icons.history_rounded, "Riwayat", 1),
+            _buildNavItem(Icons.mail_outline_rounded, "Izin", 2),
+            _buildNavItem(Icons.upload_file_rounded, "LHK", 3),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildIconWithText(IconData icon, String label, int index) {
+  // Widget custom untuk mengatur logika tampilan icon
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    bool isSelected = _currentIndex == index;
+
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ShaderMask(
-          shaderCallback: (Rect bounds) {
-            return LinearGradient(
-              colors: _currentIndex == index
-                  ? [
-                      Color.fromARGB(255, 50, 50, 50),
-                      Color.fromARGB(255, 31, 31, 31),
-                    ]
-                  : [
-                      Color.fromARGB(255, 139, 139, 139),
-                      Color.fromARGB(255, 113, 113, 113),
-                    ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ).createShader(bounds);
-          },
-          child: Icon(
-            icon,
-            size: 30,
-            color: Colors.white,
-          ),
+        Icon(
+          icon,
+          size: 30,
+          // Jika dipilih, warnanya putih (karena background bola biru)
+          // Jika tidak, warnanya abu-abu
+          color: isSelected ? _iconActiveColor : _iconInactiveColor,
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: _currentIndex == index
-                ? Color.fromARGB(255, 50, 50, 50)
-                : Color.fromARGB(255, 150, 150, 150),
+        
+        // UX TRICK: Hanya tampilkan teks jika TIDAK dipilih.
+        // Saat dipilih, icon masuk ke dalam bola, teks disembunyikan agar rapi.
+        if (!isSelected) ...[
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: _iconInactiveColor,
+            ),
           ),
-        ),
+        ]
       ],
     );
   }

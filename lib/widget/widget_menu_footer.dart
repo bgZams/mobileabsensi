@@ -2,8 +2,8 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:mobileabsensi/core.dart';
-import 'package:mobileabsensi/frontend/notifikasi/notifikasi-page.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:mobileabsensi/frontend/halaman/izin.dart';
+import 'package:mobileabsensi/frontend/halaman/lhk.dart'; 
 
 class MenuFooter extends StatefulWidget {
   const MenuFooter({super.key, required this.title});
@@ -73,8 +73,8 @@ class _MenuFooterState extends State<MenuFooter> {
             children: const <Widget>[
               Absen(),
               RiwayatAbsen(),
-              Izin(),
-              NotifikasiPage(),
+              IzinFront(),
+              LhkFront(),
             ],
           ),
         ),

@@ -6,8 +6,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
 import 'package:mobileabsensi/frontend/dashboard.dart';
+import 'package:mobileabsensi/services/get_uuid.dart';
 import 'package:mobileabsensi/widget/widget_fitur.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:network_info_plus/network_info_plus.dart';
@@ -38,9 +40,7 @@ class _AbsenState extends State<Absen> {
   static const String _spKeyIdInstansi = "id_instansi";
   static const String _spKeyNamaLengkap = "nama_lengkap";
   static const String _spKeyNamaInstansi = "nama_instansi";
-  static const String _spKeyDeviceId = "device_id";
   static const String _spKeyIdType = "id_type";
-  static const String _spKeyIdServer = "id_server";
   static const String _spKeyWifiData = "wifi_data";
   static const String _spKeyShiftData = "shift_data";
   static const String _spKeySavedDate = "saved_date";
@@ -85,10 +85,9 @@ class _AbsenState extends State<Absen> {
       ValueNotifier(AbsenLoadingState.none);
 
   @override
-  void initState() {
+  void initState()  {
     super.initState();
     _enabled = false;
-
     // Muat data dari SharedPreferences
     _loadInitialData();
 
@@ -373,7 +372,7 @@ class _AbsenState extends State<Absen> {
     try {
       List<dynamic> listWifi = jsonDecode(listWifiString);
       return listWifi.any(
-          (wifi) => wifi['ssid'] == connectedSSID && wifi['bssid'] == currentBSSID);
+          (wifi) => wifi['SSID'] == connectedSSID && wifi['BSSID'] == currentBSSID);
     } catch (e) {
       developer.log("Error parsing wifi data: $e");
       return false;
@@ -448,7 +447,6 @@ class _AbsenState extends State<Absen> {
   /// Handler utama untuk logika "Absen Masuk".
   Future<void> _handleAbsenMasuk() async {
     _loadingStateNotifier.value = AbsenLoadingState.masuk;
-
     try {
       // 1. Refresh & validasi network info
       await _initNetworkInfo();
@@ -466,7 +464,7 @@ class _AbsenState extends State<Absen> {
 
       // 2. Cek Wi-Fi whitelist
       if (!_isWifiWhitelisted(currentWifiName, currentBSSID)) {
-        print({'ssid': currentWifiName, 'bssid': currentBSSID});
+        // print({'ssid': currentWifiName, 'bssid': currentBSSID});
           if (mounted) Alert.alertwarning(context, 'SSID tidak ditemukan dalam daftar WiFi!');
           _loadingStateNotifier.value = AbsenLoadingState.none;
           return;
@@ -584,12 +582,13 @@ class _AbsenState extends State<Absen> {
       'nama_lengkap': nama,
       'username': SpUtil.getString(_spKeyUsername),
       'instansi': SpUtil.getString(_spKeyIdInstansi),
-      'ssid_masuk': connectedSSID.replaceAll('"', ''),
-      'bssid_masuk': connectedBSSID,
+      'SSID': connectedSSID.replaceAll('"', ''),
+      'BSSID': connectedBSSID,
       'versi': _versiApp,
-      'deviceId': SpUtil.getString(_spKeyDeviceId),
+      'deviceId': SpUtil.getString(StorageKeys.deviceId),
       'id_type': SpUtil.getString(_spKeyIdType),
     };
+
 
     http.Response absenMasuk = await http
         .post(
@@ -638,16 +637,11 @@ class _AbsenState extends State<Absen> {
   }) async {
     var datapulang = {
       'id_user': idUser,
-      'id_admin_instansi': idAdmin,
       'versi': _versiApp,
-      'deviceId': SpUtil.getString(_spKeyDeviceId),
+      'deviceId': SpUtil.getString(StorageKeys.deviceId),
       'id_type': SpUtil.getString(_spKeyIdType),
-      'timestamp_pulang': isIDLK ? DateTime.now().toIso8601String() : null,
-      'ssid_pupang': isIDLK ? 'IDLK' : wifiName?.replaceAll('"', ''),
-      'bssid_pupang': isIDLK ? 'IDLK' : wifiBSSID,
-      'nama_lengkap': isIDLK ? null : nama,
-      'username': isIDLK ? null : SpUtil.getString(_spKeyUsername),
-      'instansi': isIDLK ? null : SpUtil.getString(_spKeyIdInstansi),
+      'SSID_pulang': isIDLK ? 'IDLK' : wifiName?.replaceAll('"', ''),
+      'BSSID_pulang': isIDLK ? 'IDLK' : wifiBSSID,
     };
 
     http.Response absenPulang = await http.put(
@@ -1083,7 +1077,7 @@ class _AbsenState extends State<Absen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => Dashboard(initialIndex: 3),
+              builder: (context) => Dashboard(initialIndex: 2),
             ),
           );
         },

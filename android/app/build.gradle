@@ -45,8 +45,8 @@ android {
         applicationId "com.example.mobileabsensi"
         minSdkVersion 23
         targetSdkVersion 34
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+        versionCode 10
+        versionName "1.0.10"
     }
 
     buildTypes {

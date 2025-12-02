@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobileabsensi/frontend/apel.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
@@ -387,7 +388,7 @@ class _FiturState extends State<Fitur> {
                           children: [
                             Icon(
                               item['icon'],
-                              size: 32,
+                              size: 30,
                               color: Theme.of(context).primaryColor,
                             ),
                             const SizedBox(height: 8),
@@ -396,6 +397,7 @@ class _FiturState extends State<Fitur> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(fontSize: 10),
                             ),
+                            
                           ],
                         ),
                       );
@@ -421,6 +423,15 @@ class _FiturState extends State<Fitur> {
         Navigator.pushNamed(context, '/shift');
         break;
       case 'fitur_2':
+        Fluttertoast.showToast(
+          msg: "Fitur Libur belum tersedia",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black54,
+          textColor: Colors.white,
+          fontSize: 16.0
+        );
         break;
     }
   }

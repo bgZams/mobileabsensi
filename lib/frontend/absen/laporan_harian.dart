@@ -47,7 +47,7 @@ class _LaporanHarianState extends State<LaporanHarian>
     final now = DateTime.now();
     selectedYear = now.year.toString();
     selectedMonth = _getMonthName(now.month);
-    _fetchData();
+    _fetchData(); 
     _refreshData();
     initializePreferences();
   }

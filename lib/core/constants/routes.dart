@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobileabsensi/frontend/absen/laporan_harian.dart';
 import 'package:mobileabsensi/frontend/absen/shift.dart';
+import 'package:mobileabsensi/frontend/halaman/izin.dart';
+import 'package:mobileabsensi/frontend/halaman/lhk.dart';
 import 'package:mobileabsensi/presentation/widgets/screen_wrapper.dart'; 
 import 'package:mobileabsensi/frontend/admin/absen.dart';
 import 'package:mobileabsensi/frontend/admin/detail_pegawai.dart';
@@ -43,12 +45,14 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/absen-masuk': (context) => ScreenWrapper(child: const Absen()),
   '/profil': (context) => ScreenWrapper(child: const Profile()),
   '/riwayat': (context) => ScreenWrapper(child: const RiwayatAbsen()),
-  '/laporan': (context) => ScreenWrapper(child: const Laporan()),
+  // '/laporan': (context) => ScreenWrapper(child: const Laporan()),
+  '/laporan': (context) => ScreenWrapper(child: const LhkFront()),
   '/create-laporan': (context) => ScreenWrapper(child: const BuatLaporan()),
   '/riwayat-laporan': (context) => ScreenWrapper(child: const LaporanHarian()),
   '/riwayat-laporan/pengajuan': (context) => ScreenWrapper(child: const RiwayatPengajuanLhk()),
   '/status-laporan': (context) => ScreenWrapper(child: const StatusLaporan()),
-  '/izin': (context) => ScreenWrapper(child: const Izin()),
+  // '/izin': (context) => ScreenWrapper(child: const Izin()),
+  '/izin': (context) => ScreenWrapper(child: const IzinFront()),
   '/buat_izin': (context) => ScreenWrapper(child: const BuatIzin()),
   '/konfirmasi-izin': (context) => ScreenWrapper(child: const KonfirmasiIzin()),
   '/detail-konfirmasi-izin': (context) => ScreenWrapper(child: const DetailKonfirmasiIzinAtasan()),

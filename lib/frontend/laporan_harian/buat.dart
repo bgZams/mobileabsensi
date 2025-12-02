@@ -74,9 +74,34 @@ class _BuatLaporanState extends State<BuatLaporan> {
     }
   }
 
+  InputDecoration _inputDecoration({
+    required String label,
+    required IconData icon,
+    required Color bgColor,
+    required Color primaryColor,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: primaryColor),
+      filled: true,
+      fillColor: bgColor,
+      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: primaryColor, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
+    final Color primaryBlue = const Color(0xFF1565C0);
+    final Color lightBlueBg = const Color(0xFFE3F2FD);
     return Scaffold(
       body: Stack(
         children: [
@@ -113,156 +138,146 @@ class _BuatLaporanState extends State<BuatLaporan> {
                           Form(
                             key: _formKey,
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                const SizedBox(height: 20),
+
+                                // === BARIS INPUT JAM (RESPONSIF) ===
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SizedBox(
-                                      width: 150,
-                                      child: TextField(
-                                        // enabled: laporanPertama,
+                                    // 1. JAM MULAI
+                                    Expanded(
+                                      child: TextFormField(
                                         controller: jamMulai,
-                                        decoration: const InputDecoration(
-                                          labelText: "Jam Mulai",
-                                          border: OutlineInputBorder(),
-                                          fillColor: Colors.white,
-                                          filled: true,
-                                        ),
                                         readOnly: true,
+                                        style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                                        decoration: _inputDecoration(
+                                          label: "Jam Mulai",
+                                          icon: Icons.timer,
+                                          bgColor: lightBlueBg,
+                                          primaryColor: primaryBlue,
+                                        ),
                                         onTap: () async {
-                                          if (SpUtil.getString('masuk')!
-                                              .isEmpty) {
+                                          // Logika Asli Anda (SpUtil)
+                                          if (SpUtil.getString('masuk')!.isNotEmpty) {
                                             setState(() {
-                                              jamMulai.text =
-                                                  SpUtil.getString('masuk')
-                                                      .toString();
+                                              jamMulai.text = SpUtil.getString('masuk').toString();
                                             });
                                           } else {
-                                            TimeOfDay? pickedTime =
-                                                await showTimePicker(
+                                            TimeOfDay? pickedTime = await showTimePicker(
                                               initialTime: TimeOfDay.now(),
                                               context: context,
                                             );
                                             if (pickedTime != null) {
-                                              String formattedTime =
-                                                  "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+                                              String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
                                               setState(() {
                                                 jamMulai.text = formattedTime;
                                               });
-                                            } else {
-                                              // Time is not selected
                                             }
                                           }
                                         },
                                       ),
                                     ),
-                                    Spacer(),
-                                    SizedBox(
-                                      width: 150,
-                                      child: TextField(
+
+                                    const SizedBox(width: 15), // Jarak antar kolom
+
+                                    Expanded(
+                                      child: TextFormField(
                                         controller: jamSelesai,
-                                        decoration: const InputDecoration(
-                                          labelText: "Jam Selesai",
-                                          border: OutlineInputBorder(),
-                                          fillColor: Colors.white,
-                                          filled: true,
-                                        ),
                                         readOnly: true,
+                                        style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                                        decoration: _inputDecoration(
+                                          label: "Jam Selesai",
+                                          icon: Icons.timer,
+                                          bgColor: lightBlueBg,
+                                          primaryColor: primaryBlue,
+                                        ),
                                         onTap: () async {
-                                          TimeOfDay? pickedTime =
-                                              await showTimePicker(
+                                          TimeOfDay? pickedTime = await showTimePicker(
                                             initialTime: TimeOfDay.now(),
                                             context: context,
                                           );
-
                                           if (pickedTime != null) {
-                                            String formattedTime =
-                                                "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+                                            String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
                                             setState(() {
                                               jamSelesai.text = formattedTime;
                                             });
-                                          } else {
-                                            if (kDebugMode) {
-                                              print("Time is not selected");
-                                            }
                                           }
                                         },
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(
-                                  height: 20,
-                                ),
-                                Container(
-                                  color: Colors.black45,
-                                  child: TextFormField(
-                                    controller: keterangan,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        Alert.alerterror(context,
-                                            'Keterangan tidak boleh kosong');
-                                      }
-                                      return null;
-                                    },
-                                    maxLines: 10,
-                                    style:
-                                        const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-                                    decoration: const InputDecoration(
-                                      labelText: "Masukkan kegiatan",
-                                      alignLabelWithHint: true,
-                                      labelStyle:
-                                          TextStyle(color: Colors.black, fontSize: 18),
-                                      border: OutlineInputBorder(),
-                                      fillColor: Color.fromARGB(115, 245, 243, 243),
-                                      filled: true,
-                                      errorStyle:
-                                          TextStyle(color: Colors.red),
-                                          hintStyle: TextStyle(
-                                            color: Color.fromARGB(255, 0, 0, 0),
-                                          ),
+
+                                const SizedBox(height: 25),
+
+                                TextFormField(
+                                  controller: keterangan,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      Alert.alerterror(context, 'Keterangan tidak boleh kosong');
+                                      return 'Wajib diisi';
+                                    }
+                                    return null;
+                                  },
+                                  maxLines: 5,
+                                  style: const TextStyle(color: Colors.black87),
+                                  decoration: InputDecoration(
+                                    labelText: "Deskripsi Kegiatan",
+                                    alignLabelWithHint: true,
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.only(bottom: 80), // Icon di atas
+                                      child: Icon(Icons.description_outlined, color: primaryBlue),
                                     ),
-                                    
+                                    filled: true,
+                                    fillColor: Colors.white, // Background putih bersih
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(color: primaryBlue, width: 2),
+                                    ),
+                                    errorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(color: Colors.redAccent),
+                                    ),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(
-                                  height: 20,
-                                ),
+
+                                const SizedBox(height: 30),
+
                                 SizedBox(
-                                  width: MediaQuery.of(context).size.width,
+                                  width: double.infinity,
+                                  height: 55,
                                   child: ElevatedButton.icon(
-                                    icon: isLoading
-                                        ? const CircularProgressIndicator()
-                                        : const Icon(
-                                            Icons.save_outlined,
-                                            size: 20,
-                                            color: Colors.white,
-                                          ),
+                                    onPressed: isLoading ? null : _startLoading,
+                                    icon: isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.save_rounded, color: Colors.white),
                                     label: Text(
-                                      isLoading ? 'Loading...' : 'Simpan',
+                                      isLoading ? 'Menyimpan...' : 'SIMPAN DATA',
                                       style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white,
-                                          shadows: [
-                                            Shadow(
-                                                blurRadius: 2,
-                                                color: Colors.black,
-                                                offset: Offset(1, 1))
-                                          ]),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: 1,
+                                      ),
                                     ),
-                                    onPressed:
-                                        isLoading ? null : _startLoading,
-                                    clipBehavior: Clip.hardEdge,
                                     style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color.fromARGB(255, 67, 60, 130),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(5))),
+                                      backgroundColor: primaryBlue, // Menggunakan variabel warna biru
+                                      elevation: 4,
+                                      shadowColor: primaryBlue.withOpacity(0.4),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(
-                                  height: 20,
-                                ),
+                                const SizedBox(height: 20),
                               ],
                             ),
                           ),
@@ -272,22 +287,17 @@ class _BuatLaporanState extends State<BuatLaporan> {
                               padding: const EdgeInsets.all(8.0),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(5),
-                                color:
-                                    const Color.fromARGB(255, 255, 204, 51),
+                                color: const Color.fromARGB(255, 255, 204, 51),
                               ),
                               child: const Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Info',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
-                                  Text(
-                                      '1. Jam mulai sesuaikan dengan jam absen masuk'),
-                                  Text(
-                                      '2. Jam mulai tidak lebih besar dari jam selesai'),
+                                  Text('1. Jam mulai sesuaikan dengan jam absen masuk'),
+                                  Text('2. Jam mulai tidak lebih besar dari jam selesai'),
                                 ],
                               ),
                             ),
@@ -316,7 +326,7 @@ class _BuatLaporanState extends State<BuatLaporan> {
     String? idAdmin = SpUtil.getString('id_admin_instansi');
     String namalengkap = SpUtil.getString("nama_lengkap").toString();
     var now = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    if(idPimpinan == null){
+    if (idPimpinan == null) {
       Alert.alertwarning(context, 'ID Atasan tidak ditemukan');
     }
     Map<String, dynamic> data = {
@@ -339,19 +349,14 @@ class _BuatLaporanState extends State<BuatLaporan> {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
 
-    if (idServer == null ||
-        idUser == null ||
-        idPimpinan == null ||
-        idAdmin == null) {
+    if (idServer == null || idUser == null || idPimpinan == null || idAdmin == null) {
       // ignore: use_build_context_synchronously
       Alert.alertinfo(context, 'Data pengguna tidak lengkap!');
 
       return;
     }
 
-    if (mulai.isEmpty ||
-        selesai.isEmpty ||
-        SpUtil.getString('masuk')!.isEmpty) {
+    if (mulai.isEmpty || selesai.isEmpty || SpUtil.getString('masuk')!.isEmpty) {
       Alert.alerterror(context, 'Jam tidak boleh kosong');
       return;
     }
@@ -365,13 +370,11 @@ class _BuatLaporanState extends State<BuatLaporan> {
         },
       );
       if (kirimLaporanHarian.statusCode == 200) {
-        final DatabaseReference databaseReference =
-            FirebaseDatabase.instance.ref();
+        final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
         databaseReference.child("laporan").push().set(storeFirebase);
         prosesResponSukses(kirimLaporanHarian.body);
       } else {
-        Map<String, dynamic> errorResponse =
-            jsonDecode(kirimLaporanHarian.body);
+        Map<String, dynamic> errorResponse = jsonDecode(kirimLaporanHarian.body);
         String errorMessage = 'Terjadi kesalahan server';
         if (errorResponse.containsKey('errors')) {
           Map<String, dynamic> errors = errorResponse['errors'];

@@ -59,26 +59,28 @@ class _ShiftState extends State<Shift> {
   }
 
   // Fungsi untuk menentukan status shift
-  String _getShiftStatus(Map<String, dynamic> shift) {
-    final now = DateTime.now();
-    final startDate = DateTime.parse(shift['tgl_awal']);
-    final endDate = DateTime.parse(shift['tgl_akhir']);
-    
-    // Untuk jam, kita perlu membuat objek DateTime yang lengkap
-    final startJam = DateFormat('HH:mm').parse(shift['jam_mulai']);
-    final endJam = DateFormat('HH:mm').parse(shift['jam_selesai']);
-    
-    final startDateTime = DateTime(startDate.year, startDate.month, startDate.day, startJam.hour, startJam.minute);
-    final endDateTime = DateTime(endDate.year, endDate.month, endDate.day, endJam.hour, endJam.minute);
+ String _getShiftStatus(Map<String, dynamic> shift) {
+  // 1. Ambil waktu sekarang
+  final DateTime nowRaw = DateTime.now();
+  
+  // 2. NORMALISASI: Buang elemen jam, menit, detik. Jadikan 00:00:00 semua.
+  final DateTime today = DateTime(nowRaw.year, nowRaw.month, nowRaw.day);
+  final DateTime startDate = DateTime.parse(shift['tgl_awal']); // Parse defaultnya sdh 00:00
+  final DateTime endDate = DateTime.parse(shift['tgl_akhir']);  // Parse defaultnya sdh 00:00
 
-    if (now.isAfter(startDateTime) && now.isBefore(endDateTime)) {
-      return 'Aktif';
-    } else if (now.isBefore(startDateTime)) {
-      return 'Akan Datang';
-    } else {
-      return 'Selesai';
-    }
+  // 3. Logika Perbandingan (Hanya Tanggal)
+  if (today.isBefore(startDate)) {
+    // Jika hari ini < tanggal awal
+    return 'Akan Datang';
+  } else if (today.isAfter(endDate)) {
+    // Jika hari ini > tanggal akhir
+    return 'Selesai';
+  } else {
+    // Jika tidak sebelum dan tidak sesudah, berarti sedang berjalan
+    // (Termasuk jika hari ini == startDate atau hari ini == endDate)
+    return 'Aktif';
   }
+}
 
   // Fungsi untuk mendapatkan warna berdasarkan status
   Color _getStatusColor(String status) {

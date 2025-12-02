@@ -15,7 +15,8 @@ import 'package:sp_util/sp_util.dart';
 class AppConstants {
   // Base URLs
   static const String simpelBaseUrl = 'https://simpel.pasamanbaratkab.go.id/api_android/simaya';
-  static const String localApiBaseUrl = 'http://192.168.184.46:8000'; // Development URL
+  static const String localApiBaseUrl = 'http://mobileabsensi1.pasamanbaratkab.go.id/api_android_v2';
+  // static const String localApiBaseUrl = 'http://172.25.88.15:8000';
 
   // API Endpoints
   static const String loginEndpoint = '$simpelBaseUrl/api/model_login2.php';
@@ -72,7 +73,7 @@ class ApiService {
     'Accept': 'application/json',
   };
 
-  Future<Map<String, dynamic>> login(String username, String password, String deviceId, String systemVersion) async {
+  Future<Map<String, dynamic>> login(String username, String password, String deviceId) async {
     final response = await _client.post(
       Uri.parse(AppConstants.loginEndpoint),
       headers: _formHeaders,
@@ -80,13 +81,12 @@ class ApiService {
         'username': username,
         'password': password,
         'device_id': deviceId,
-        'system_version': systemVersion,
+        'system_version': SpUtil.getString(StorageKeys.systemVersion) ?? '',
       },
     ).timeout(_timeoutDuration);
     
     return json.decode(response.body);
   }
-  static const platformDevice = MethodChannel('com.example.app/device_id');
   Future<Map<String, dynamic>> getDevice(Map<String, dynamic> body) async {
     final response = await _client.post(
       Uri.parse(AppConstants.deviceEndpoint),
@@ -95,18 +95,11 @@ class ApiService {
     ).timeout(_timeoutDuration);
 
     return json.decode(response.body);
-  }
-  Future<Map<String, dynamic>> cekDevice() async {
-    final response = await _client.get(
-      Uri.parse('${AppConstants.deviceCheckEndpoint}/${SpUtil.getString(StorageKeys.idUser)}/${SpUtil.getString(StorageKeys.deviceId)}'),
-      headers: _jsonHeaders,
-    ).timeout(_timeoutDuration);
-    return json.decode(response.body);
-  }
+  } 
 
   Future<Map<String, dynamic>> getWifiData(String usernameAdmin) async {
     final response = await _client.get(
-      Uri.parse('${AppConstants.wifiEndpoint}/${SpUtil.getString("username_admin")}'),
+      Uri.parse('${AppConstants.wifiEndpoint}/$usernameAdmin'),
       headers: _jsonHeaders,
     );
     return json.decode(response.body);
@@ -149,7 +142,6 @@ class LoginState extends State<Login> {
   bool _deviceInfoError = false;
   Map<String, dynamic> _deviceData = <String, dynamic>{};
   Timer? _deviceInfoRetryTimer;
-  String _udid = 'Unknown';
 
   // Form & Controllers
   final _formKey = GlobalKey<FormState>();
@@ -159,7 +151,7 @@ class LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    // Use WidgetsBinding to safely interact with context/navigation after build
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkLoginStatusAndInitialize();
     });
@@ -176,9 +168,6 @@ class LoginState extends State<Login> {
   /// Checks if user is already logged in. If so, navigates to dashboard.
   /// Otherwise, starts the app initialization.
   Future<void> _checkLoginStatusAndInitialize() async {
-    // Initialize SharedPreferences
-    await SpUtil.getInstance();
-
     if (SpUtil.getBool(StorageKeys.isLogin) == true) {
       _navigateToHome();
     } else {
@@ -218,21 +207,38 @@ class LoginState extends State<Login> {
   /// Fetches and stores platform-specific device information.
   Future<void> _initializeDeviceInfo() async {
     try {
+      // 1. Ambil & Simpan Device ID (Menggunakan kode baru Anda)
+      // Pastikan class DeviceUtil sudah di-import
+      String? id = await DeviceUtil.getAndroidId();
+      
+      if (id != null) {
+        // Gunakan StorageKeys.deviceId agar konsisten dengan bagian kode lain
+        await SpUtil.putString(StorageKeys.deviceId, id);
+        print("✅ Device ID berhasil disimpan otomatis: $id");
+      } else {
+        print("⚠️ Device ID null");
+      }
+
+      // 2. Ambil & Simpan System Version (PENTING: Ini bagian yang hilang di snippet baru Anda)
       if (defaultTargetPlatform == TargetPlatform.android) {
         final androidInfo = await _deviceInfoPlugin.androidInfo;
-        _deviceData = _readAndroidBuildData(androidInfo); 
-
-        String systemVersion = _deviceData['version.release']?.toString() ?? androidInfo.version.release;
-
+        String systemVersion = androidInfo.version.release;
         await SpUtil.putString(StorageKeys.systemVersion, systemVersion);
       } else {
-        await _setFallbackDeviceInfo();
+        await SpUtil.putString(StorageKeys.systemVersion, 'Unknown');
       }
-    } on PlatformException catch (e) {
-      if (kDebugMode) print("Platform exception getting device info: $e");
-      await _setFallbackDeviceInfo();
+
+      // Update state agar tombol login menyala
+      if (mounted) {
+        setState(() {
+            _isDeviceInfoReady = true;
+            _deviceInfoError = false;
+        });
+      }
+
     } catch (e) {
-      if (kDebugMode) print("General exception getting device info: $e");
+      print("⚠️ Gagal init device info: $e");
+      // Fallback jika error
       await _setFallbackDeviceInfo();
     }
   }
@@ -271,9 +277,7 @@ class LoginState extends State<Login> {
   }
 
   /// Starts the login process.
-  Future<void> _startLoading() async {
-    String? id = await DeviceUtil.getAndroidId();
-    SpUtil.putString(StorageKeys.deviceId, id ?? 'unknown_device_id');
+  Future<void> _startLoading() async { 
     // Check device info readiness
     if (!_isDeviceInfoReady) {
       if (_deviceInfoError) {
@@ -294,7 +298,8 @@ class LoginState extends State<Login> {
     });
 
     try {
-      await _login(_usernameController.text, _passwordController.text);
+      var deviceId = SpUtil.getString('device_id');
+      await _login(_usernameController.text, _passwordController.text, deviceId!);
     } catch (e) {
       if (kDebugMode) print("Login Error: $e");
       if (mounted) {
@@ -316,25 +321,27 @@ class LoginState extends State<Login> {
   }
 
   /// Handles the core login API call and response.
-  Future<void> _login(String username, String password) async {
-    final deviceId = SpUtil.getString(StorageKeys.deviceId);
-    final systemVersion = SpUtil.getString(StorageKeys.systemVersion);
-    if (deviceId == null || deviceId.isEmpty || systemVersion == null) {
+  Future<void> _login(String username, String password, String deviceId) async {
+    if (deviceId == null || deviceId.isEmpty) {
       Alert.alerterror(context, 'Informasi perangkat tidak valid. Mohon restart aplikasi.');
       return;
     }
 
-    final simpel = await _apiService.login(username, password, deviceId, systemVersion);
+    final simpel = await _apiService.login(username, password, deviceId);
 
     if (mounted && simpel["success"] == 1) {
-      await _handleLoginSuccess(simpel, username);
+      if(simpel["id_admin_instansi"] == '4393'){
+        await _handleLoginSuccess(simpel, username, deviceId);
+      } else {
+        Alert.alertwarning(context, 'Maaf, Anda bukan admin instansi yang diizinkan.');
+      }
     } else if (mounted) {
       Alert.alertwarning(context, simpel["message"] ?? 'Username atau password salah.');
     }
   }
 
   /// Handles the logic *after* a successful login response is received.
-  Future<void> _handleLoginSuccess(Map<String, dynamic> simpel, String username) async {
+  Future<void> _handleLoginSuccess(Map<String, dynamic> simpel, String username, String deviceId) async {
     SpUtil.putString(StorageKeys.idServer, simpel['id_server'].toString());
     // Group 2 (Admin) just syncs and navigates
     if (simpel["id_groups"] == 2) {
@@ -350,11 +357,10 @@ class LoginState extends State<Login> {
         SpUtil.clear();
         await _initializeApp();
       }
-      
 
       final deviceData = await _apiService.getDevice({
         'id_user': simpel['id_user'].toString(),
-        'device_id': SpUtil.getString(StorageKeys.deviceId),
+        'device_id': SpUtil.getString('device_id'),
         'username': simpel['username'],
         'versiApp': SpUtil.getString(StorageKeys.systemVersion),
         'id_type': simpel['id_type'],
@@ -366,6 +372,8 @@ class LoginState extends State<Login> {
         await _syncAndStoreUserData(simpel);
         _navigateToHome();
       } else if (mounted) {
+        print("X Login gagal - Device check failed: ${deviceData}");
+
         Alert.alertwarning(context, deviceData["message"]);
       }
     } else {
@@ -394,7 +402,7 @@ class LoginState extends State<Login> {
       } else if (mounted) {
          Alert.alertwarning(context, 'Gagal menyingkronkan data wifi.');
       }
-      
+
       if (shiftData['data'] != null) {
         SpUtil.putString(StorageKeys.shiftData, json.encode(shiftData['data']));
       } else if (mounted) {
@@ -414,7 +422,6 @@ class LoginState extends State<Login> {
       if (kDebugMode) {
         print(Exception(e));
       }
-      // Rethrow to be caught by _startLoading
       rethrow;
     }
   }
@@ -498,7 +505,6 @@ class LoginState extends State<Login> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Running on: $_udid\n'),
                       Text(
                         'Hi, Selamat Datang',
                         style: TextStyle(

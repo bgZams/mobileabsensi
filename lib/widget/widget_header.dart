@@ -96,42 +96,7 @@ class _HeaderState extends State<Header> {
                 ],
               ),
             ),
-            const Spacer(),
-            GestureDetector(
-              onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const LaporanHarian()),
-              );
-              },
-              child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LaporanHarian()),
-                );
-                },
-                child: SizedBox(
-                width: deviceWidth * 0.15,
-                height: deviceWidth * 0.15 + 2.0,
-                child: Column(
-                  children: [
-                    const Icon(Icons.note_alt,
-                      color: Color(0xFFC983DE), size: 40),
-                      Text('LHK',style: TextStyle(
-                      fontSize: deviceWidth * 0.03,color: Colors.white),),
-                  ],
-                ),
-                ),
-              ),
-              ),
-              ),
-            SizedBox(width: deviceWidth * 0.02),
+            
           ],
         ),
       ),
