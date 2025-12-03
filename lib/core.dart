@@ -22,7 +22,6 @@ export 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
 export 'package:mobileabsensi/frontend/laporan_harian/edit.dart';
 export 'package:mobileabsensi/frontend/laporan_harian/laporan.dart';
 export 'package:mobileabsensi/frontend/laporan_harian/status.dart';
-export 'package:mobileabsensi/frontend/profile.dart';
 export 'package:mobileabsensi/frontend/senam.dart';
 export 'package:mobileabsensi/notifikasi/izin.dart';
 export 'package:mobileabsensi/notifikasi/lhk.dart';

@@ -16,7 +16,6 @@ import 'package:mobileabsensi/frontend/dashboard.dart';
 import 'package:mobileabsensi/frontend/izin/detail_konfirmasi_atasan.dart';
 import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
-import 'package:mobileabsensi/frontend/laporan_harian/laporan.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
 import 'package:mobileabsensi/frontend/laporan_harian/status.dart';
 import 'package:mobileabsensi/frontend/pengumuman.dart';
@@ -24,7 +23,6 @@ import 'package:mobileabsensi/frontend/profile.dart';
 import 'package:mobileabsensi/frontend/senam.dart';
 import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
 import 'package:mobileabsensi/frontend/izin/buat.dart';
-import 'package:mobileabsensi/frontend/izin/izin.dart';
 // import 'package:mobileabsensi/singgah.dart';
 import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
 

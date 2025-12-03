@@ -45,7 +45,7 @@ class _FiturState extends State<Fitur> {
       }
     });
   }
- 
+
   @override
   void dispose() {
     _jlhIzinController.close();
@@ -74,12 +74,11 @@ class _FiturState extends State<Fitur> {
         print('Error: $error');
       }
     }
-
   }
 
   @override
   Widget build(BuildContext context) {
-      bool isLoading = false;
+    bool isLoading = false;
 
     return Container(
       margin: const EdgeInsets.only(
@@ -88,8 +87,7 @@ class _FiturState extends State<Fitur> {
       ),
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        border: Border.all(
-                                    color: const Color.fromARGB(255, 221, 235, 235),width: 3),
+        border: Border.all(color: const Color.fromARGB(255, 221, 235, 235), width: 3),
         color: const Color.fromARGB(255, 240, 255, 255),
         borderRadius: const BorderRadius.all(
           Radius.circular(10),
@@ -120,19 +118,18 @@ class _FiturState extends State<Fitur> {
                           alignment: Alignment.topRight,
                           children: [
                             IconButton(
-                              icon: const Icon(
-                                Icons.mail_outline_sharp,
-                                color: Colors.white,
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const KonfirmasiIzin(),
-                                  ),
-                                );
-                              }
-                            ),
+                                icon: const Icon(
+                                  Icons.mail_outline_sharp,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const KonfirmasiIzin(),
+                                    ),
+                                  );
+                                }),
                             if (snapshot.hasData && snapshot.data != null)
                               Positioned(
                                 right: 0,
@@ -173,7 +170,6 @@ class _FiturState extends State<Fitur> {
                   );
                 },
               ),
-              
               Column(
                 children: [
                   Container(
@@ -229,8 +225,7 @@ class _FiturState extends State<Fitur> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const ListWifi()),
+                          MaterialPageRoute(builder: (context) => const ListWifi()),
                         );
                       },
                     ),
@@ -293,11 +288,13 @@ class _FiturState extends State<Fitur> {
                       ),
                     ),
                     child: IconButton(
-                      icon:   Icon(Icons.grid_view_rounded, color: Colors.white,),
-                      onPressed: () async {
-                            _showGridMenu(context);
-                      }
-                    ),
+                        icon: Icon(
+                          Icons.grid_view_rounded,
+                          color: Colors.white,
+                        ),
+                        onPressed: () async {
+                          _showGridMenu(context);
+                        }),
                   ),
                   const SizedBox(
                     height: 2,
@@ -311,7 +308,6 @@ class _FiturState extends State<Fitur> {
                   ),
                 ],
               ),
-              
             ],
           ),
         ),
@@ -319,72 +315,73 @@ class _FiturState extends State<Fitur> {
     );
   }
 
-   // Fungsi untuk menampilkan menu Grid
   void _showGridMenu(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Data untuk menu, agar kode lebih rapi
         final List<Map<String, dynamic>> menuItems = [
-          {'icon': Icons.access_time_sharp, 'label': 'Shift', 'value': 'fitur_1'},
-          {'icon': Icons.calendar_today_outlined, 'label': 'Libur', 'value': 'fitur_2'},
+          {
+            'icon': Icons.access_time_sharp,
+            'label': 'Shift',
+            'value': 'fitur_1'
+          },
+          {
+            'icon': Icons.calendar_today_outlined,
+            'label': 'Libur',
+            'value': 'fitur_2'
+          },
+          {
+            'icon': FontAwesomeIcons.bullhorn,
+            'label': 'Info',
+            'value': 'fitur_3'
+          },
         ];
 
         return Dialog(
-          // Menghapus shape default agar bisa full width
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.0),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              // Membuat lebar dialog mengikuti lebar layar dengan sedikit margin
-              width: MediaQuery.of(context).size.width,
-              height: 250,
+            child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                'Menu Lainnya',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-              Container(
-
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                height: 2.0,
-                width: MediaQuery.of(context).size.width,
-                color: Theme.of(context).primaryColor,
-              ),
-                  GridView.builder(
-                    // Agar grid tidak menyebabkan dialog membesar tak terbatas
-                    shrinkWrap: true,
-                    // Jumlah item per baris
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount( // Diperbaiki: Gunakan properti gridDelegate
-                      crossAxisCount: 4,
-                      // Jarak antar item secara horizontal
-                      crossAxisSpacing: 16.0,
-                      // Jarak antar item secara vertikal
-                      mainAxisSpacing: 16.0,
+                    'Menu Lainnya',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
                     ),
-                    // Total item yang akan dibangun
+                  ),
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    height: 3.0,
+                    width: double.infinity,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      crossAxisSpacing: 16.0,
+                      mainAxisSpacing: 16.0,
+                      childAspectRatio: 0.85,
+                    ),
                     itemCount: menuItems.length,
-                    // Mencegah grid dari scrollable jika item sedikit
                     physics: const NeverScrollableScrollPhysics(),
                     itemBuilder: (BuildContext context, int index) {
                       final item = menuItems[index];
                       return InkWell(
                         onTap: () {
-                          // Tutup dialog
                           Navigator.of(context).pop();
-                          // Eksekusi aksi berdasarkan nilai
                           _handleMenuSelection(item['value']);
                         },
                         borderRadius: BorderRadius.circular(8.0),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               item['icon'],
@@ -392,12 +389,15 @@ class _FiturState extends State<Fitur> {
                               color: Theme.of(context).primaryColor,
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              item['label'],
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 10),
+                            Flexible(
+                              child: Text(
+                                item['label'],
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 10),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            
                           ],
                         ),
                       );
@@ -412,26 +412,18 @@ class _FiturState extends State<Fitur> {
     );
   }
 
-  // Fungsi untuk menangani seleksi menu
   void _handleMenuSelection(String? value) {
     if (value == null) return;
-
-    // Gunakan print untuk contoh.
 
     switch (value) {
       case 'fitur_1':
         Navigator.pushNamed(context, '/shift');
         break;
       case 'fitur_2':
-        Fluttertoast.showToast(
-          msg: "Fitur Libur belum tersedia",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.black54,
-          textColor: Colors.white,
-          fontSize: 16.0
-        );
+        Fluttertoast.showToast(msg: "Fitur Libur belum tersedia", toastLength: Toast.LENGTH_SHORT, gravity: ToastGravity.BOTTOM, timeInSecForIosWeb: 1, backgroundColor: Colors.black54, textColor: Colors.white, fontSize: 16.0);
+        break;
+      case 'fitur_3':
+        Navigator.pushNamed(context, '/pengumuman');
         break;
     }
   }

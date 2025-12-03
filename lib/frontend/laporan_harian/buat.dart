@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/services/alert.dart';
-import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:http/http.dart' as http;
@@ -158,22 +157,15 @@ class _BuatLaporanState extends State<BuatLaporan> {
                                           primaryColor: primaryBlue,
                                         ),
                                         onTap: () async {
-                                          // Logika Asli Anda (SpUtil)
-                                          if (SpUtil.getString('masuk')!.isNotEmpty) {
+                                          TimeOfDay? pickedTime = await showTimePicker(
+                                            initialTime: TimeOfDay.now(),
+                                            context: context,
+                                          );
+                                          if (pickedTime != null) {
+                                            String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
                                             setState(() {
-                                              jamMulai.text = SpUtil.getString('masuk').toString();
+                                              jamMulai.text = formattedTime;
                                             });
-                                          } else {
-                                            TimeOfDay? pickedTime = await showTimePicker(
-                                              initialTime: TimeOfDay.now(),
-                                              context: context,
-                                            );
-                                            if (pickedTime != null) {
-                                              String formattedTime = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                                              setState(() {
-                                                jamMulai.text = formattedTime;
-                                              });
-                                            }
                                           }
                                         },
                                       ),

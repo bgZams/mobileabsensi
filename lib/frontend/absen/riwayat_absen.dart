@@ -9,6 +9,38 @@ import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sp_util/sp_util.dart';
 
+class AbsensiModel {
+  final String tanggalAbsen;
+  final String jamMasuk;
+  final String jamPulang;
+  final String statusAbsen;
+  final String keterangan;
+  final String file;
+  final String idAbsen;
+
+  AbsensiModel({
+    required this.tanggalAbsen,
+    required this.jamMasuk,
+    required this.jamPulang,
+    required this.statusAbsen,
+    required this.keterangan,
+    required this.file,
+    required this.idAbsen,
+  });
+
+  factory AbsensiModel.fromJson(Map<String, dynamic> json) {
+    return AbsensiModel(
+      tanggalAbsen: json['tanggal_absen']?.toString() ?? '-',
+      jamMasuk: json['jam_masuk']?.toString() ?? '-',
+      jamPulang: json['jam_pulang']?.toString() ?? 'Belum Pulang',
+      statusAbsen: json['status_absen']?.toString() ?? '0',
+      keterangan: json['keterangan']?.toString() ?? '',
+      file: json['file']?.toString() ?? '',
+      idAbsen: json['id_absen']?.toString() ?? '0',
+    );
+  }
+}
+
 class RiwayatAbsen extends StatefulWidget {
   const RiwayatAbsen({super.key});
 
@@ -17,21 +49,16 @@ class RiwayatAbsen extends StatefulWidget {
 }
 
 class RiwayatAbsenState extends State<RiwayatAbsen> {
-  bool _enabled = true;
+  final String url = SpUtil.getString("url") ?? '';
 
-  var url = SpUtil.getString("url");
-  List<DataRow> _rows = [];
+  List<AbsensiModel> _dataList = [];
   bool _isLoading = true;
   String selectedYear = '';
   String selectedMonth = '';
-  DateTime? lastFetchTime;
-  int syncCount = 0;
 
   @override
   void initState() {
     super.initState();
-              _enabled = false;
-
     DateTime now = DateTime.now();
     selectedYear = now.year.toString();
     selectedMonth = _getMonthName(now.month);
@@ -57,109 +84,174 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
   }
 
   Future<void> _fetchData() async {
-    if (SpUtil.getString("id_user") != null && mounted) {
-      try {
-        String selectedMonthNumber = Bulan().getMonthNumber(selectedMonth);
-        var idUser = SpUtil.getString("id_user");
-        http.Response riwayatAbsen = await http.get(
-          Uri.parse(
-              '$url/api/riwayat-absen/$idUser/$selectedMonthNumber/$selectedYear'),
-          headers: {
-            'Content-type': 'application/json',
-            'Accept': 'application/json'
-          },
-        );
-        if (riwayatAbsen.statusCode == 200) {
-          final jsonData =
-              jsonDecode(riwayatAbsen.body) as Map<String, dynamic>;
+    setState(() => _isLoading = true);
 
-          if (jsonData.containsKey('data')) {
-            final dataList = jsonData['data'] as List<dynamic>;
-
-            setState(() {
-              _rows = dataList.map((data) {
-                  return DataRow(
-                  cells: [
-                    DataCell(Text(data['tanggal_absen']?.toString() ?? '-')),
-                    DataCell(Text(data['jam_masuk']?.toString() ?? '-')),
-                    DataCell(Text(data['jam_pulang']?.toString() ?? 'Belum Pulang')),
-                    DataCell(Text(data['status_absen']?.toString() ?? '0')), // Penting: status_absen sering int
-                    DataCell(Text(data['keterangan']?.toString() ?? '')),
-                    DataCell(Text(data['file']?.toString() ?? '')),
-                    DataCell(Text(data['id_absen']?.toString() ?? '0')),
-                  ],
-                );
-              }).toList();
-              _isLoading = false;
-            });
-          } else {
-            throw Exception('Gagal mengambil data');
-          }
-        } else {
-          throw Exception('Kesalahan HTTP: ${riwayatAbsen.statusCode}');
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    }
-  }
-
-  void _cariData(String selectedMonth, String selectedYear) async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (SpUtil.getString("id_user") == null) return;
 
     try {
       String selectedMonthNumber = Bulan().getMonthNumber(selectedMonth);
       var idUser = SpUtil.getString("id_user");
-      http.Response riwayatAbsen = await http.get(
-        Uri.parse(
-          '$url/api/riwayat-absen/$idUser/$selectedMonthNumber/$selectedYear',
-        ),
+
+      final response = await http.get(
+        Uri.parse('$url/api/riwayat-absen/$idUser/$selectedMonthNumber/$selectedYear'),
         headers: {
           'Content-type': 'application/json',
-          'Accept': 'application/json',
+          'Accept': 'application/json'
         },
       );
-      print(riwayatAbsen.body);
 
-      if (riwayatAbsen.statusCode == 200) {
-        final jsonData = jsonDecode(riwayatAbsen.body) as Map<String, dynamic>;
-
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
         if (jsonData.containsKey('data')) {
-          final dataList = jsonData['data'] as List<dynamic>;
+          final List<dynamic> rawList = jsonData['data'];
+
+          if (mounted) {
+            setState(() {
+              _dataList = rawList.map((e) => AbsensiModel.fromJson(e)).toList();
+              _isLoading = false;
+            });
+          }
+        } else {
           setState(() {
-            _rows = dataList.map((data) {
-              return DataRow(
-                cells: [
-                    DataCell(Text(data['tanggal_absen']?.toString() ?? '-')),
-                    DataCell(Text(data['jam_masuk']?.toString() ?? '-')),
-                    DataCell(Text(data['jam_pulang']?.toString() ?? 'Belum Pulang')),
-                    DataCell(Text(data['status_absen']?.toString() ?? '0')), 
-                    DataCell(Text(data['keterangan']?.toString() ?? '')),
-                    DataCell(Text(data['file']?.toString() ?? '')),
-                    DataCell(Text(data['id_absen']?.toString() ?? '0')),
-                ],);
-              }).toList();
+            _dataList = [];
             _isLoading = false;
           });
-        } else {
-          throw Exception('Gagal mengambil data');
         }
       } else {
-        throw Exception('Kesalahan HTTP: ${riwayatAbsen.statusCode}');
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
+      debugPrint("Error: $e");
     }
+  }
+
+  Future<void> _refreshData() async {
+    await _fetchData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Size size = MediaQuery.of(context).size;
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          const Header(),
+          Padding(
+            padding: EdgeInsets.only(top: size.height * 0.15),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+                boxShadow: [
+                  BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -3)),
+                ],
+              ),
+              child: RefreshIndicator(
+                onRefresh: _refreshData,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Riwayat Absen',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 50, 50, 50)),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _buildDropdown(selectedMonth, 'Pilih Bulan', (val) => setState(() => selectedMonth = val!), [
+                                  'Januari',
+                                  'Februari',
+                                  'Maret',
+                                  'April',
+                                  'Mei',
+                                  'Juni',
+                                  'Juli',
+                                  'Agustus',
+                                  'September',
+                                  'Oktober',
+                                  'November',
+                                  'Desember'
+                                ]),
+                                const SizedBox(width: 16),
+                                _buildDropdown(selectedYear, 'Pilih Tahun', (val) => setState(() => selectedYear = val!), _getYearList()),
+                                const SizedBox(width: 16),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 67, 60, 130)),
+                                  onPressed: _isLoading ? null : _fetchData,
+                                  child: const Text('Cari', style: TextStyle(color: Colors.white)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    _isLoading
+                        ? SliverToBoxAdapter(
+                            child: Skeletonizer(
+                              enabled: true,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: 5,
+                                itemBuilder: (context, index) => const Card(child: SizedBox(height: 80)),
+                              ),
+                            ),
+                          )
+                        : (_dataList.isEmpty)
+                            ? const SliverToBoxAdapter(
+                                child: Center(child: Padding(padding: EdgeInsets.all(32), child: Text("Tidak ada data absen"))),
+                              )
+                            : SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    return AbsensiCardItem(
+                                      data: _dataList[index],
+                                      url: url,
+                                      onDetailPressed: (id) => detailDataAbsen(id),
+                                    );
+                                  },
+                                  childCount: _dataList.length,
+                                ),
+                              ),
+                    const SliverPadding(padding: EdgeInsets.only(bottom: 30)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String value, String hint, Function(String?) onChanged, List<String> items) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: const Color(0xFFF0F4FD), borderRadius: BorderRadius.circular(5)),
+      child: DropdownButton<String>(
+        value: value,
+        hint: Text(hint),
+        underline: const SizedBox(),
+        onChanged: onChanged,
+        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+      ),
+    );
+  }
+
+  List<String> _getYearList() {
+    int currentYear = DateTime.now().year;
+    return List.generate(currentYear - 2018 + 1, (index) => (2018 + index).toString());
   }
 
 
@@ -261,7 +353,7 @@ Widget _buildTableRow(String label, String value) {
   );
 }
 
-void detailDataAbsen(idAbsen) async {
+  void detailDataAbsen(idAbsen) async {
   try {
     final response = await http.get(
       Uri.parse('$url/api/absen/riwayat-absen-detail/$idAbsen'),
@@ -378,7 +470,6 @@ void detailDataAbsen(idAbsen) async {
   }
 }
 
-// Method tambahan untuk tabel perhitungan dengan warna berbeda
 Widget _buildCalculationTable(String title, List<Map<String, String>> data) {
   return Container(
     margin: EdgeInsets.symmetric(vertical: 8.0),
@@ -457,469 +548,171 @@ Widget _buildCalculationRow(String label, String value) {
     ),
   );
 }
+ 
+}
 
-  Widget _buildCard(int index) {
-    final dataRow = _rows[index];
-    final cells = dataRow.cells.toList();
-    final tanggal = (cells[0].child as Text).data ??
-        DateTime.now().toString().substring(0, 10);
-    final jamMasuk = (cells[1].child as Text).data;
-    final jamPulang = (cells[2].child as Text).data;
-    final statusAbsen = (cells[3].child as Text).data;
-    final keterangan = (cells[4].child as Text).data;
-    final file = (cells[5].child as Text).data;
-    final idAbsen = (cells[6].child as Text).data;
-    String? jamPulangOk;
-    if (jamPulang == 'Belum Pulang' && tanggal != DateTime.now().toString().substring(0, 10) && SpUtil.getString('id_type') != '1') {
-        jamPulangOk = 'TAP';
-    } else {
-      jamPulangOk = (cells[2].child as Text).data;
-    }
+class AbsensiCardItem extends StatelessWidget {
+  final AbsensiModel data;
+  final String url;
+  final Function(String) onDetailPressed;
+
+  const AbsensiCardItem({super.key, required this.data, required this.url, required this.onDetailPressed});
+
+  @override
+  Widget build(BuildContext context) {
     IconData statusIcon;
     Color statusColor;
-    Text status;
-    switch (statusAbsen) {
+    String statusText;
+
+    switch (data.statusAbsen) {
       case '1':
         statusIcon = FontAwesomeIcons.handPointer;
         statusColor = const Color.fromARGB(255, 128, 249, 170);
-        status = const Text('Hadir',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ));
+        statusText = 'Hadir';
         break;
       case '2':
         statusIcon = Icons.car_repair;
         statusColor = const Color.fromARGB(255, 134, 255, 245);
-        status = const Text('Dinas Luar',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ));
+        statusText = 'Dinas Luar';
         break;
       case '3':
         statusIcon = Icons.assignment;
         statusColor = const Color.fromARGB(255, 255, 243, 131);
-        status = const Text('Izin',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ));
+        statusText = 'Izin';
         break;
       case '4':
         statusIcon = Icons.local_hospital;
         statusColor = const Color.fromARGB(255, 255, 72, 133);
-        status = const Text('Sakit',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ));
+        statusText = 'Sakit';
         break;
       case '6':
         statusIcon = Icons.copyright;
         statusColor = const Color.fromARGB(255, 229, 80, 255);
-        status = const Text('Cuti',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ));
+        statusText = 'Cuti';
         break;
       case '5':
         statusIcon = Icons.car_repair;
         statusColor = const Color.fromARGB(255, 255, 170, 43);
-        status = const Text('IDLK',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ));
+        statusText = 'IDLK';
         break;
       default:
         statusIcon = Icons.error;
         statusColor = Colors.white;
-        status = const Text('Tidak Diketahui',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ));
+        statusText = 'N/A';
     }
 
-    return Stack(children: [
-      Padding(
-        padding: const EdgeInsets.all(2.0),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white, // Beri warna latar belakang pada Container
-                      borderRadius: BorderRadius.circular(8), // Tambahkan sedikit border radius jika diinginkan
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.3), // Warna shadow dengan opasitas
-                          spreadRadius: 2, // Seberapa jauh shadow menyebar
-                          blurRadius: 5, // Tingkat keburaman shadow
-                          offset: Offset(0, 3), // Posisi shadow (x, y)
-                        ),
-                      ],
-                    ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    DateFormat('EEEE, dd/MM/yyyy', 'id')
-                        .format(DateTime.parse(tanggal)),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (statusAbsen != "1")
-                    Column(
-                      children: [
-                        SizedBox(height: 10,),
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                String safeUrl = '$url/$file';
-                                String encodedUrl = Uri.encodeComponent(safeUrl);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          LihatSpt(imageUrl: encodedUrl,
-                                              keterangan: keterangan!)),
-                                );
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: const Color.fromARGB(255, 236, 181, 255),
-                                  border: Border.all(
-                                    color: const Color.fromARGB(255, 187, 0, 255),
-                                  ),
-                                  borderRadius:
-                                      const BorderRadius.all(Radius.circular(5)),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.image,
-                                      color: Color.fromARGB(255, 187, 0, 255),
-                                    ),
-                                    Text(
-                                      ' FOTO ',
-                                      style: TextStyle(
-                                        color: Color.fromARGB(255, 187, 0, 255),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          ],
-                        )
-                      ],
-                    )
-                  else
-                    SizedBox(
-                      height: 50,
-                      child: Row(
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.arrow_circle_right_outlined,
-                                  color: Color.fromRGBO(67, 60, 130, 1),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  jamMasuk ?? '',
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.arrow_circle_left_outlined,
-                                color: Color.fromRGBO(201, 131, 222, 1),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                jamPulangOk!,
-                                style: TextStyle(
-                                  color:
-                                      jamPulang != 'TK' ? Colors.black : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+    String jamPulangDisplay = data.jamPulang;
+    bool isToday = data.tanggalAbsen == DateTime.now().toString().substring(0, 10);
+
+    if (data.jamPulang == 'Belum Pulang' && !isToday && SpUtil.getString('id_type') != '1') {
+      jamPulangDisplay = 'TAP';
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _formatDate(data.tanggalAbsen),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                if (data.statusAbsen == '1') ...[
                   const SizedBox(height: 8),
-                ],
-              ),
-              Spacer(),
-              GestureDetector(
-                      onTap: () {
-                        if(statusAbsen != '1' && statusAbsen != '5') {
-                          String safeUrl = '$url/$file';
-                          String encodedUrl = Uri.encodeComponent(safeUrl);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    LihatSpt(imageUrl: encodedUrl,
-                                        keterangan: keterangan!)),
-                          );
-                        } else {
-                          String idAbsen = (cells[6].child as Text).data ?? '';
-                          if (idAbsen.isNotEmpty && statusAbsen == '1') {
-                            detailDataAbsen(idAbsen);
-                          }
-                        }
-                      },
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Row(
                     children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black54,
-                        ),
-                        padding: const EdgeInsets.all(1),
-                        child: CircleAvatar(
-                          backgroundColor: statusColor,
-                          radius: 8,
-                          child: Column(
-                            children: [
-                              Icon(
-                                statusIcon,
-                                color: Colors.black,
-                                size: 14,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      status,
+                      _buildTimeBadge(Icons.login, data.jamMasuk, const Color.fromRGBO(67, 60, 130, 1)),
+                      const SizedBox(width: 12),
+                      _buildTimeBadge(Icons.logout, jamPulangDisplay, jamPulangDisplay == 'TAP' ? Colors.red : const Color.fromRGBO(201, 131, 222, 1)),
                     ],
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ), 
-      
-    ]);
-  }
-
-  
-
-  Future<void> _refreshData() async {
-    // if (SyncLimiter.canSync()) {
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() {
-        _fetchData();
-        _isLoading = false;
-      });
-    // } else {
-    //   Alert.alertwarning(context, "Refresh maksimal 3 kali dalam 1 menit!");
-    // }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Size size = MediaQuery.of(context).size;
-    return Scaffold(
-      body: Stack(
-        children: [
-          Header(),
-          // Scrollable content area taking most of the screen
-          Column(
-            children: [
-              // Spacer to push content down to create overlap
-              SizedBox(height: size.height * 0.15),
-      
-              // Content area
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(24),
-                        topRight: Radius.circular(24),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () {
+                      String safeUrl = '$url/${data.file}';
+                      String encodedUrl = Uri.encodeComponent(safeUrl);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => LihatSpt(imageUrl: encodedUrl, keterangan: data.keterangan)));
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 236, 181, 255),
+                        border: Border.all(color: const Color.fromARGB(255, 187, 0, 255)),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 10,
-                          offset: Offset(0, -3),
-                        ),
-                      ],
-                    ),
-                    child: Skeletonizer(
-                      enabled: _enabled,
-                      enableSwitchAnimation: true,
-                      effect:  ShimmerEffect(duration: Duration (seconds: 10 ),),
-                      ignoreContainers: true,
-                      child: Column(
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text(
-                              'Riwayat Absen',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color.fromARGB(255, 50, 50, 50),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFF0F4FD),
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(5)),
-                                  ),
-                                  child: DropdownButton<String>(
-                                    value: selectedMonth,
-                                    hint: const Text('Pilih Bulan'),
-                                    onChanged: (newValue) {
-                                      setState(() {
-                                        selectedMonth = newValue!;
-                                      });
-                                    },
-                                    items: [
-                                      'Januari',
-                                      'Februari',
-                                      'Maret',
-                                      'April',
-                                      'Mei',
-                                      'Juni',
-                                      'Juli',
-                                      'Agustus',
-                                      'September',
-                                      'Oktober',
-                                      'November',
-                                      'Desember',
-                                    ].map<DropdownMenuItem<String>>(
-                                        (String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFF0F4FD),
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(5)),
-                                  ),
-                                  child: DropdownButton<String>(
-                                    value: selectedYear,
-                                    hint: const Text('Pilih Tahun'),
-                                    onChanged: (newValue) {
-                                      setState(() {
-                                        selectedYear = newValue!;
-                                      });
-                                    },
-                                    items: _getYearItems(),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color.fromARGB(255, 67, 60, 130),
-                                  ),
-                                  onPressed: () async {
-                                    if (!_isLoading) {
-                                      setState(() {
-                                        _isLoading = true;
-                                      });
-                                      await Future.delayed(const Duration(seconds: 2));
-                                    _cariData(selectedMonth, selectedYear);
-                                    }
-                                  },
-                                  child: const Text('Cari',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                      )),
-                                ),
-                              ]),
-                          RefreshIndicator(
-                            onRefresh: _refreshData,
-                            child: _isLoading
-                                ? const Center(child: CircularProgressIndicator())
-                                : ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: _rows.length,
-                                    itemBuilder: (context, index) {
-
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                            left: 8, right: 8),
-                                        child: _buildCard(index),
-                                      );
-                                    },
-                                  ),
-                          ),
-                          SizedBox(height: 32),
+                          Icon(Icons.image, size: 14, color: Color.fromARGB(255, 187, 0, 255)),
+                          SizedBox(width: 4),
+                          Text('FOTO', style: TextStyle(color: Color.fromARGB(255, 187, 0, 255), fontSize: 11, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ],
+                  )
+                ]
+              ],
+            ),
           ),
+          GestureDetector(
+            onTap: () {
+              if (data.statusAbsen == '1') {
+                onDetailPressed(data.idAbsen);
+              }
+            },
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black12),
+                  ),
+                  child: Icon(statusIcon, size: 20, color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                Text(statusText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          )
         ],
       ),
     );
   }
 
-  List<DropdownMenuItem<String>> _getYearItems() {
-    int currentYear = DateTime.now().year;
-    List<String> years = List.generate(currentYear - 2018 + 1, (index) {
-      return (2018 + index).toString();
-    });
+  Widget _buildTimeBadge(IconData icon, String time, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(time, style: TextStyle(color: color == Colors.red ? Colors.red : Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
 
-    return years.map<DropdownMenuItem<String>>((String value) {
-      return DropdownMenuItem<String>(
-        value: value,
-        child: Text(value),
-      );
-    }).toList();
+  String _formatDate(String dateStr) {
+    try {
+      return DateFormat('EEEE, dd/MM/yyyy', 'id').format(DateTime.parse(dateStr));
+    } catch (e) {
+      return dateStr;
+    }
   }
 }

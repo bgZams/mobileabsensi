@@ -393,8 +393,7 @@ var hariIni = DateFormat('yyyy-MM-dd').format(DateTime.now());
             TextButton(
               child: const Text('Hapus'),
               onPressed: () {
-                print(item);
-                // _deleteItem(item);
+                _deleteItem(item);
                 Navigator.of(context).pop();
               },
             ),

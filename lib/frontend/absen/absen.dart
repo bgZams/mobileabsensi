@@ -9,7 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:mobileabsensi/auth/login.dart';
 import 'package:mobileabsensi/frontend/absen/pulang_cepat.dart';
 import 'package:mobileabsensi/frontend/dashboard.dart';
-import 'package:mobileabsensi/services/get_uuid.dart';
 import 'package:mobileabsensi/widget/widget_fitur.dart';
 import 'package:mobileabsensi/widget/widget_header.dart';
 import 'package:network_info_plus/network_info_plus.dart';
@@ -98,12 +97,11 @@ class _AbsenState extends State<Absen> {
     if (SpUtil.getString(_spKeyIdType) == "1") {
       cekDataShift();
     }
-
+    print(SpUtil.getBool(_spKeyIsCodeMasuk));
     if (SpUtil.getBool(_spKeyIsPulangCepat) == true ||
         SpUtil.getBool(_spKeyIsIDLK) == true) {
       _checkIdlkandPulangCepat();
     }
-
     _fetchNotif();
     refreshData(); // Mungkin redundan jika _fetchNotif sudah ada, tapi ikuti alur lama
   }

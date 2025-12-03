@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobileabsensi/services/alert.dart';
 import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:sp_util/sp_util.dart';
-import 'package:mobileabsensi/frontend/teknis/wifi_list_screen.dart'; // Import halaman baru
+import 'package:mobileabsensi/frontend/teknis/wifi_list_screen.dart';
 
 class WifiOpd extends StatefulWidget {
   const WifiOpd({super.key});
@@ -16,12 +16,34 @@ class WifiOpd extends StatefulWidget {
 class _WifiOpdState extends State<WifiOpd> {
   late final String url = SpUtil.getString("url") ?? '';
   bool isLoading = false;
+  
+  // List utama data OPD
   List<Map<String, dynamic>> opdData = [];
+  
+  // Controller untuk pencarian
+  final TextEditingController _searchController = TextEditingController();
+  String _searchKeyword = "";
 
   @override
   void initState() {
     super.initState();
     getOpdData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Getter untuk mendapatkan list yang sudah difilter berdasarkan pencarian
+  List<Map<String, dynamic>> get filteredOpdData {
+    if (_searchKeyword.isEmpty) {
+      return opdData;
+    }
+    return opdData.where((opd) {
+      return opd['name'].toLowerCase().contains(_searchKeyword.toLowerCase());
+    }).toList();
   }
 
   Future<void> getOpdData() async {
@@ -40,37 +62,53 @@ class _WifiOpdState extends State<WifiOpd> {
 
       if (dataOpd.statusCode == 200) {
         List<dynamic> opdJson = json.decode(dataOpd.body)['data'];
+        
         if (mounted) {
-          // Filter dan tambahkan jumlah WiFi ke setiap OPD
           List<Map<String, dynamic>> tempOpdList = [];
+          
           for (var opd in opdJson) {
             if (opd['id_server'] != '0') {
-              int wifiCount = await getWifiCount(opd['username']);
+              // Masukkan data awal, wifi_count kita set null dulu (sebagai tanda loading)
               tempOpdList.add({
                 'username': opd['username'],
                 'name': opd['nama_instansi'],
-                'wifi_count': wifiCount,
+                'wifi_count': null, // null artinya belum di-load
               });
             }
           }
 
+          // Tampilkan list OPD segera agar user tidak menunggu lama
           setState(() {
             opdData = tempOpdList;
+            isLoading = false; 
           });
+
+          // Jalankan proses pengambilan jumlah wifi di background
+          _fetchWifiCountsInBackground();
         }
       } else {
-        if (mounted) {
-          Alert.alerterror(context, "Gagal mendapatkan data OPD.");
-        }
+        if (mounted) Alert.alerterror(context, "Gagal mendapatkan data OPD.");
+        setState(() => isLoading = false);
       }
     } catch (e) {
-      if (mounted) {
-        Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi!");
-      }
+      if (mounted) Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi!");
+      setState(() => isLoading = false);
     }
-    setState(() {
-      isLoading = false;
-    });
+  }
+
+  // Fungsi baru untuk mengambil data wifi satu per satu dan mengupdate UI secara real-time
+  Future<void> _fetchWifiCountsInBackground() async {
+    for (int i = 0; i < opdData.length; i++) {
+      if (!mounted) return;
+      
+      String username = opdData[i]['username'];
+      int count = await getWifiCount(username);
+
+      // Update data spesifik di index tersebut
+      setState(() {
+        opdData[i]['wifi_count'] = count;
+      });
+    }
   }
 
   Future<int> getWifiCount(String username) async {
@@ -88,7 +126,7 @@ class _WifiOpdState extends State<WifiOpd> {
         return wifiDataJson.length;
       }
     } catch (e) {
-      // Tangani error jika gagal mendapatkan jumlah WiFi
+      // Error handling silent
     }
     return 0;
   }
@@ -103,7 +141,41 @@ class _WifiOpdState extends State<WifiOpd> {
           WidgetNavbar(title: 'List Wifi OPD'),
           Column(
             children: [
-              SizedBox(height: size.height * 0.15),
+              SizedBox(height: size.height * 0.13), // Sesuaikan tinggi agar navbar terlihat
+              
+              // --- Bagian Search Bar ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchKeyword = value;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      hintText: "Cari Instansi / OPD...",
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                ),
+              ),
+              // -------------------------
+
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -117,23 +189,54 @@ class _WifiOpdState extends State<WifiOpd> {
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 10,
-                        offset: Offset(0, -3),
+                        offset: const Offset(0, -3),
                       ),
                     ],
                   ),
                   child: isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(top: 16.0),
-                          itemCount: opdData.length,
+                      : filteredOpdData.isEmpty 
+                        ? const Center(child: Text("Data tidak ditemukan"))
+                        : ListView.builder(
+                          padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
+                          itemCount: filteredOpdData.length,
                           itemBuilder: (context, index) {
-                            var opd = opdData[index];
+                            var opd = filteredOpdData[index];
                             return Card(
                               margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               child: ListTile(
-                                leading: const Icon(Icons.apartment, color: Color.fromARGB(255, 17, 110, 160)),
-                                title: Text(opd['name']),
-                                subtitle: Text('Jumlah WiFi: ${opd['wifi_count']}'),
+                                contentPadding: const EdgeInsets.all(12),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color.fromARGB(255, 236, 246, 255),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.apartment, color: Color.fromARGB(255, 17, 110, 160)),
+                                ),
+                                title: Text(
+                                  opd['name'],
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 6.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.wifi, size: 16, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      // Logika tampilan jumlah Wifi
+                                      opd['wifi_count'] == null
+                                          ? const SizedBox(
+                                              width: 12, 
+                                              height: 12, 
+                                              child: CircularProgressIndicator(strokeWidth: 2)
+                                            ) // Loading kecil jika data belum ada
+                                          : Text('Jumlah WiFi: ${opd['wifi_count']}'),
+                                    ],
+                                  ),
+                                ),
                                 onTap: () {
                                   Navigator.push(
                                     context,

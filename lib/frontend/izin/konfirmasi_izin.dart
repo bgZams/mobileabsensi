@@ -191,7 +191,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
         }
         _fetchData();
       } else {
-        throw Exception('Gagal menyetujui izin');
+        throw Exception('Gagal menyetujui izin ');
       }
     } catch (error) {
       if (kDebugMode) {
@@ -217,7 +217,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     return Scaffold(
       body: Stack(
         children: [
-        WidgetNavbar(title: 'Riwayat Pengajuan Bawahan',),
+        WidgetNavbar(title: 'Riwayat Konfirmasi',),
           Column(
             children: [
               SizedBox(height: size.height * 0.15),

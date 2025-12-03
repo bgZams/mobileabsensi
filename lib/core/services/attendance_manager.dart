@@ -3,25 +3,43 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_util/sp_util.dart';
 
-/// Memeriksa dan memperbarui preferensi berdasarkan mode (shift/non-shift)
 void checkAndUpdatePreferences() {
-  if (SpUtil.getString('id_type') == "1") {
-    _checkAndUpdateShiftReset();
-  } else {
+  String idType = SpUtil.getString('id_type') ?? '';
+
+  if (idType == "0") {
     final now = DateTime.now();
     final todayString = DateFormat('yyyy-MM-dd').format(now);
+
     final savedDate = SpUtil.getString('saved_date');
-    
+
     if (savedDate != todayString) {
+      debugPrint("📅 Hari baru terdeteksi untuk Type 0. Melakukan Reset Data...");
+
       _fullResetAttendanceData();
+
       SpUtil.putString('saved_date', todayString);
     }
+  } else if (idType == "1") {
+    _checkAndUpdateShiftReset();
   }
 }
 
-/// Logika khusus untuk reset data pada mode shift
+void _fullResetAttendanceData() {
+  debugPrint("🧹 Menghapus data absensi harian...");
+  SpUtil.putBool('is_codeMasuk', false);
+  SpUtil.putBool('is_codePulang', false);
+  SpUtil.putBool('is_PulangCepat', false);
+  SpUtil.putBool('_isMasuk', false);
+  SpUtil.putBool('_isPulang', false);
+  SpUtil.putString('statusPC', 'pending');
+  SpUtil.putBool('is_IDLK', false);
+  SpUtil.putString('status_idlk', 'pending');
+  SpUtil.remove('masuk');
+  SpUtil.remove('pulang');
+}
+
 void _checkAndUpdateShiftReset() {
-  final shiftDataString = SpUtil.getString('shift_data'); 
+  final shiftDataString = SpUtil.getString('shift_data');
   if (shiftDataString == null || shiftDataString.isEmpty) return;
 
   try {
@@ -30,17 +48,19 @@ void _checkAndUpdateShiftReset() {
     if (decoded is List) {
       shiftList = decoded;
     } else if (decoded is Map) {
-      shiftList = [decoded];
+      shiftList = [
+        decoded
+      ];
     }
 
     final now = DateTime.now();
     final currentShiftId = SpUtil.getString('current_shift_id');
-     
+
     if (currentShiftId != null) {
       Map? currentShift = _findShiftById(shiftList, currentShiftId);
-      
+
       if (currentShift != null) {
-        final resetTime = _calculateResetTime(currentShift); 
+        final resetTime = _calculateResetTime(currentShift);
         if (now.isAfter(resetTime)) {
           _fullResetAttendanceData();
           SpUtil.remove('current_shift_id');
@@ -52,30 +72,26 @@ void _checkAndUpdateShiftReset() {
         }
       }
     }
-    
-    // Prioritas 2: Cari shift yang aktif saat ini
+
     Map? activeShift = _findActiveShift(shiftList, now);
-    
+
     if (activeShift != null) {
       final newShiftId = activeShift['id'].toString();
 
       if (currentShiftId != null && currentShiftId != newShiftId) {
         _fullResetAttendanceData();
       }
-      
+
       SpUtil.putString('current_shift_id', newShiftId);
       SpUtil.putString('saved_date', activeShift['tgl_awal']);
-      
     } else {
       debugPrint('❌ Tidak ada shift aktif saat ini');
     }
-    
   } catch (e) {
     debugPrint('❌ Error in _checkAndUpdateShiftReset: $e');
   }
 }
 
-/// Menghitung waktu reset berdasarkan data shift (tgl_akhir + jam_selesai + 8 jam)
 DateTime _calculateResetTime(Map shift) {
   final tglAkhir = DateTime.parse(shift['tgl_akhir']);
   final jamSelesaiParts = (shift['jam_selesai'] as String).split(':');
@@ -89,15 +105,13 @@ DateTime _calculateResetTime(Map shift) {
   return shiftEndTime.add(const Duration(hours: 8));
 }
 
-/// Mencari shift yang sedang aktif berdasarkan waktu sekarang
 Map? _findActiveShift(List shiftList, DateTime now) {
   for (final shift in shiftList) {
     final shiftStart = _parseDateTime(shift['tgl_awal'], shift['jam_mulai']);
     final shiftEnd = _parseDateTime(shift['tgl_akhir'], shift['jam_selesai']);
-    
-    // Toleransi: 5 jam sebelum jam_mulai
+
     final startTolerance = shiftStart.subtract(const Duration(hours: 5));
-    
+
     if (now.isAfter(startTolerance) && now.isBefore(shiftEnd.add(const Duration(minutes: 1)))) {
       return shift;
     }
@@ -105,7 +119,6 @@ Map? _findActiveShift(List shiftList, DateTime now) {
   return null;
 }
 
-/// Mencari shift berdasarkan ID
 Map? _findShiftById(List shiftList, String shiftId) {
   try {
     return shiftList.firstWhere((shift) => shift['id'].toString() == shiftId);
@@ -114,7 +127,6 @@ Map? _findShiftById(List shiftList, String shiftId) {
   }
 }
 
-/// Membantu parsing string tanggal dan jam menjadi objek DateTime
 DateTime _parseDateTime(String dateString, String timeString) {
   final date = DateTime.parse(dateString);
   final timeParts = timeString.split(':');
@@ -125,18 +137,4 @@ DateTime _parseDateTime(String dateString, String timeString) {
     int.parse(timeParts[0]),
     int.parse(timeParts[1]),
   );
-}
-
-/// Mereset semua data absensi ke kondisi awal
-void _fullResetAttendanceData() {
-  SpUtil.putBool('is_codeMasuk', false);
-  SpUtil.putBool('is_codePulang', false);
-  SpUtil.putBool('is_PulangCepat', false);
-  SpUtil.putBool('_isMasuk', false);
-  SpUtil.putBool('_isPulang', false);
-  SpUtil.putString('statusPC', 'pending');
-  SpUtil.putBool('is_IDLK', false);
-  SpUtil.putString('status_idlk', 'pending'); 
-  SpUtil.remove('masuk');
-  SpUtil.remove('pulang');
 }

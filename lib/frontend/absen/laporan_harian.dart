@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobileabsensi/core.dart';
-import 'package:mobileabsensi/screenshoot.dart';
 import 'package:mobileabsensi/widget/widget_navbar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:convert';

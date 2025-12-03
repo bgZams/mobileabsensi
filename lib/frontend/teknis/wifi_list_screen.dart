@@ -69,9 +69,11 @@ class _WifiListScreenState extends State<WifiListScreen> {
   }
 
   Future<void> searchData() async {
-    setState(() {
-      isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        isLoading = true;
+      });
+    }
 
     try {
       http.Response dataWifi = await http.get(
@@ -80,7 +82,8 @@ class _WifiListScreenState extends State<WifiListScreen> {
           'Content-type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
+     
       if (dataWifi.statusCode == 200) {
         List<dynamic> wifiDataJson = json.decode(dataWifi.body)['data'];
         if (mounted) {
@@ -95,12 +98,15 @@ class _WifiListScreenState extends State<WifiListScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Alert.alerterror(context, "Terjadi kesalahan koneksi, Coba lagi!");
+        Alert.alerterror(context, "Gagal mengambil data. Periksa koneksi internet.");
+      }
+    }finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
       }
     }
-    setState(() {
-      isLoading = false;
-    });
   }
 
   Future<void> simpanWifi() async {

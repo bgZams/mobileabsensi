@@ -10,6 +10,31 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 
+
+class StorageKeys {
+  static const String isLogin = 'is_login';
+  static const String deviceId = 'device_id';
+  static const String systemVersion = 'system_version';
+  static const String idServer = 'id_server';
+  static const String idUser = 'id_user';
+  static const String idType = 'id_type';
+  static const String idInstansi = 'id_instansi';
+  static const String idGroups = 'id_groups';
+  static const String idUserPimpinan = 'id_user_pimpinan';
+  static const String idAdminInstansi = 'id_admin_instansi';
+  static const String idPimpinan = 'id_pimpinan';
+  static const String username = 'username';
+  static const String usernameAdmin = 'username_admin';
+  static const String namaLengkap = 'nama_lengkap';
+  static const String namaInstansi = 'nama_instansi';
+  static const String namaAtasan = 'nama_atasan';
+  static const String nipAtasan = 'nip_atasan';
+  static const String jabatanAtasan = 'jabatan_atasan';
+  static const String url = 'url';
+  static const String wifiData = 'wifi_data';
+  static const String shiftData = 'shift_data';
+}
+
 class Profile extends StatefulWidget {
   const Profile({super.key});
 
@@ -21,22 +46,13 @@ class _ProfileState extends State<Profile> {
   bool _isLoading = false;
   var idUser = SpUtil.getString("id_user");
   DateTime? lastFetchTime;
-  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-  bool _isDeviceInfoReady = false;
-  bool _deviceInfoError = false;
   Timer? _timer;
-  bool get isDeviceInfoReady => _isDeviceInfoReady;
-  bool get deviceInfoError => _deviceInfoError;
   
 
 
   @override
   void initState() {
     super.initState();
-    final deviceId = SpUtil.getString('device_id');
-    if (deviceId == null || deviceId.isEmpty) {
-        _initializeApp();
-    }
   }
 
   void _syncData() async {
@@ -65,129 +81,15 @@ class _ProfileState extends State<Profile> {
   }
 
 
-  Map<String, dynamic> _deviceData = <String, dynamic>{};
  
 
-  // Initialize app with device info
-  Future<void> _initializeApp() async {
-    // Initialize shared preferences first
-    await SpUtil.getInstance();
-    
-    // Then get device info
-    await _initializeDeviceInfo();
-  }
-
-  // Initialize device info with retry mechanism
-  Future<void> _initializeDeviceInfo() async {
-    try {
-      await initPlatformState();
-      if (mounted) {
-        setState(() {
-          _isDeviceInfoReady = true;
-          _deviceInfoError = false;
-        });
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print("Failed to initialize device info: $e");
-      }
-      
-      if (mounted) {
-        setState(() {
-          _deviceInfoError = true;
-        });
-      }
-      
-      // Retry after 3 seconds if failed
-      Timer(const Duration(seconds: 3), () {
-        if (mounted && !_isDeviceInfoReady) {
-          _initializeDeviceInfo();
-        }
-      });
-    }
-  }
-
+   
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
 
-  Future<void> initPlatformState() async {
-    var deviceData = <String, dynamic>{};
-
-    try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        // Get Android device info
-        final androidInfo = await deviceInfoPlugin.androidInfo;
-        deviceData = _readAndroidBuildData(androidInfo);
-
-        // Store device info with proper validation
-        String deviceId = deviceData['id']?.toString() ?? '';
-        if (deviceId.isEmpty) {
-          deviceId = androidInfo.id; // Use androidId as fallback
-        }
-        
-        String systemVersion = deviceData['version.release']?.toString() ?? '';
-        if (systemVersion.isEmpty) {
-          systemVersion = androidInfo.version.release ?? 'Unknown';
-        }
-
-        await SpUtil.putString('device_id', deviceId);
-        await SpUtil.putString('system_version', systemVersion);
-
-        if (kDebugMode) {
-          // print("Device ID stored: $deviceId");
-          // print("System version stored: $systemVersion");
-        }
-
-        // Update internal device data
-        setState(() {
-          _deviceData = deviceData;
-        });
-      } else {
-        // For non-Android platforms, use fallback values
-        await _setFallbackDeviceInfo();
-      }
-
-    } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print("Platform exception: $e");
-      }
-      await _setFallbackDeviceInfo();
-    } catch (e) {
-      if (kDebugMode) {
-        print("General exception in initPlatformState: $e");
-      }
-      await _setFallbackDeviceInfo();
-    }
-  }
-
-  // Set fallback device information
-  Future<void> _setFallbackDeviceInfo() async {
-    final fallbackId = 'fallback_device_${DateTime.now().millisecondsSinceEpoch}';
-    await SpUtil.putString('device_id', fallbackId);
-    await SpUtil.putString('system_version', 'Unknown');
-    
-    setState(() {
-      _deviceData = {
-        'Error': 'Using fallback device info',
-        'id': fallbackId,
-        'version.release': 'Unknown'
-      };
-    });
-  }
-
-  Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
-    return {
-      'version.release': build.version.release,
-      'id': build.id,
-      'androidId': build.id,
-      'fingerprint': build.fingerprint,
-      'model': build.model,
-      'manufacturer': build.manufacturer,
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -415,23 +317,7 @@ class _ProfileState extends State<Profile> {
         if (responseData['data'] != null && responseData['data'].isNotEmpty) {
           var user = responseData['data'][0];
           
-          SpUtil.putString('id_server', user['id_server']?.toString() ?? '');
-          SpUtil.putString('id_user', user['id_user']?.toString() ?? '');
-          SpUtil.putString('id_type', user['id_type']?.toString() ?? '');
-          SpUtil.putString('id_instansi', user['id_instansi']?.toString() ?? '');
-          SpUtil.putString('id_groups', user['id_groups']?.toString() ?? '');
-          SpUtil.putString('id_user_pimpinan', user['id_user_parent']?.toString() ?? '');
-          SpUtil.putString('id_admin_instansi', user['id_admin_instansi']?.toString() ?? '');
-          SpUtil.putString('id_pimpinan', user['id_pimpinan']?.toString() ?? '');
-          SpUtil.putString('username', (user['username'] as String?)?.replaceAll('"', '') ?? '');
-          SpUtil.putString('username_admin', (user['username_admin'] as String?)?.replaceAll('"', '') ?? '');
-          SpUtil.putString('nama_lengkap', (user['nama_lengkap'] as String?)?.replaceAll('"', '') ?? '');
-          SpUtil.putString('nama_instansi', user['nama_instansi'] ?? '');
-          SpUtil.putString('nama_atasan', user['nama_atasan'] ?? '');
-          SpUtil.putString('nip_atasan', user['nip_atasan'] ?? '');
-          SpUtil.putString('jabatan_atasan', user['jabatan_atasan'] ?? '');
-          SpUtil.putString('url', user['url'] ?? '');
-          initPlatformState();
+          _storeUserData(user);
 
           lastFetchTime = DateTime.now();
 
@@ -475,5 +361,24 @@ class _ProfileState extends State<Profile> {
         );
       }
     }
+  }
+
+  void _storeUserData(Map<String, dynamic> userData) {
+    SpUtil.putString(StorageKeys.idServer, userData['id_server']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idUser, userData['id_user']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idType, userData['id_type']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idInstansi, userData['id_instansi']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idGroups, userData['id_groups']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idUserPimpinan, userData['id_user_parent']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idAdminInstansi, userData['id_admin_instansi']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.idPimpinan, userData['id_pimpinan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.username, (userData['username'] ?? '').replaceAll('"', ''));
+    SpUtil.putString(StorageKeys.usernameAdmin, (userData['username_admin'] ?? '').replaceAll('"', ''));
+    SpUtil.putString(StorageKeys.namaLengkap, (userData['nama_lengkap'] ?? '').replaceAll('"', ''));
+    SpUtil.putString(StorageKeys.namaInstansi, userData['nama_instansi']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.namaAtasan, userData['nama_atasan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.nipAtasan, userData['nip_atasan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.jabatanAtasan, userData['jabatan_atasan']?.toString() ?? '');
+    SpUtil.putString(StorageKeys.url, '${userData['url']?.toString() ?? ''}/api_android_v2');
   }
 }

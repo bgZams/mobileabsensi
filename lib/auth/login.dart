@@ -207,8 +207,6 @@ class LoginState extends State<Login> {
   /// Fetches and stores platform-specific device information.
   Future<void> _initializeDeviceInfo() async {
     try {
-      // 1. Ambil & Simpan Device ID (Menggunakan kode baru Anda)
-      // Pastikan class DeviceUtil sudah di-import
       String? id = await DeviceUtil.getAndroidId();
       
       if (id != null) {
@@ -330,11 +328,11 @@ class LoginState extends State<Login> {
     final simpel = await _apiService.login(username, password, deviceId);
 
     if (mounted && simpel["success"] == 1) {
-      if(simpel["id_admin_instansi"] == '4393'){
+      // if(simpel["id_admin_instansi"] == '4393'){
         await _handleLoginSuccess(simpel, username, deviceId);
-      } else {
-        Alert.alertwarning(context, 'Maaf, Anda bukan admin instansi yang diizinkan.');
-      }
+      // } else {
+      //   Alert.alertwarning(context, 'Maaf, Anda bukan admin instansi yang diizinkan.');
+      // }
     } else if (mounted) {
       Alert.alertwarning(context, simpel["message"] ?? 'Username atau password salah.');
     }
@@ -585,7 +583,7 @@ class LoginState extends State<Login> {
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.w100, fontSize: 11),
                       ),
                     ),
-                    subtitle: const Text(''), // Subtitle kept as empty string as in original
+                    subtitle: const Text(''),
                   ),
                 ],
               ),

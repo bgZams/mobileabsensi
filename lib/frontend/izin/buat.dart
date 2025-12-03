@@ -40,6 +40,7 @@ class _BuatIzinState extends State<BuatIzin> {
   TextEditingController durasi = TextEditingController();
   TextEditingController keterangan = TextEditingController();
   TextEditingController tanggal = TextEditingController();
+ 
 
   void _startLoading() async {
     setState(() {
@@ -74,6 +75,8 @@ class _BuatIzinState extends State<BuatIzin> {
     tanggal.text = "";
     super.initState();
     _requestPermissions();
+    print(SpUtil.getBool('is_codeMasuk'));
+
   }
 
   XFile? image;
@@ -144,14 +147,24 @@ class _BuatIzinState extends State<BuatIzin> {
     );
   }
 
-  final List<String> _jenisIzin = <String>[
+List<String> getJenisIzin() {
+  bool allowIDLK = SpUtil.getBool('is_codeMasuk') == true;
+
+  final List<String> base = [
     "Dinas Luar",
     "Izin",
     "Sakit",
     "Cuti",
-    "IDLK",
     "Tugas Belajar",
   ];
+
+  if (allowIDLK) {
+    base.add("IDLK");
+  }
+
+  return base;
+}
+
 
   final List<String> _jenisCuti = <String>[
     "Cuti Tahunan",
@@ -299,24 +312,39 @@ class _BuatIzinState extends State<BuatIzin> {
 
                         // === 2. DROPDOWN JENIS IZIN ===
                         DropdownButtonFormField<String>(
-                          value: _valJenisIzin,
-                          decoration: cleanDecoration(label: 'Jenis Izin', icon: Icons.assignment_ind_outlined),
-                          hint: const Text("Pilih jenis izin"),
-                          items: _jenisIzin.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (String? value) {
-                            setState(() {
-                              _valJenisIzin = value;
-                              // Reset logic jika ganti jenis
-                              if (value != 'Cuti') valueJenisCuti = null;
-                            });
-                          },
-                          validator: (value) => (value == null || value.isEmpty) ? 'Wajib dipilih' : null,
-                        ),
+                      value: _valJenisIzin,
+                      decoration: cleanDecoration(
+                        label: 'Jenis Izin',
+                        icon: Icons.assignment_ind_outlined,
+                      ),
+                      hint: const Text("Pilih jenis izin"),
+                      items: getJenisIzin().map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? value) {
+  setState(() {
+    _valJenisIzin = value;
+    valueJenisCuti = null;
+
+    if (value == 'IDLK') {
+      final now = DateTime.now();
+      final today = now.toString().split(' ')[0];
+
+      tanggal.text = '$today - $today';
+      durasi.text = '1 Hari';
+    } else {
+      tanggal.clear();
+      durasi.clear();
+    }
+  });
+},
+
+                      validator: (value) => (value == null || value.isEmpty) ? 'Wajib dipilih' : null,
+                    ),
+
 
                         // === LOGIKA TAMPILAN TAMBAHAN (CUTI / DINAS) ===
                         if (_valJenisIzin == 'Dinas Luar')
@@ -359,43 +387,49 @@ class _BuatIzinState extends State<BuatIzin> {
 
                         // === 3. TANGGAL (DATE RANGE) ===
                         TextFormField(
-                          controller: tanggal,
-                          readOnly: true,
-                          style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
-                          decoration: cleanDecoration(
-                            label: (_valJenisIzin == 'IDLK') ? "Tanggal IDLK" : "Pilih Tanggal Mulai - Selesai",
-                            icon: Icons.calendar_month_outlined,
-                          ),
-                          validator: (val) => (val == null || val.isEmpty) ? 'Tanggal wajib diisi' : null,
-                          onTap: () async {
-                            DateTimeRange? pickedDate = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime(2100),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: ColorScheme.light(primary: primaryBlue, onPrimary: Colors.white),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
+  controller: tanggal,
+  readOnly: true,
+  enabled: _valJenisIzin != 'IDLK',
+  style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+  decoration: cleanDecoration(
+    label: (_valJenisIzin == 'IDLK') ? "Tanggal IDLK" : "Pilih Tanggal Mulai - Selesai",
+    icon: Icons.calendar_month_outlined,
+  ),
+  validator: (val) => (val == null || val.isEmpty) ? 'Tanggal wajib diisi' : null,
+  onTap: () async {
+    if (_valJenisIzin == 'IDLK') return;
 
-                            if (pickedDate != null) {
-                              setState(() {
-                                // Format tanggal
-                                String start = pickedDate.start.toLocal().toString().split(' ')[0];
-                                String end = pickedDate.end.toLocal().toString().split(' ')[0];
-                                tanggal.text = '$start - $end';
+    DateTimeRange? pickedDate = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: primaryBlue,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
 
-                                // Hitung durasi
-                                int days = (pickedDate.end.difference(pickedDate.start).inDays + 1);
-                                durasi.text = '$days Hari';
-                              });
-                            }
-                          },
-                        ),
+    if (pickedDate != null) {
+      setState(() {
+        final start = pickedDate.start.toString().split(' ')[0];
+        final end = pickedDate.end.toString().split(' ')[0];
+
+        tanggal.text = '$start - $end';
+
+        final days = pickedDate.end.difference(pickedDate.start).inDays + 1;
+        durasi.text = '$days Hari';
+      });
+    }
+  },
+),
+
 
                         // === 4. DURASI (Hanya tampil jika BUKAN IDLK) ===
                         if (_valJenisIzin != 'IDLK') ...[
