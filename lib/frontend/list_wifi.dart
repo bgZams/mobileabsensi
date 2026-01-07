@@ -213,7 +213,7 @@ class _ListWifiState extends State<ListWifi> {
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
-                                            wifi['SSID'] ?? '',
+                                            wifi['ssid'] ?? '',
                                             style: const TextStyle(fontSize: 16),
                                           ),
                                         ),

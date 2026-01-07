@@ -132,7 +132,6 @@ class _WifiListScreenState extends State<WifiListScreen> {
       );
 
       var data = json.decode(dataWifi.body);
-print(data);
       if (dataWifi.statusCode == 200) {
         if (mounted) {
           Alert.alertsuccess(context, data['message']);
@@ -207,13 +206,13 @@ print(data);
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
       child: ListTile(
         title: Text(
-          wifi['SSID'] ?? 'Nama WiFi tidak diketahui',
+          wifi['ssid'] ?? 'Nama WiFi tidak diketahui',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('BSSID: ${wifi['BSSID']}'),
+            Text('BSSID: ${wifi['bssid']}'),
             Text('IP: ${wifi['ip_address']}'),
           ],
         ),

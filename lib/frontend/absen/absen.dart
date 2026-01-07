@@ -97,7 +97,6 @@ class _AbsenState extends State<Absen> {
     if (SpUtil.getString(_spKeyIdType) == "1") {
       cekDataShift();
     }
-    print(SpUtil.getBool(_spKeyIsCodeMasuk));
     if (SpUtil.getBool(_spKeyIsPulangCepat) == true ||
         SpUtil.getBool(_spKeyIsIDLK) == true) {
       _checkIdlkandPulangCepat();
@@ -370,7 +369,7 @@ class _AbsenState extends State<Absen> {
     try {
       List<dynamic> listWifi = jsonDecode(listWifiString);
       return listWifi.any(
-          (wifi) => wifi['SSID'] == connectedSSID && wifi['BSSID'] == currentBSSID);
+          (wifi) => wifi['ssid'] == connectedSSID && wifi['bssid'] == currentBSSID);
     } catch (e) {
       developer.log("Error parsing wifi data: $e");
       return false;
@@ -580,8 +579,8 @@ class _AbsenState extends State<Absen> {
       'nama_lengkap': nama,
       'username': SpUtil.getString(_spKeyUsername),
       'instansi': SpUtil.getString(_spKeyIdInstansi),
-      'SSID': connectedSSID.replaceAll('"', ''),
-      'BSSID': connectedBSSID,
+      'ssid': connectedSSID.replaceAll('"', ''),
+      'bssid': connectedBSSID,
       'versi': _versiApp,
       'deviceId': SpUtil.getString(StorageKeys.deviceId),
       'id_type': SpUtil.getString(_spKeyIdType),
@@ -615,6 +614,8 @@ class _AbsenState extends State<Absen> {
         SpUtil.putString(_spKeyJamMasuk, jamMasuk!);
         SpUtil.putBool(_spKeyIsCodeMasuk, true);
 
+        // String pesanLengkap = "$message\n\nJangan lupa mematikan WIFI setelah berhasil absen.";
+        
         Alert.alertsuccess(context, message);
         _isCodeMasukNotifier.value = true;
       } else {
@@ -638,8 +639,8 @@ class _AbsenState extends State<Absen> {
       'versi': _versiApp,
       'deviceId': SpUtil.getString(StorageKeys.deviceId),
       'id_type': SpUtil.getString(_spKeyIdType),
-      'SSID_pulang': isIDLK ? 'IDLK' : wifiName?.replaceAll('"', ''),
-      'BSSID_pulang': isIDLK ? 'IDLK' : wifiBSSID,
+      'ssid_pulang': isIDLK ? 'IDLK' : wifiName?.replaceAll('"', ''),
+      'bssid_pulang': isIDLK ? 'IDLK' : wifiBSSID,
     };
 
     http.Response absenPulang = await http.put(

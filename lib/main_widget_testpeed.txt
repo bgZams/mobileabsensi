@@ -1,0 +1,680 @@
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+import 'package:mobileabsensi/auth/login.dart';
+import 'package:mobileabsensi/auth/login_first.dart';
+import 'package:mobileabsensi/firebase_options.dart';
+import 'package:mobileabsensi/frontend/absen/absen.dart';
+import 'package:mobileabsensi/frontend/admin/absen.dart';
+import 'package:mobileabsensi/frontend/admin/detail_pegawai.dart';
+import 'package:mobileabsensi/frontend/admin/home.dart';
+import 'package:mobileabsensi/frontend/admin/lhk.dart';
+import 'package:mobileabsensi/frontend/dashboard.dart';
+import 'package:mobileabsensi/frontend/izin/detail_konfirmasi_atasan.dart';
+import 'package:mobileabsensi/frontend/izin/izin.dart';
+import 'package:mobileabsensi/frontend/absen/laporan_harian.dart';
+import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
+import 'package:mobileabsensi/frontend/apel.dart';
+import 'package:mobileabsensi/frontend/izin/buat.dart';
+import 'package:mobileabsensi/frontend/izin/konfirmasi_izin.dart';
+import 'package:mobileabsensi/frontend/laporan_harian/buat.dart';
+import 'package:mobileabsensi/frontend/laporan_harian/laporan.dart';
+import 'package:mobileabsensi/frontend/laporan_harian/riwayat_pengajuan.dart';
+import 'package:mobileabsensi/frontend/laporan_harian/status.dart';
+import 'package:mobileabsensi/frontend/pengumuman.dart';
+import 'package:mobileabsensi/frontend/profile.dart';
+import 'package:mobileabsensi/frontend/senam.dart';
+import 'package:mobileabsensi/notifikasi/notification_controller.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
+import 'package:mobileabsensi/singgah.dart';
+import 'package:sp_util/sp_util.dart';
+import 'package:flutter/services.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+
+// ---
+// Deklarasi Global
+// ---
+
+GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+String? globalIdAtasan;
+Map<String, dynamic> globalUpdateData = {};
+String? idUser;
+String? keyNotif;
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+// ---
+// Fungsi Kontrol Screen Recording (Menggunakan Platform Channel)
+// ---
+
+const MethodChannel _screenRecordingChannel = MethodChannel('com.mobileabsensi/secure_screen');
+
+Future<void> enableSecureScreen() async {
+  try {
+    if (Platform.isAndroid) {
+      await _screenRecordingChannel.invokeMethod('setSecureScreen', {'enable': true});
+      debugPrint('Screen recording prevention ENABLED.');
+    }
+  } on PlatformException catch (e) {
+    debugPrint("Failed to enable secure screen: '${e.message}'.");
+  }
+}
+
+Future<void> disableSecureScreen() async {
+  try {
+    if (Platform.isAndroid) {
+      await _screenRecordingChannel.invokeMethod('setSecureScreen', {'enable': false});
+      debugPrint('Screen recording prevention DISABLED.');
+    }
+  } on PlatformException catch (e) {
+    debugPrint("Failed to disable secure screen: '${e.message}'.");
+  }
+}
+
+// ---
+// Fungsi Main (Entry Point Aplikasi)
+// ---
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('id_ID', null);
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('app_icon');
+
+  const InitializationSettings initializationSettings =
+      InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  await NotificationController.initializeLocalNotifications();
+  await NotificationController.initializeIsolateReceivePort();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Error initializing Firebase: $e');
+  }
+
+  await SpUtil.getInstance();
+  idUser = SpUtil.getString('id_user');
+  _checkAndUpdatePreferences();
+  await enableSecureScreen();
+
+  NotificationController.selectNotificationStream.stream.listen((String? payload) {
+    if (payload != null) {
+      debugPrint('Payload diterima di main (selectNotificationStream): $payload');
+      _handleNotificationPayloadInMain(payload);
+    }
+  });
+
+  if (Platform.isAndroid) {
+    final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+    try {
+      final AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
+      if (androidInfo.version.sdkInt >= 23 && androidInfo.version.sdkInt <= 28) {
+        HttpOverrides.global = MyHttpOverrides();
+        if (kDebugMode) {
+          print("HttpOverrides applied for Android API 23.");
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error getting device info: $e");
+      }
+    }
+  }
+
+  runApp(const MyApp());
+}
+
+// ---
+// Fungsi Pembantu
+// ---
+
+void _handleNotificationPayloadInMain(String payload) {
+  if (navigatorKey.currentState == null) {
+    debugPrint('Navigator state is null, cannot navigate from notification payload: $payload');
+    return;
+  }
+
+  if (payload.startsWith('izin_')) {
+    final izinId = payload.substring(5);
+    if (izinId.isNotEmpty) {
+      navigatorKey.currentState!.pushNamed('/detail-konfirmasi-izin', arguments: {'id_izin': izinId});
+    }
+  } else if (payload.startsWith('laporan_')) {
+    final laporanId = payload.substring(8);
+    if (laporanId.isNotEmpty) {
+      navigatorKey.currentState!.pushNamed('/status-laporan', arguments: {'id_laporan': laporanId});
+    }
+  }
+}
+
+void _checkAndUpdatePreferences() {
+  DateTime now = DateTime.now();
+  String todayString = DateFormat('yyyy-MM-dd').format(now);
+  String? savedDate = SpUtil.getString('saved_date');
+  if (savedDate != todayString) {
+    SpUtil.remove('masuk');
+    SpUtil.remove('is_codeMasuk');
+    SpUtil.remove('pulang');
+    SpUtil.remove('is_codePulang');
+    SpUtil.remove('saved_date');
+    SpUtil.putBool('is_codeMasuk', false);
+    SpUtil.putBool('is_codePulang', false);
+    SpUtil.putBool('is_PulangCepat', false);
+    SpUtil.putBool('_isMasuk', false);
+    SpUtil.putBool('_isPulang', false);
+    SpUtil.putString('saved_date', todayString);
+  }
+}
+
+Future<void> readData() async {
+  final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
+  databaseReference.child('izin').onValue.listen((event) {
+    processSnapshot(event.snapshot, 'izin');
+  }, onError: (error) {
+    debugPrint('Terjadi kesalahan pada child izin: $error');
+  });
+
+  databaseReference.child('laporan').onValue.listen((event) {
+    processSnapshot(event.snapshot, 'laporan');
+  }, onError: (error) {
+    debugPrint('Terjadi kesalahan pada child laporan: $error');
+  });
+}
+
+void processSnapshot(DataSnapshot? snapshot, String notificationType) async {
+  if (snapshot != null && snapshot.value != null) {
+    final Map<dynamic, dynamic>? data = snapshot.value as Map<dynamic, dynamic>?;
+    if (data != null && data.isNotEmpty) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      final String processedKey = 'processed_${notificationType}_ids';
+      final Set<String> processedIds = Set<String>.from(
+          SpUtil.getStringList(processedKey) ?? []
+      );
+
+      final validEntries = data.entries.where((entry) {
+        if (processedIds.contains(entry.key)) {
+          return false;
+        }
+
+        final documentData = entry.value as Map<dynamic, dynamic>?;
+        final timestamp = documentData?['timestamp'] as int?;
+        final idStatus = documentData?['id_status'];
+
+        return timestamp != null &&
+               timestamp > (now - 300000) &&
+               timestamp <= now &&
+               idStatus == 0;
+      }).toList();
+
+      if (validEntries.isEmpty) {
+        debugPrint('Tidak ada data $notificationType baru yang perlu diproses');
+        return;
+      }
+
+      validEntries.sort((a, b) {
+        final aTimestamp = (a.value as Map<dynamic, dynamic>)['timestamp'] as int;
+        final bTimestamp = (b.value as Map<dynamic, dynamic>)['timestamp'] as int;
+        return bTimestamp.compareTo(aTimestamp);
+      });
+
+      final latestEntry = validEntries.first;
+      final documentData = latestEntry.value as Map<dynamic, dynamic>;
+      final entryKey = latestEntry.key.toString();
+
+      final idAtasan = documentData['id_atasan'];
+      final idStatus = documentData['id_status'];
+      final jenisIzin = documentData['jenis_izin'];
+
+      final user = SpUtil.getString('id_user');
+      final userId = int.tryParse(user ?? '');
+
+      final parsedIdAtasan = int.tryParse(idAtasan.toString());
+
+      if (userId == parsedIdAtasan) {
+        try {
+          final DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
+          switch (notificationType) {
+            case 'izin':
+              await NotificationController.createNewNotificationIzin(
+                1,
+                idAtasan.toString(),
+                jenisIzin,
+                idStatus,
+                notificationType,
+                payloadId: entryKey,
+              );
+              await databaseReference.child('izin').child(entryKey).update({'id_status': 2});
+              break;
+            case 'laporan':
+              await NotificationController.createNewNotificationLaporan(
+                2,
+                idAtasan.toString(),
+                null,
+                idStatus,
+                notificationType,
+                payloadId: entryKey,
+              );
+              await databaseReference.child('laporan').child(entryKey).update({'id_status': 2});
+              break;
+          }
+
+          processedIds.add(entryKey);
+          await SpUtil.putStringList(processedKey, processedIds.toList());
+
+          debugPrint('Berhasil memproses notifikasi $notificationType dengan ID: $entryKey');
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error sending $notificationType notification: $e');
+          }
+        }
+      } else {
+        debugPrint('ID atasan tidak cocok dengan user saat ini untuk $notificationType: $entryKey');
+      }
+    } else {
+      debugPrint('Data $notificationType tidak ditemukan');
+    }
+  }
+}
+
+// ---
+// Kelas MyApp (Widget Utama Aplikasi)
+// ---
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  ConnectivityResult _connectivityResult = ConnectivityResult.none;
+  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  bool _isPopupVisible = false;
+  String _downloadSpeed = 'Menghitung...';
+  Color _speedIndicatorColor = Colors.grey;
+  // Initialize with a default position (e.g., center right)
+  Offset _fabPosition = Offset.zero; // Will be set in initState
+
+  @override
+  void initState() {
+    super.initState();
+    globalNavigatorKey = navigatorKey;
+
+    NotificationController.selectNotificationStream.stream.listen((String? payload) {
+      if (payload != null && navigatorKey.currentState != null) {
+        _handleNotificationPayloadInMain(payload);
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      enableSecureScreen();
+      // Set initial position after layout is built to get screen size
+      _setInitialFabPosition();
+    });
+
+    _initConnectivity();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((event) {
+      _updateConnectionStatus(event);
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    super.dispose();
+  }
+
+  void _setInitialFabPosition() {
+    // Ensure context is available
+    if (mounted) {
+      final screenHeight = MediaQuery.of(context).size.height;
+      final screenWidth = MediaQuery.of(context).size.width;
+      final fabSize = 56.0; // Standard FAB size
+
+      // Calculate center right position
+      final initialTop = (screenHeight / 2) - (fabSize / 2);
+      final initialRight = 16.0; // Right padding
+
+      // Convert right/top to left/top offset for Draggable
+      setState(() {
+        _fabPosition = Offset(screenWidth - fabSize - initialRight, initialTop);
+      });
+    }
+  }
+
+  Future<void> _initConnectivity() async {
+    late ConnectivityResult result;
+    try {
+      result = await Connectivity().checkConnectivity();
+    } on PlatformException catch (e) {
+      debugPrint('Couldn\'t check connectivity status: $e');
+      return;
+    }
+
+    if (!mounted) {
+      return Future.value(null);
+    }
+    _updateConnectionStatus(result);
+  }
+
+  void _updateConnectionStatus(ConnectivityResult result) {
+    setState(() {
+      _connectivityResult = result;
+      _downloadSpeed = 'Menghitung...';
+      _speedIndicatorColor = Colors.grey;
+    });
+    if (_connectivityResult != ConnectivityResult.none) {
+      // Trigger speed test immediately when connectivity changes
+      _testDownloadSpeed();
+    }
+  }
+
+  Future<void> _testDownloadSpeed() async {
+    const fileSize = 500 * 1024; // 500 KB file size for test
+    const testUrl = 'https://speed.cloudflare.com/__down?bytes=$fileSize'; // Cloudflare test file URL
+
+    try {
+      final stopwatch = Stopwatch()..start();
+      final response = await http.get(Uri.parse(testUrl));
+      stopwatch.stop();
+
+      if (response.statusCode == 200) {
+        final bytesReceived = response.bodyBytes.length;
+        if (bytesReceived > 0 && stopwatch.elapsedMilliseconds > 0) {
+          final downloadTimeSeconds = stopwatch.elapsedMilliseconds / 1000.0;
+          final speedBytesPerSecond = bytesReceived / downloadTimeSeconds;
+          final speedMbps = (speedBytesPerSecond * 8) / (1024 * 1024);
+
+          setState(() {
+            _downloadSpeed = '${speedMbps.toStringAsFixed(2)} Mbps';
+            if (speedMbps < 1) { // Weak connection
+              _speedIndicatorColor = Colors.red;
+            } else if (speedMbps >= 1 && speedMbps < 2) { // Moderate connection
+              _speedIndicatorColor = Colors.yellow;
+            } else { // Good connection (above 3 Mbps)
+              _speedIndicatorColor = Colors.green;
+            }
+          });
+        } else {
+          setState(() {
+            _downloadSpeed = 'Tidak dapat menghitung kecepatan';
+            _speedIndicatorColor = Colors.red;
+          });
+        }
+      } else {
+        setState(() {
+          _downloadSpeed = 'Gagal menguji kecepatan';
+          _speedIndicatorColor = Colors.red;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error testing download speed: $e');
+      setState(() {
+        _downloadSpeed = 'Error: $e';
+        _speedIndicatorColor = Colors.red;
+      });
+    }
+  }
+
+  void _showConnectivityPopup(BuildContext context) {
+    setState(() {
+      _isPopupVisible = true;
+      _downloadSpeed = 'Menghitung...'; // Reset saat pop-up dibuka
+      _speedIndicatorColor = Colors.grey; // Reset warna
+    });
+
+    if (_connectivityResult != ConnectivityResult.none) {
+      _testDownloadSpeed(); // Mulai uji kecepatan saat pop-up dibuka
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+            side: const BorderSide(color: Colors.grey, width: 0.5),
+          ),
+          title: const Text('Status Koneksi Internet'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _connectivityResult == ConnectivityResult.none
+                    ? Icons.signal_wifi_off
+                    : Icons.wifi,
+                color: _connectivityResult == ConnectivityResult.none ? Colors.red : Colors.green,
+                size: 40,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _connectivityResult == ConnectivityResult.none
+                    ? 'Anda tidak terhubung ke internet.'
+                    : 'Anda terhubung ke internet melalui ${_connectivityResult.name}.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: _speedIndicatorColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('Kecepatan: $_downloadSpeed'),
+                ],
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Tutup'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                setState(() {
+                  _isPopupVisible = false;
+                });
+              },
+            ),
+          ],
+        );
+      },
+    ).then((_) {
+      setState(() {
+        _isPopupVisible = false;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String? idGroups = SpUtil.getString('id_groups');
+
+    Widget homeWidget;
+
+    if (idGroups == "3" || idGroups == "5") {
+      homeWidget = const Singgah();
+    } else if (idGroups == "2") {
+      homeWidget = const Admin();
+    } else {
+      SpUtil.clear();
+      homeWidget = const Login();
+    }
+
+    Color fabIconColor;
+    if (_connectivityResult == ConnectivityResult.none) {
+      fabIconColor = Colors.red;
+    } else if (_speedIndicatorColor == Colors.yellow) {
+      fabIconColor = Colors.yellow;
+    } else if (_speedIndicatorColor == Colors.green) {
+      fabIconColor = Colors.green;
+    } else {
+      fabIconColor = Colors.grey;
+    }
+
+    // Since Draggable handles its own positioning, we just need to provide
+    // an initial position if _fabPosition is still Offset.zero.
+    // The actual positioning for Draggable will be handled by its feedback and onDragEnd.
+
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      debugShowCheckedModeBanner: false,
+      title: 'Mobile Absensi',
+      home: Builder(
+        builder: (context) {
+          // Schedule initial position after build to avoid setState during build
+          if (_fabPosition == Offset.zero && mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _fabPosition == Offset.zero) {
+                _setInitialFabPosition();
+              }
+            });
+          }
+
+          return Stack(
+            children: [
+              homeWidget,
+              Positioned(
+                left: _fabPosition.dx,
+                top: _fabPosition.dy,
+                child: Draggable(
+                  feedback: Material(
+                    color: Colors.transparent,
+                    child: FloatingActionButton(
+                      onPressed: null, // Disable press while dragging
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                        side: const BorderSide(color: Colors.grey, width: 0.5),
+                      ),
+                      child: Icon(
+                        _connectivityResult == ConnectivityResult.none
+                            ? Icons.signal_wifi_off
+                            : Icons.wifi,
+                        color: fabIconColor,
+                      ),
+                    ),
+                  ),
+                  childWhenDragging: const SizedBox.shrink(), // Hide original FAB when dragging
+                  onDragEnd: (details) {
+                    setState(() {
+                      // Clamp the new position to stay within screen bounds
+                      _fabPosition = Offset(
+                        details.offset.dx.clamp(0.0, MediaQuery.of(context).size.width - 56.0),
+                        details.offset.dy.clamp(0.0, MediaQuery.of(context).size.height - 56.0),
+                      );
+                    });
+                  },
+                  child: AnimatedOpacity(
+                    opacity: _isPopupVisible ? 0.0 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: GestureDetector(
+                      onTap: () => _showConnectivityPopup(context), // Use GestureDetector for tap
+                      child: FloatingActionButton(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          side: const BorderSide(color: Colors.grey, width: 0.5),
+                        ),
+                        // The onPressed here will actually be triggered by GestureDetector's onTap
+                        onPressed: () {
+                           if (!_isPopupVisible) {
+                            _showConnectivityPopup(context);
+                           }
+                        },
+                        child: Icon(
+                          _connectivityResult == ConnectivityResult.none
+                              ? Icons.signal_wifi_off
+                              : Icons.wifi,
+                          color: fabIconColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      routes: {
+        '/login-first': (context) => const LoginFirst(),
+        '/login': (context) => const Login(),
+        '/absen': (context) => const Absen(),
+        '/dashboard': (context) => const Dashboard(initialIndex: 0,),
+        '/absen-masuk': (context) => const Absen(),
+        '/profil': (context) => const Profile(),
+        '/riwayat': (context) => const RiwayatAbsen(),
+        '/laporan': (context) => const Laporan(),
+        '/create-laporan': (context) => const BuatLaporan(),
+        '/riwayat-laporan': (context) => const LaporanHarian(),
+        '/riwayat-laporan/pengajuan': (context) => const RiwayatPengajuanLhk(),
+        '/status-laporan': (context) => const StatusLaporan(),
+        '/izin': (context) => const Izin(),
+        '/buat_izin': (context) => const BuatIzin(),
+        '/konfirmasi-izin': (context) => const KonfirmasiIzin(),
+        '/detail-konfirmasi-izin': (context) => const DetailKonfirmasiIzinAtasan(),
+        '/apel': (context) => const Apel(),
+        '/senam': (context) => const Senam(),
+        '/pengumuman': (context) => const Pengumuman(),
+        '/wifi/pending': (context) => const WifiPendding(),
+        '/admin': (context) => const Admin(),
+      },
+      onGenerateRoute: (settings) {
+        final uri = Uri.parse(settings.name!);
+        if (uri.pathSegments.length == 3 && uri.pathSegments[0] == 'admin') {
+          final idPegawai = uri.pathSegments[2];
+          final route = uri.pathSegments[1];
+          Widget page;
+          switch (route) {
+            case 'detail':
+              page = DetailPage(idPegawai: idPegawai);
+              break;
+            case 'lhk':
+              page = LhkPage(idPegawai: idPegawai);
+              break;
+            case 'absen':
+              page = AbsenPage(idPegawai: idPegawai);
+              break;
+            default:
+              return null;
+          }
+          return MaterialPageRoute(builder: (context) => page);
+        }
+        return null;
+      },
+    );
+  }
+}

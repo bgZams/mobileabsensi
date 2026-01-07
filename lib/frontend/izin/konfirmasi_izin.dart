@@ -25,6 +25,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   TabController? _controller;
   int selectedIndex = 0;
   bool showFullText = false;
+  
 
   List<Widget> list = [
     const Tab(
@@ -56,17 +57,21 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _controller = TabController(length: list.length, vsync: this);
-    _controller?.addListener(() {
+  @override
+void initState() {
+  super.initState();
+  _controller = TabController(length: list.length, vsync: this);
+  // Hapus listener fetch data di sini jika tidak diperlukan setiap ganti tab
+  // karena data izin dan LHK sudah diambil sekaligus di awal
+  _controller?.addListener(() {
+    if (_controller!.indexIsChanging) { // Hanya picu saat tab benar-benar berubah
       setState(() {
         selectedIndex = _controller!.index;
       });
-      _fetchData();
-    });
-    initializePreferences();
-  }
+    }
+  });
+  initializePreferences();
+}
 
   Future<void> initializePreferences() async {
     await SpUtil.getInstance();
@@ -78,46 +83,52 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   }
 
   Future<void> _fetchData() async {
-    setState(() {
+  // Cegah double loading
+  if (isLoading) return;
+
+  setState(() {
     isLoading = true;
   });
-    if (idUser == null || url == null || idUser!.isEmpty || url!.isEmpty) {
-      debugPrint('Error: idUser or url is empty');
-      return;
+
+  if (idUser == null || url == null || idUser!.isEmpty || url!.isEmpty) {
+    setState(() => isLoading = false);
+    return;
+  }
+
+  try {
+    // MENJALANKAN DUA REQUEST SEKALIGUS (PARALEL)
+    final results = await Future.wait([
+      http.get(Uri.parse('$url/api/riwayat-izin/notif/$idUser'), headers: {'Accept': 'application/json'}),
+      http.get(Uri.parse('$url/api/riwayat-lhk/notif/$idUser'), headers: {'Accept': 'application/json'}),
+    ]);
+
+    final resIzin = results[0];
+    final resLhk = results[1];
+    // Proses data secara lokal dulu tanpa setState
+    List<dynamic> tempIzin = [];
+    List<dynamic> tempLhk = [];
+
+    if (resIzin.statusCode == 200) {
+      tempIzin = json.decode(resIzin.body)['data'] ?? [];
     }
 
-    try {
-      final responseIzin = await http.get(
-        Uri.parse('$url/api/riwayat-izin/notif/$idUser'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-      final responseLhk = await http.get(
-        Uri.parse('$url/api/riwayat-lhk/notif/$idUser'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-      if (responseIzin.statusCode == 200) {
-        _processDataIzin(responseIzin);
-      } else {
-        throw Exception('Tidak ada data LHK ditemukan');
-      }
-      if (responseLhk.statusCode == 200) {
-        _processDataLhk(responseLhk);
-      } else {
-        throw Exception('Tidak ada data LHK ditemukan');
-      }
+    if (resLhk.statusCode == 200) {
+      tempLhk = json.decode(resLhk.body)['data'] ?? [];
+    }
+
+    // Hanya satu kali rebuild untuk menampilkan semua data
+    if (mounted) {
       setState(() {
+        _riwayatIzin = tempIzin;
+        _riwayatLhk = tempLhk;
         isLoading = false;
       });
-    } catch (error) {
-      debugPrint('Error: $error');
     }
+  } catch (error) {
+    debugPrint('Error: $error');
+    if (mounted) setState(() => isLoading = false);
   }
+}
 
   void _processDataIzin(http.Response response) {
     setState(() {
@@ -168,41 +179,37 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
     }
   }
 
-  Future<void> _sendAcception(id, idUser, status) async {
-    try {
-      var response = await http.put(
-        Uri.parse('$url/api/lhk/terima/$id'),
-        body: {
-          'id_user':idUser,
-          'pesan':'Izin diterima',
-          'status': status,
-        }
-      );
-      final data = jsonDecode(response.body);
-      if (response.statusCode == 200) {
-        setState(() {
-          selectedIndex = 1; // Set index to LHK tab
-          _controller?.animateTo(1); // Move to LHK tab
-        });
-        if(mounted){
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data["message"])),
-          );
-        }
-        _fetchData();
-      } else {
-        throw Exception('Gagal menyetujui izin ');
-      }
-    } catch (error) {
-      if (kDebugMode) {
-        print('Error: $error');
-      }
-    } finally {
+  Future<void> _sendAcception(int id, int idUser) async {
+  try {
+    var response = await http.put(
+      Uri.parse('$url/api/lhk/terima/$id'),
+      body: {
+        'id_user': idUser.toString(),
+        'pesan': 'Laporan diterima',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
       setState(() {
-        isLoading = false; // Nonaktifkan skeleton
+        selectedIndex = 1;
+        _controller?.animateTo(1);
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'])),
+        );
+      }
+
+      _fetchData();
     }
+  } catch (e) {
+    debugPrint('Error: $e');
   }
+}
+
 
   Future<void> _refreshData() async {
     await Future.delayed(const Duration(seconds: 2));
@@ -283,7 +290,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   }
 
   Widget _buildIzinItem(BuildContext context, dynamic izin) {
-    String jenisStatus = _getStatus(izin['status'].toString());
+    String jenisStatus = _getStatus(izin['status']);
   
     return Skeletonizer(
       enabled: isLoading,
@@ -395,7 +402,7 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
                 children: [
                   InkWell(
                     onTap: () {
-                      _sendAcception(lhk['id'], lhk['id_user'], lhk['status']);
+                      _sendAcception(lhk['id'], lhk['id_user']);
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -446,17 +453,17 @@ class _KonfirmasiIzinState extends State<KonfirmasiIzin>
   );
 }
 
-  String _getStatus(String statusCode) {
+  String _getStatus(int statusCode) {
     switch (statusCode) {
-      case '2':
+      case 2:
         return 'Dinas Luar';
-      case '3':
+      case 3:
         return 'Izin';
-      case '4':
+      case 4:
         return 'Sakit';
-      case '5':
+      case 5:
         return 'IDLK';
-      case '6':
+      case 6:
         return 'Cuti';
       default:
         return 'Belum Disetujui';

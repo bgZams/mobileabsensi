@@ -62,7 +62,7 @@ class _ScreenshotButtonState extends State<ScreenshotButton>
 Future<String?> _saveScreenshotToGallery(Uint8List pngBytes) async {
   try {
     // Pastikan channel ini sama dengan yang di MainActivity.kt
-    const platform = MethodChannel('com.example.mobileabsensi/gallery_saver'); 
+    const platform = MethodChannel('com.pasbar.mobileabsensi/gallery_saver'); 
     
     final result = await platform.invokeMethod('saveImage', {
       'bytes': pngBytes,
@@ -137,17 +137,17 @@ Future<String?> _saveToIOSGallery(Uint8List pngBytes) async {
           
           // Tampilkan pesan sukses
           // Tampilkan pesan sukses
-if (mounted) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(savedPath != null 
-          ? 'Gambar disimpan di galeri!' 
-          : 'Gambar berhasil diambil!'),
-      duration: const Duration(seconds: 2),
-      backgroundColor: Colors.green,
-    ),
-  );
-}
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(savedPath != null 
+                      ? 'Gambar disimpan di galeri!' 
+                      : 'Gambar berhasil diambil!'),
+                  duration: const Duration(seconds: 2),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
 
           // Callback ketika screenshot berhasil
           widget.onScreenshotTaken?.call();

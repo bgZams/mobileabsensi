@@ -391,9 +391,9 @@ class _BuatLaporanState extends State<BuatLaporan> {
       // bersihkanForm();
       SpUtil.putString('mulai', jamSelesai.text);
       Navigator.pop(context, true);
-      Alert.alertsuccess(context, 'Laporan harian berhasil disimpan');
+      Alert.alertsuccess(context, responseData['message']);
     } else {
-      Alert.alerterror(context, 'Gagal membuat laporan harian');
+      Alert.alerterror(context, responseData['message']);
     }
   }
 

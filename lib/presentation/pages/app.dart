@@ -18,7 +18,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final GlobalKey screenshotKey = GlobalKey();
-
+  
   @override
   Widget build(BuildContext context) {
     final idGroups = SpUtil.getString('id_groups');
@@ -36,7 +36,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Mobile Absensi',
       navigatorKey: navigatorKey,
       
-      home: _ScreenshotWrapper(
+      home: ScreenshotWrapper(
         screenshotKey: screenshotKey,
         child: homeWidget,
       ),
@@ -48,43 +48,34 @@ class _MyAppState extends State<MyApp> {
 }
 
 // Widget wrapper yang menangani screenshot overlay HANYA SEKALI
-class _ScreenshotWrapper extends StatefulWidget {
+class ScreenshotWrapper extends StatefulWidget {
   final GlobalKey screenshotKey;
   final Widget child;
 
-  const _ScreenshotWrapper({
+  const ScreenshotWrapper({
+    super.key,
     required this.screenshotKey,
     required this.child,
   });
 
   @override
-  State<_ScreenshotWrapper> createState() => _ScreenshotWrapperState();
+  State<ScreenshotWrapper> createState() => _ScreenshotWrapperState();
 }
 
-class _ScreenshotWrapperState extends State<_ScreenshotWrapper> {
+
+class _ScreenshotWrapperState extends State<ScreenshotWrapper> {
   bool _hasInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    // Tampilkan overlay setelah widget pertama kali di-build
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Pastikan hanya dipanggil sekali menggunakan flag lokal
       if (!_hasInitialized && mounted) {
         _hasInitialized = true;
         OverlayService.showScreenshotButton(
           context: context,
           screenshotKey: widget.screenshotKey,
-          onScreenshotTaken: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Screenshot berhasil diambil!')),
-              );
-            }
-          },
-          onScreenshotSaved: (String? path) {
-            // Handle jika perlu
-          },
         );
       }
     });

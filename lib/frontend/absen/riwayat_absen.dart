@@ -50,7 +50,6 @@ class RiwayatAbsen extends StatefulWidget {
 
 class RiwayatAbsenState extends State<RiwayatAbsen> {
   final String url = SpUtil.getString("url") ?? '';
-
   List<AbsensiModel> _dataList = [];
   bool _isLoading = true;
   String selectedYear = '';
@@ -224,12 +223,13 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
                                   childCount: _dataList.length,
                                 ),
                               ),
-                    const SliverPadding(padding: EdgeInsets.only(bottom: 30)),
+                    const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
                   ],
                 ),
               ),
             ),
           ),
+          
         ],
       ),
     );
@@ -254,304 +254,307 @@ class RiwayatAbsenState extends State<RiwayatAbsen> {
     return List.generate(currentYear - 2018 + 1, (index) => (2018 + index).toString());
   }
 
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: RichText(
+        text: TextSpan(
+          style: DefaultTextStyle.of(context).style.copyWith(color: Colors.black87, fontSize: 14),
+          children: <TextSpan>[
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(text: value),
+          ],
+        ),
+      ),
+    );
+  }
 
-Widget _buildDetailRow(String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: RichText(
-      text: TextSpan(
-        style: DefaultTextStyle.of(context).style.copyWith(color: Colors.black87, fontSize: 14),
-        children: <TextSpan>[
-          TextSpan(
-            text: '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+  Widget _buildAttendanceTable(String title, List<Map<String, String>> data) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8.0),
+                topRight: Radius.circular(8.0),
+              ),
+            ),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-          TextSpan(text: value),
+          Container(
+            color: Colors.purple.shade50,
+            child: Column(
+              children: data.map((item) => _buildTableRow(item['label']!, item['value']!)).toList(),
+            ),
+          ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
-// Method baru untuk membuat tabel terpisah
-Widget _buildAttendanceTable(String title, List<Map<String, String>> data) {
-  return Container(
-    margin: EdgeInsets.symmetric(vertical: 8.0),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.grey.shade300),
-      borderRadius: BorderRadius.circular(8.0),
-    ),
-    child: Column(
-      children: [
-        // Header tabel
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(12.0),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade400,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(8.0),
-              topRight: Radius.circular(8.0),
+  Widget _buildTableRow(String label, String value) {
+    return Container(
+      color: Colors.purple.shade50,
+      padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
             ),
           ),
-          child: Text(
-            title,
+          Text(
+            ': ',
             style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        // Data tabel
-        Container(
-          color: Colors.purple.shade50,
-          child: Column(
-            children: data.map((item) => _buildTableRow(item['label']!, item['value']!)).toList(),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildTableRow(String label, String value) {
-  return Container(
-    color: Colors.purple.shade50,
-    padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-    child: Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
               color: Colors.grey.shade700,
             ),
           ),
-        ),
-        Text(
-          ': ',
-          style: TextStyle(
-            color: Colors.grey.shade700,
-          ),
-        ),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            style: TextStyle(
-              color: Colors.purple.shade700,
-              fontWeight: FontWeight.w500,
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.purple.shade700,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   void detailDataAbsen(idAbsen) async {
-  try {
-    final response = await http.get(
-      Uri.parse('$url/api/absen/riwayat-absen-detail/$idAbsen'),
-      headers: {
-        'Content-type': 'application/json',
-        'Accept': 'application/json',
-      },
-    );
-    if (mounted) {
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseJson = jsonDecode(response.body);
+    try {
+      final response = await http.get(
+        Uri.parse('$url/api/absen/riwayat-absen-detail/$idAbsen'),
+        headers: {
+          'Content-type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+      if (mounted) {
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> responseJson = jsonDecode(response.body);
 
-        if (responseJson['data'] != null) {
-          final Map<String, dynamic> data = responseJson['data'] as Map<String, dynamic>;
+          if (responseJson['data'] != null) {
+            final Map<String, dynamic> data = responseJson['data'] as Map<String, dynamic>;
 
+            final tanggalAbsen = data['tgl_absen']?.toString() ?? 'N/A';
+            final hari = data['hari']?.toString() ?? 'N/A';
 
-          final tanggalAbsen = data['tgl_absen']?.toString() ?? 'N/A';
-          final hari = data['hari']?.toString() ?? 'N/A';
-
-          String jamMasuk = 'N/A';
-          if (data['timestamp_masuk'] != null) {
-            try {
-              DateTime parsedTime = DateTime.parse(data['timestamp_masuk']);
-              jamMasuk = DateFormat('HH:mm').format(parsedTime);
-            } catch (e) {
-              // print('Error parsing timestamp_masuk: $e');
+            String jamMasuk = 'N/A';
+            if (data['timestamp_masuk'] != null) {
+              try {
+                DateTime parsedTime = DateTime.parse(data['timestamp_masuk']);
+                jamMasuk = DateFormat('HH:mm').format(parsedTime);
+              } catch (e) {}
             }
-          }
 
-          String jamPulang = 'Belum Pulang';
-          if (data['timestamp_pulang'] != null) {
-            try {
-              DateTime parsedTime = DateTime.parse(data['timestamp_pulang']);
-              jamPulang = DateFormat('HH:mm').format(parsedTime);
-            } catch (e) {
-              // print('Error parsing timestamp_pulang: $e');
+            String jamPulang = 'Belum Pulang';
+            if (data['timestamp_pulang'] != null) {
+              try {
+                DateTime parsedTime = DateTime.parse(data['timestamp_pulang']);
+                jamPulang = DateFormat('HH:mm').format(parsedTime);
+              } catch (e) {}
             }
+
+            final ssidMasuk = data['ssid']?.toString() ?? 'Tidak ada data';
+            final ssidPulang = data['ssid_pulang']?.toString() ?? 'Tidak ada data';
+            final totalJamKerja = data['total_jam_kerja']?.toString() ?? '0';
+            final totalTerlambat = data['total_terlambat']?.toString() ?? '0';
+            final totalPulangCepat = data['total_pulang_cepat']?.toString() ?? '0';
+
+            showDialog<void>(
+              context: context,
+              builder: (BuildContext dialogContext) {
+                return AlertDialog(
+                  title: const Text('Detail Absen'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDetailRow('Tanggal Absen', '$tanggalAbsen ($hari)'),
+                        _buildAttendanceTable('DATA MASUK', [
+                          {
+                            'label': 'Jam Masuk',
+                            'value': jamMasuk
+                          },
+                          {
+                            'label': 'SSID Masuk',
+                            'value': ssidMasuk
+                          },
+                        ]),
+                        _buildAttendanceTable('DATA PULANG', [
+                          {
+                            'label': 'Jam Pulang',
+                            'value': jamPulang
+                          },
+                          {
+                            'label': 'SSID Pulang',
+                            'value': ssidPulang
+                          },
+                        ]),
+                        _buildCalculationTable('PERHITUNGAN', [
+                          {
+                            'label': 'Total Jam Kerja',
+                            'value': totalJamKerja
+                          },
+                          {
+                            'label': 'Total Terlambat',
+                            'value': totalTerlambat
+                          },
+                          {
+                            'label': 'Total Pulang Cepat',
+                            'value': totalPulangCepat
+                          },
+                        ]),
+                      ],
+                    ),
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      style: TextButton.styleFrom(textStyle: Theme.of(context).textTheme.labelLarge),
+                      child: const Text('Tutup'),
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tidak ada detail data absen untuk Absen ini.')),
+            );
           }
-
-          final ssidMasuk = data['SSID']?.toString() ?? 'Tidak ada data';
-          final ssidPulang = data['SSID_pulang']?.toString() ?? 'Tidak ada data';
-          final totalJamKerja = data['total_jam_kerja']?.toString() ?? '0';
-          final totalTerlambat = data['total_terlambat']?.toString() ?? '0';
-          final totalPulangCepat = data['total_pulang_cepat']?.toString() ?? '0';
-
-          showDialog<void>(
-            context: context,
-            builder: (BuildContext dialogContext) {
-              return AlertDialog(
-                title: const Text('Detail Absen'),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDetailRow('Tanggal Absen', '$tanggalAbsen ($hari)'),
-                      
-                      // Tabel Data Masuk
-                      _buildAttendanceTable('DATA MASUK', [
-                        {'label': 'Jam Masuk', 'value': jamMasuk},
-                        {'label': 'SSID Masuk', 'value': ssidMasuk},
-                      ]),
-                      
-                      // Tabel Data Pulang
-                      _buildAttendanceTable('DATA PULANG', [
-                        {'label': 'Jam Pulang', 'value': jamPulang},
-                        {'label': 'SSID Pulang', 'value': ssidPulang},
-                      ]),
-                      
-                      // Tabel Perhitungan
-                      _buildCalculationTable('PERHITUNGAN', [
-                        {'label': 'Total Jam Kerja', 'value': totalJamKerja},
-                        {'label': 'Total Terlambat', 'value': totalTerlambat},
-                        {'label': 'Total Pulang Cepat', 'value': totalPulangCepat},
-                      ]),
-                    ],
-                  ),
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    style: TextButton.styleFrom(textStyle: Theme.of(context).textTheme.labelLarge),
-                    child: const Text('Tutup'),
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak ada detail data absen untuk Absen ini.')),
+            SnackBar(content: Text('Gagal mengambil data absen.')),
           );
         }
-      } else {
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengambil data absen.')),
+          const SnackBar(content: Text('Tidak dapat terhubung ke server.')),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak dapat terhubung ke server.')),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  }
+
+  Widget _buildCalculationTable(String title, List<Map<String, String>> data) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade400,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8.0),
+                topRight: Radius.circular(8.0),
+              ),
+            ),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Container(
+            color: Colors.blue.shade50,
+            child: Column(
+              children: data.map((item) => _buildCalculationRow(item['label']!, item['value']!)).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCalculationRow(String label, String value) {
+    return Container(
+      color: Colors.blue.shade50,
+      padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+          Text(
+            ': ',
+            style: TextStyle(
+              color: Colors.grey.shade700,
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.blue.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-Widget _buildCalculationTable(String title, List<Map<String, String>> data) {
-  return Container(
-    margin: EdgeInsets.symmetric(vertical: 8.0),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.grey.shade300),
-      borderRadius: BorderRadius.circular(8.0),
-    ),
-    child: Column(
-      children: [
-        // Header tabel
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(12.0),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade400, // Warna berbeda untuk perhitungan
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(8.0),
-              topRight: Radius.circular(8.0),
-            ),
-          ),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        // Data tabel
-        Container(
-          color: Colors.blue.shade50,
-          child: Column(
-            children: data.map((item) => _buildCalculationRow(item['label']!, item['value']!)).toList(),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildCalculationRow(String label, String value) {
-  return Container(
-    color: Colors.blue.shade50,
-    padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-    child: Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade700,
-            ),
-          ),
-        ),
-        Text(
-          ': ',
-          style: TextStyle(
-            color: Colors.grey.shade700,
-          ),
-        ),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            style: TextStyle(
-              color: Colors.blue.shade700,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
- 
-}
-
-class AbsensiCardItem extends StatelessWidget {
+class AbsensiCardItem extends StatefulWidget {
   final AbsensiModel data;
   final String url;
   final Function(String) onDetailPressed;
@@ -559,12 +562,19 @@ class AbsensiCardItem extends StatelessWidget {
   const AbsensiCardItem({super.key, required this.data, required this.url, required this.onDetailPressed});
 
   @override
+  State<AbsensiCardItem> createState() => _AbsensiCardItemState();
+}
+
+class _AbsensiCardItemState extends State<AbsensiCardItem> {
+  bool _isLoading = false;
+
+  @override
   Widget build(BuildContext context) {
     IconData statusIcon;
     Color statusColor;
     String statusText;
 
-    switch (data.statusAbsen) {
+    switch (widget.data.statusAbsen) {
       case '1':
         statusIcon = FontAwesomeIcons.handPointer;
         statusColor = const Color.fromARGB(255, 128, 249, 170);
@@ -601,10 +611,10 @@ class AbsensiCardItem extends StatelessWidget {
         statusText = 'N/A';
     }
 
-    String jamPulangDisplay = data.jamPulang;
-    bool isToday = data.tanggalAbsen == DateTime.now().toString().substring(0, 10);
+    String jamPulangDisplay = widget.data.jamPulang;
+    bool isToday = widget.data.tanggalAbsen == DateTime.now().toString().substring(0, 10);
 
-    if (data.jamPulang == 'Belum Pulang' && !isToday && SpUtil.getString('id_type') != '1') {
+    if (widget.data.jamPulang == 'Belum Pulang' && !isToday && SpUtil.getString('id_type') != '1') {
       jamPulangDisplay = 'TAP';
     }
 
@@ -617,7 +627,7 @@ class AbsensiCardItem extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.15),
-            spreadRadius: 1,
+            spreadRadius: 8,
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -630,25 +640,24 @@ class AbsensiCardItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _formatDate(data.tanggalAbsen),
+                  _formatDate(widget.data.tanggalAbsen),
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
-                if (data.statusAbsen == '1') ...[
-                  const SizedBox(height: 8),
+                const SizedBox(height: 8),
+                if (widget.data.statusAbsen == '1')
                   Row(
                     children: [
-                      _buildTimeBadge(Icons.login, data.jamMasuk, const Color.fromRGBO(67, 60, 130, 1)),
+                      _buildTimeBadge(Icons.login, widget.data.jamMasuk, const Color.fromRGBO(67, 60, 130, 1)),
                       const SizedBox(width: 12),
                       _buildTimeBadge(Icons.logout, jamPulangDisplay, jamPulangDisplay == 'TAP' ? Colors.red : const Color.fromRGBO(201, 131, 222, 1)),
                     ],
-                  ),
-                ] else ...[
-                  const SizedBox(height: 8),
+                  )
+                else
                   InkWell(
                     onTap: () {
-                      String safeUrl = '$url/${data.file}';
+                      String safeUrl = '${widget.url}/${widget.data.file}';
                       String encodedUrl = Uri.encodeComponent(safeUrl);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => LihatSpt(imageUrl: encodedUrl, keterangan: data.keterangan)));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => LihatSpt(imageUrl: encodedUrl, keterangan: widget.data.keterangan)));
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -666,30 +675,44 @@ class AbsensiCardItem extends StatelessWidget {
                         ],
                       ),
                     ),
-                  )
-                ]
+                  ),
               ],
             ),
           ),
           GestureDetector(
-            onTap: () {
-              if (data.statusAbsen == '1') {
-                onDetailPressed(data.idAbsen);
-              }
-            },
+            onTap: (_isLoading || widget.data.statusAbsen != '1')
+                ? null
+                : () async {
+                    setState(() => _isLoading = true);
+                    try {
+                      await widget.onDetailPressed(widget.data.idAbsen);
+                    } finally {
+                      if (mounted) setState(() => _isLoading = false);
+                    }
+                  },
             child: Column(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
+                  height: 40,
+                  width: 40,
                   decoration: BoxDecoration(
-                    color: statusColor,
+                    color: _isLoading ? Colors.grey[200] : statusColor,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.black12),
                   ),
-                  child: Icon(statusIcon, size: 20, color: Colors.black87),
+                  child: _isLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(2.0),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black87),
+                          ),
+                        )
+                      : Icon(statusIcon, size: 20, color: Colors.black87),
                 ),
                 const SizedBox(height: 4),
-                Text(statusText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                Text(_isLoading ? 'Memuat...' : statusText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               ],
             ),
           )

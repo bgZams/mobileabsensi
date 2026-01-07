@@ -280,11 +280,11 @@ class _NavigasiState extends State<Navigasi> {
                                 child: Column(
                                   children: [
                                     Text(
-                                                                  'App version 1.0.10',
+                                                                  'App version 1.0.11',
                                                                   style: TextStyle(color: const Color.fromARGB(255, 186, 0, 0), fontWeight: FontWeight.w200, fontSize: 12),
                                                                 ),
                                                                 Text(
-                            'Dev by Zamaludin',
+                            'Dev by Zamaluddin, S.Kom',
                             style: TextStyle(color: const Color.fromARGB(255, 255, 255, 255), fontWeight: FontWeight.w100, fontSize: 11),
                           )
                                   ],
@@ -313,6 +313,7 @@ class _NavigasiState extends State<Navigasi> {
                               ),
                               onPressed: () {
                                 SpUtil.putBool('is_login', false);
+                                // SpUtil.clear();
                                 Navigator.pushNamedAndRemoveUntil(
                                   context,
                                   '/login',

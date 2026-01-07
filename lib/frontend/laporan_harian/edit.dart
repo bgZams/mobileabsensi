@@ -89,7 +89,6 @@ class EditLaporanState extends State<EditLaporan> {
     final headers = {
       'Content-Type': 'application/json'
     };
-print(sendUrl);
     String jammulaiText = jammulaiController.text.trim();
     String jamselesaiText = jamselesaiController.text.trim();
 
@@ -119,7 +118,6 @@ print(sendUrl);
       final response = await http.put(Uri.parse(sendUrl), headers: headers, body: body);
 
       var data = jsonDecode(response.body);
-      print(data);
       if (response.statusCode == 200) {
         if (data['status'] == 'success') {
           widget.onUpdate();
@@ -136,11 +134,10 @@ print(sendUrl);
           Alert.alertwarning(context, data['message']);
         }
       } else {
-        Alert.alerterror(context, 'Gagal mengupdate laporan (Status: ${response.statusCode})');
+        Alert.alerterror(context, 'Gagal mengupdate laporan, silakan coba lagi.');
       }
     } catch (error) {
-      print('Error in _saveChanges: $error');
-      Alert.alerterror(context, 'Gagal mengupdate laporan: $error');
+      Alert.alerterror(context, 'Gagal mengupdate laporan');
     }
   }
 

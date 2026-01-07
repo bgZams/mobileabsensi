@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:mobileabsensi/auth/auth_guard.dart';
 import 'package:mobileabsensi/frontend/absen/laporan_harian.dart';
 import 'package:mobileabsensi/frontend/absen/shift.dart';
 import 'package:mobileabsensi/frontend/halaman/izin.dart';
 import 'package:mobileabsensi/frontend/halaman/lhk.dart';
+import 'package:mobileabsensi/presentation/pages/app.dart';
 import 'package:mobileabsensi/presentation/widgets/screen_wrapper.dart'; 
 import 'package:mobileabsensi/frontend/admin/absen.dart';
 import 'package:mobileabsensi/frontend/admin/detail_pegawai.dart';
@@ -23,33 +25,53 @@ import 'package:mobileabsensi/frontend/profile.dart';
 import 'package:mobileabsensi/frontend/senam.dart';
 import 'package:mobileabsensi/frontend/absen/riwayat_absen.dart';
 import 'package:mobileabsensi/frontend/izin/buat.dart';
-// import 'package:mobileabsensi/singgah.dart';
+
 import 'package:mobileabsensi/frontend/teknis/pending_wifi.dart';
 
-/// Fungsi helper untuk membungkus halaman dengan ScreenWrapper dan mengembalikannya sebagai Route.
-/// Fungsi ini digunakan khusus untuk onGenerateRoute yang membutuhkan tipe pengembalian Route.
+
+
 Route<dynamic> buildPageRoute(Widget page) {
-  return MaterialPageRoute(builder: (context) => ScreenWrapper(child: page));
+  final GlobalKey screenshotKey = GlobalKey();
+
+  return MaterialPageRoute(
+    builder: (context) => ScreenshotWrapper(
+      screenshotKey: screenshotKey,
+      child: ScreenWrapper(child: page),
+    ),
+  );
 }
 
-/// Daftar rute statis aplikasi.
-/// Setiap builder harus mengembalikan sebuah Widget.
+
+
+
+
 final Map<String, WidgetBuilder> appRoutes = {
+
+  '/dashboard': (context) => AuthGuard(
+    child: ScreenWrapper(child: Dashboard(initialIndex: 0)),
+  ),
+  '/admin': (context) => AuthGuard(
+    child: ScreenWrapper(child: const Admin()),
+  ),
+  '/absen': (context) => AuthGuard(
+    child: ScreenWrapper(child: const Absen()),
+  ),
+  '/profil': (context) => AuthGuard(
+    child: ScreenWrapper(child: const Profile()),
+  ),
+
   '/login-first': (context) => ScreenWrapper(child: const LoginFirst()),
   '/login': (context) => ScreenWrapper(child: const Login()),
-  '/absen': (context) => ScreenWrapper(child: const Absen()),
   '/shift': (context) => ScreenWrapper(child: const Shift()),
-  '/dashboard': (context) => ScreenWrapper(child: Dashboard(initialIndex: 0)),
   '/absen-masuk': (context) => ScreenWrapper(child: const Absen()),
-  '/profil': (context) => ScreenWrapper(child: const Profile()),
   '/riwayat': (context) => ScreenWrapper(child: const RiwayatAbsen()),
-  // '/laporan': (context) => ScreenWrapper(child: const Laporan()),
+  
   '/laporan': (context) => ScreenWrapper(child: const LhkFront()),
   '/create-laporan': (context) => ScreenWrapper(child: const BuatLaporan()),
   '/riwayat-laporan': (context) => ScreenWrapper(child: const LaporanHarian()),
   '/riwayat-laporan/pengajuan': (context) => ScreenWrapper(child: const RiwayatPengajuanLhk()),
   '/status-laporan': (context) => ScreenWrapper(child: const StatusLaporan()),
-  // '/izin': (context) => ScreenWrapper(child: const Izin()),
+  
   '/izin': (context) => ScreenWrapper(child: const IzinFront()),
   '/buat_izin': (context) => ScreenWrapper(child: const BuatIzin()),
   '/konfirmasi-izin': (context) => ScreenWrapper(child: const KonfirmasiIzin()),
@@ -58,11 +80,10 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/senam': (context) => ScreenWrapper(child: const Senam()),
   '/pengumuman': (context) => ScreenWrapper(child: const Pengumuman()),
   '/wifi/pending': (context) => ScreenWrapper(child: const WifiPendding()),
-  '/admin': (context) => ScreenWrapper(child: const Admin()),
 };
 
-/// Fungsi untuk menangani rute dinamis (misalnya dengan ID).
-/// Fungsi ini harus mengembalikan sebuah Route.
+
+
 Route<dynamic>? onGenerateRoute(RouteSettings settings) {
   final uri = Uri.parse(settings.name!);
   if (uri.pathSegments.length == 3 && uri.pathSegments[0] == 'admin') {
@@ -83,7 +104,7 @@ Route<dynamic>? onGenerateRoute(RouteSettings settings) {
         return null;
     }
     if (page != null) {
-      // Di sini kita menggunakan helper yang mengembalikan Route
+      
       return buildPageRoute(page);
     }
   }

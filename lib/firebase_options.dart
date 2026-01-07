@@ -70,7 +70,7 @@ class DefaultFirebaseOptions {
     projectId: 'mobile-absensi-6d1a7',
     databaseURL: 'https://mobile-absensi-6d1a7-default-rtdb.firebaseio.com',
     storageBucket: 'mobile-absensi-6d1a7.appspot.com',
-    iosBundleId: 'com.example.mobileabsensi',
+    iosBundleId: 'com.pasbar.mobileabsensi',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -80,6 +80,6 @@ class DefaultFirebaseOptions {
     projectId: 'mobile-absensi-6d1a7',
     databaseURL: 'https://mobile-absensi-6d1a7-default-rtdb.firebaseio.com',
     storageBucket: 'mobile-absensi-6d1a7.appspot.com',
-    iosBundleId: 'com.example.mobileabsensi.RunnerTests',
+    iosBundleId: 'com.pasbar.mobileabsensi.RunnerTests',
   );
 }
